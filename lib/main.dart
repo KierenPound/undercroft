@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'repositories/sections_repository.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'views/auth_view.dart';
 import 'views/home_dashboard_view.dart';
 import 'views/onboarding_view.dart';
+import 'views/section_detail_view.dart';
 import 'views/who_to_notify_detail_view.dart';
 import 'views/who_to_notify_list_view.dart';
 
@@ -84,6 +86,13 @@ final _router = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const HomeDashboardView(),
+    ),
+    GoRoute(
+      path: '/section',
+      builder: (context, state) {
+        final config = state.extra as SectionConfig;
+        return SectionDetailView(config: config);
+      },
     ),
     GoRoute(
       path: '/who-to-notify',

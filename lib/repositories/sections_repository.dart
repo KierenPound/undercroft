@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/attachment.dart';
 import '../models/checklist_item.dart';
 import '../models/prep_section.dart';
+import '../services/estate_service.dart';
 
 class SectionsRepository {
   final SupabaseClient _client;
@@ -27,6 +28,20 @@ class SectionsRepository {
         .maybeSingle();
 
     if (existing != null) {
+      final currentYoutube = existing['youtube_url'] as String? ?? '';
+      final currentOrder = existing['order_index'] as int? ?? 0;
+      if (currentYoutube != youtubeUrl || currentOrder != orderIndex) {
+        final updated = await _client
+            .from('sections')
+            .update({
+              'youtube_url': youtubeUrl,
+              'order_index': orderIndex,
+            })
+            .eq('id', existing['id'])
+            .select()
+            .single();
+        return PrepSection.fromJson(updated);
+      }
       return PrepSection.fromJson(existing);
     }
 
@@ -195,5 +210,33 @@ final wtnSectionProvider = FutureProvider.autoDispose
     orderIndex: 2,
     isStandard: true,
     youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
+  );
+});
+
+class SectionConfig {
+  final String title;
+  final int orderIndex;
+  final String youtubeUrl;
+
+  const SectionConfig({
+    required this.title,
+    required this.orderIndex,
+    this.youtubeUrl = '',
+  });
+}
+
+final sectionByTitleProvider = FutureProvider.autoDispose
+    .family<PrepSection, SectionConfig>((ref, config) async {
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) {
+    throw Exception('No estate found');
+  }
+  final repo = ref.watch(sectionsRepositoryProvider);
+  return repo.getOrCreateSection(
+    estateId: estateId,
+    title: config.title,
+    orderIndex: config.orderIndex,
+    isStandard: true,
+    youtubeUrl: config.youtubeUrl,
   );
 });
