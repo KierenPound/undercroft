@@ -1,0 +1,65 @@
+name: undercroft
+description: Multi-platform (iOS + Android) estate preparation companion app.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Supabase backend (shared schema + RLS + storage with FamilyPrep iOS app)
+  supabase_flutter: ^2.8.0
+
+  # State management (mirrors iOS @Observable + @EnvironmentObject)
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # PDF viewing (replaces iOS PDFKit)
+  pdfx: ^2.8.0
+
+  # YouTube player (replaces WKWebView + WKScriptMessageHandler bridge)
+  youtube_player_iframe: ^5.2.0
+
+  # Local storage (replaces UserDefaults / FileManager)
+  shared_preferences: ^2.3.3
+
+  # Launching URLs (web links, phone numbers)
+  url_launcher: ^6.3.1
+
+  # File & photo picking for attachments
+  image_picker: ^1.1.2
+  file_picker: ^8.1.2
+
+  # HTTP client (works on web + mobile for PDF thumbnail downloads)
+  http: ^1.2.0
+
+  # App icon generation
+  flutter_launcher_icons: ^0.13.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/pdfs/
+    - assets/data/
+    - assets/icon/
+    - assets/fonts/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/gravestone.jpeg"
+  remove_alpha_ios: true
