@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/seed_data.dart';
 import '../models/attachment.dart';
 import '../models/checklist_item.dart';
 import '../models/prep_section.dart';
@@ -189,6 +190,35 @@ class SectionsRepository {
     }
     await _client.from('attachments').delete().eq('id', attachment.id);
   }
+
+  /// Seeds a freshly created estate with the default sections and their
+  /// starter checklist items.
+  ///
+  /// Safe to call multiple times — a section's checklist items are only
+  /// inserted if that section currently has none, so existing user data is
+  /// never overwritten.
+  Future<void> seedDefaults(String estateId) async {
+    for (final section in defaultSections) {
+      final created = await getOrCreateSection(
+        estateId: estateId,
+        title: section.title,
+        orderIndex: section.orderIndex,
+        isStandard: true,
+        youtubeUrl: section.youtubeUrl,
+      );
+
+      final existing = await fetchChecklistItems(created.id);
+      if (existing.isNotEmpty) continue;
+
+      for (var i = 0; i < section.checklistItems.length; i++) {
+        await addChecklistItem(
+          sectionId: created.id,
+          text: section.checklistItems[i],
+          orderIndex: i,
+        );
+      }
+    }
+  }
 }
 
 final sectionsRepositoryProvider = Provider<SectionsRepository>((ref) {
@@ -224,6 +254,54 @@ class SectionConfig {
     this.youtubeUrl = '',
   });
 }
+
+/// All known sections with their configs. Used both by the home dashboard
+/// grid and by the `/section/:title` route so the section can be looked up
+/// by title (survives browser refreshes, unlike `go_router`'s `extra`).
+const List<SectionConfig> allSectionConfigs = [
+  SectionConfig(
+    title: 'What to Do First',
+    orderIndex: 0,
+    youtubeUrl: 'https://www.youtube.com/watch?v=b4ZypVnbYHM',
+  ),
+  SectionConfig(
+    title: 'Legal Documents',
+    orderIndex: 1,
+    youtubeUrl: 'https://youtu.be/AL8chWFuM-s',
+  ),
+  SectionConfig(
+    title: 'Who to Notify',
+    orderIndex: 2,
+    youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
+  ),
+  SectionConfig(
+    title: 'Running the Houses',
+    orderIndex: 3,
+    youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
+  ),
+  SectionConfig(
+    title: 'Funeral Arrangements',
+    orderIndex: 4,
+    youtubeUrl: 'https://www.youtube.com/watch?v=02T6xLNXEE0',
+  ),
+  SectionConfig(
+    title: 'Cars',
+    orderIndex: 5,
+    youtubeUrl: 'https://www.youtube.com/watch?v=rbgiJu7YFvo',
+  ),
+  SectionConfig(
+    title: 'Confirmation',
+    orderIndex: 6,
+    youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
+  ),
+  SectionConfig(
+    title: "Kieren's Jukebox",
+    orderIndex: 7,
+  ),
+];
+
+SectionConfig? sectionConfigByTitle(String title) =>
+    allSectionConfigs.where((c) => c.title == title).firstOrNull;
 
 final sectionByTitleProvider = FutureProvider.autoDispose
     .family<PrepSection, SectionConfig>((ref, config) async {

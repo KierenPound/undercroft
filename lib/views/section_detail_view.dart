@@ -6,7 +6,9 @@ import '../services/estate_service.dart';
 import 'widgets/attachments_section.dart';
 import 'widgets/checklist_section.dart';
 import 'widgets/notes_section.dart';
+import 'widgets/photo_section.dart';
 import 'widgets/song_for_the_page_section.dart';
+import 'widgets/what_to_do_first_dashboard.dart';
 
 class SectionDetailView extends ConsumerWidget {
   final SectionConfig config;
@@ -56,7 +58,24 @@ class SectionDetailView extends ConsumerWidget {
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    if (section.title == 'What to Do First')
+                      WhatToDoFirstDashboard(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        youtubeUrl: section.youtubeUrl,
+                      )
+                    else ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/wtdl_1.jpg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 24),
+                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    ],
                     const SizedBox(height: 24),
                     ChecklistSection(
                       sectionId: section.id,

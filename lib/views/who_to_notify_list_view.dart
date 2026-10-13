@@ -10,6 +10,7 @@ import '../services/estate_service.dart';
 import 'widgets/attachments_section.dart';
 import 'widgets/checklist_section.dart';
 import 'widgets/notes_section.dart';
+import 'widgets/photo_section.dart';
 import 'widgets/song_for_the_page_section.dart';
 
 final whoToNotifyListProvider =
@@ -86,6 +87,14 @@ class WhoToNotifyListView extends ConsumerWidget {
                     return ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
+                        PhotoSection(
+                          sectionId: section.id,
+                          estateId: estateId,
+                          isOwner: isOwner,
+                          defaultAsset: 'assets/images/wtdl_1.jpg',
+                          sectionTitle: 'Who to Notify',
+                        ),
+                        const SizedBox(height: 24),
                         const _LifeLedgerCallout(),
                         if (entries.isEmpty)
                           _EmptyState(

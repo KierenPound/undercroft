@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class OnboardingView extends StatefulWidget {
-  final VoidCallback onComplete;
+import '../repositories/sections_repository.dart';
+
+class OnboardingView extends ConsumerStatefulWidget {
+  final ValueChanged<String> onComplete;
 
   const OnboardingView({super.key, required this.onComplete});
 
   @override
-  State<OnboardingView> createState() => _OnboardingViewState();
+  ConsumerState<OnboardingView> createState() => _OnboardingViewState();
 }
 
-class _OnboardingViewState extends State<OnboardingView> {
+class _OnboardingViewState extends ConsumerState<OnboardingView> {
   bool _isOwner = true;
   final _nameController = TextEditingController();
   final _codeController = TextEditingController();
@@ -44,6 +47,8 @@ class _OnboardingViewState extends State<OnboardingView> {
     }
 
     try {
+      String? completedEstateId;
+
       if (_isOwner) {
         final estateName = _nameController.text.trim();
         if (estateName.isEmpty) {
@@ -51,14 +56,47 @@ class _OnboardingViewState extends State<OnboardingView> {
           return;
         }
 
-        await client.rpc('create_estate', params: {
+        // create_estate is a SECURITY DEFINER function that deletes any
+        // existing estate owned by this user, creates a fresh one, and
+        // guarantees the owner access row — all while bypassing RLS so the
+        // insert never fails on policy checks.
+        final estateId = await client.rpc('create_estate', params: {
           'estate_name': estateName,
         });
+
+        completedEstateId = estateId as String?;
+
+        // Seed the new estate with default sections and starter checklist
+        // items. This runs only for owners; executors joining an existing
+        // estate inherit whatever the owner already set up.
+        if (completedEstateId != null) {
+          final repo = ref.read(sectionsRepositoryProvider);
+          await repo.seedDefaults(completedEstateId);
+        }
       } else {
         final code = _codeController.text.trim().toUpperCase();
         if (code.isEmpty) {
           setState(() => _error = 'Please enter the invite code.');
           return;
+        }
+
+        // If this user already has accepted access to an estate (e.g. they
+        // are the owner testing the invite flow on their own account), don't
+        // let them claim an executor invite — they already have a role.
+        final existing = await client
+            .from('estate_access')
+            .select('estate_id, role')
+            .eq('user_id', user.id)
+            .eq('status', 'accepted')
+            .limit(1);
+
+        if (existing.isNotEmpty) {
+          final existingEstateId = existing.first['estate_id'] as String?;
+          if (existingEstateId != null) {
+            setState(() => _error =
+                'You already have access to an estate. Sign out and use a different account to join as an executor.');
+            return;
+          }
         }
 
         final invite = await client
@@ -79,13 +117,17 @@ class _OnboardingViewState extends State<OnboardingView> {
           'user_id': user.id,
           'status': 'accepted',
         }).eq('id', invite['id'] as String);
+
+        completedEstateId = invite['estate_id'] as String?;
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('All set!')),
         );
-        widget.onComplete();
+        if (completedEstateId != null) {
+          widget.onComplete(completedEstateId);
+        }
       }
     } catch (e) {
       if (mounted) {

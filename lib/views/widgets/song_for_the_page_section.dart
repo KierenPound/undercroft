@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -27,14 +28,31 @@ class _SongForThePageSectionState extends State<SongForThePageSection> {
     super.initState();
     final videoId = _videoId;
     if (videoId != null) {
+      final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+      final params = YoutubePlayerParams(
+        showFullscreenButton: true,
+        showControls: true,
+        mute: false,
+        playsInline: true,
+        // Use youtube-nocookie.com as the embed host on all platforms.
+        // VEVO/music videos restrict embedding on the standard youtube.com
+        // host for non-partner domains (e.g. localhost), but play fine via
+        // the nocookie host. On Android this also bypasses error 152.
+        origin: 'https://www.youtube-nocookie.com',
+        // Spoof a desktop Chrome user-agent on Android WebView. YouTube's
+        // iframe player refuses playback (error 152) when it detects the
+        // default WebView UA (which contains "; wv").
+        userAgent: isAndroid
+            ? 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            : null,
+      );
+
       _controller = YoutubePlayerController.fromVideoId(
         videoId: videoId,
         autoPlay: false,
-        params: const YoutubePlayerParams(
-          showFullscreenButton: true,
-          showControls: true,
-          mute: false,
-        ),
+        params: params,
       );
     }
   }

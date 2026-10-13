@@ -8,8 +8,10 @@ import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'views/auth_view.dart';
 import 'views/home_dashboard_view.dart';
+import 'views/kierens_jukebox_view.dart';
 import 'views/onboarding_view.dart';
 import 'views/section_detail_view.dart';
+import 'views/settings_view.dart';
 import 'views/who_to_notify_detail_view.dart';
 import 'views/who_to_notify_list_view.dart';
 
@@ -46,13 +48,15 @@ class AppRouter extends ChangeNotifier {
 
   Future<void> _checkEstate() async {
     try {
-      final row = await Supabase.instance.client
+      final rows = await Supabase.instance.client
           .from('estate_access')
           .select('estate_id')
           .eq('user_id', _user!.id)
           .eq('status', 'accepted')
-          .maybeSingle();
-      _estateId = row != null ? row['estate_id'] as String : null;
+          .limit(1);
+      _estateId = rows.isNotEmpty
+          ? rows.first['estate_id'] as String?
+          : null;
     } catch (_) {
       _estateId = null;
     } finally {
@@ -67,6 +71,15 @@ class AppRouter extends ChangeNotifier {
     notifyListeners();
     if (_user != null) _checkEstate();
   }
+
+  /// Called by onboarding after successfully creating/joining an estate.
+  /// Avoids relying on the async _checkEstate() query (which may be gated
+  /// by RLS) to detect the estate.
+  void setEstateId(String id) {
+    _estateId = id;
+    _checked = true;
+    notifyListeners();
+  }
 }
 
 final _router = GoRouter(
@@ -80,7 +93,7 @@ final _router = GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => OnboardingView(
-        onComplete: () => _appRouter.refresh(),
+        onComplete: (estateId) => _appRouter.setEstateId(estateId),
       ),
     ),
     GoRoute(
@@ -88,9 +101,17 @@ final _router = GoRouter(
       builder: (context, state) => const HomeDashboardView(),
     ),
     GoRoute(
-      path: '/section',
+      path: '/section/:title',
       builder: (context, state) {
-        final config = state.extra as SectionConfig;
+        final title = Uri.decodeComponent(state.pathParameters['title'] ?? '');
+        final config = sectionConfigByTitle(title);
+        if (config == null) {
+          // Unknown section — redirect to the home dashboard.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) context.go('/');
+          });
+          return const Scaffold(body: SizedBox.shrink());
+        }
         return SectionDetailView(config: config);
       },
     ),
@@ -99,11 +120,19 @@ final _router = GoRouter(
       builder: (context, state) => const WhoToNotifyListView(),
     ),
     GoRoute(
+      path: '/kierens-jukebox',
+      builder: (context, state) => const KierensJukeboxView(),
+    ),
+    GoRoute(
       path: '/who-to-notify/:id',
       builder: (context, state) {
         final id = state.pathParameters['id']!;
         return WhoToNotifyDetailView(whoToNotifyId: id);
       },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsView(),
     ),
   ],
   redirect: (context, state) {
