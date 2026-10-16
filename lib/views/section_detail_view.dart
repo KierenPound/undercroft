@@ -83,7 +83,8 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/gemini_legal_800.jpeg',
+                        defaultAsset:
+                            'assets/images/defaults/default_legal_documents.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),
@@ -98,7 +99,8 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/confirmation_1.jpg',
+                        defaultAsset:
+                            'assets/images/defaults/default_confirmation.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),
@@ -110,7 +112,8 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/gemini_cars_800.jpeg',
+                        defaultAsset:
+                            'assets/images/defaults/default_cars.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),
@@ -122,7 +125,8 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/funeral_gemini.jpeg',
+                        defaultAsset:
+                            'assets/images/defaults/default_funeral.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),
@@ -137,7 +141,8 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/gemini_houses_800.jpeg',
+                        defaultAsset:
+                            'assets/images/defaults/default_running_house.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),

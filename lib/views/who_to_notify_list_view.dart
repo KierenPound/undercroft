@@ -71,7 +71,8 @@ class WhoToNotifyListView extends ConsumerWidget {
                       sectionId: section.id,
                       estateId: estateId,
                       isOwner: isOwner,
-                      defaultAsset: 'assets/images/who_to_notify_1.jpg',
+                      defaultAsset:
+                          'assets/images/defaults/default_who_to_notify.jpeg',
                       sectionTitle: 'Who to Notify',
                     ),
                     const SizedBox(height: 24),

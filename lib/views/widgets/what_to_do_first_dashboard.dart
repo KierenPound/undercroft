@@ -621,7 +621,7 @@ class _WhatToDoFirstDashboardState
 
   Widget _defaultMemoryImage() {
     return Image.asset(
-      'assets/images/wtdl_1.jpg',
+      'assets/images/defaults/default_wtdf.jpeg',
       fit: BoxFit.cover,
       width: double.infinity,
       errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
@@ -1908,19 +1908,19 @@ class _FullscreenPhotoViewer extends StatelessWidget {
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Image.asset(
-                      'assets/images/wtdl_1.jpg',
+                      'assets/images/defaults/default_wtdf.jpeg',
                       fit: BoxFit.contain,
                       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     );
                   },
                   errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/wtdl_1.jpg',
+                    'assets/images/defaults/default_wtdf.jpeg',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 )
               : Image.asset(
-                  'assets/images/wtdl_1.jpg',
+                  'assets/images/defaults/default_wtdf.jpeg',
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
