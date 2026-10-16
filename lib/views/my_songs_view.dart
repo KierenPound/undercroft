@@ -831,7 +831,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                   borderRadius: BorderRadius.circular(14),
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: YoutubePlayer(controller: _controller),
+                    child: YoutubePlayer(
+                      controller: _controller,
+                      keepAlive: true,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

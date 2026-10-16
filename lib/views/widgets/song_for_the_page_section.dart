@@ -128,6 +128,7 @@ class _SongForThePageSectionState extends State<SongForThePageSection> {
                           aspectRatio: 16 / 9,
                           child: YoutubePlayer(
                             controller: _controller!,
+                            keepAlive: true,
                           ),
                         ),
                       ),
