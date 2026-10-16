@@ -14,6 +14,21 @@ class SectionsRepository {
 
   SectionsRepository(this._client);
 
+  /// Signed URLs for the private `estate-documents` bucket, keyed by storage
+  /// path, with the moment each one stops being reused.
+  ///
+  /// Supabase mints a fresh token on every signing call, so the URL string for
+  /// the same object changes between fetches. Flutter's ImageCache is keyed by
+  /// URL, so an unstable URL means every visit to a section re-downloads the
+  /// photo. Handing back the same string while it is still valid lets repeat
+  /// visits come straight from the in-memory image cache.
+  final Map<String, ({String url, DateTime reuseUntil})> _signedUrls = {};
+
+  static const Duration _signedUrlTtl = Duration(seconds: 3600);
+
+  /// Re-mint this long before expiry, so a URL already in flight never 400s.
+  static const Duration _signedUrlRenewMargin = Duration(minutes: 5);
+
   Future<PrepSection> getOrCreateSection({
     required String estateId,
     required String title,
@@ -141,15 +156,32 @@ class SectionsRepository {
       final a = attachments[i];
       if (a.storagePath.isNotEmpty) {
         try {
-          final signedUrl = await _client.storage
-              .from('estate-documents')
-              .createSignedUrl(a.storagePath, 3600);
-          attachments[i] = a.copyWith(downloadUrl: signedUrl);
+          attachments[i] =
+              a.copyWith(downloadUrl: await _signedUrl(a.storagePath));
         } catch (_) {}
       }
     }
 
     return attachments;
+  }
+
+  /// A stable signed URL for [storagePath], reused until shortly before it
+  /// expires (see [_signedUrls]).
+  Future<String> _signedUrl(String storagePath) async {
+    final cached = _signedUrls[storagePath];
+    final now = DateTime.now();
+    if (cached != null && now.isBefore(cached.reuseUntil)) {
+      return cached.url;
+    }
+
+    final url = await _client.storage
+        .from('estate-documents')
+        .createSignedUrl(storagePath, _signedUrlTtl.inSeconds);
+    _signedUrls[storagePath] = (
+      url: url,
+      reuseUntil: now.add(_signedUrlTtl - _signedUrlRenewMargin),
+    );
+    return url;
   }
 
   Future<Attachment> uploadAttachment({

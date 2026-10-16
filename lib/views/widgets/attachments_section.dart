@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -15,7 +16,17 @@ import '../../repositories/sections_repository.dart';
 final attachmentsProvider = FutureProvider.autoDispose
     .family<List<Attachment>, String>((ref, sectionId) async {
   final repo = ref.watch(sectionsRepositoryProvider);
-  return repo.fetchAttachments(sectionId);
+  final attachments = await repo.fetchAttachments(sectionId);
+
+  // Hold the result for a few minutes after the last widget stops listening,
+  // so returning to a section renders its photo straight away instead of
+  // re-running the query and re-showing the placeholder. An upload still
+  // refetches immediately: those paths call ref.refresh/invalidate.
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 5), link.close);
+  ref.onDispose(timer.cancel);
+
+  return attachments;
 });
 
 class AttachmentsSection extends ConsumerStatefulWidget {

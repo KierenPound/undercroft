@@ -8,13 +8,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
 import 'attachments_section.dart';
+import 'photo_section.dart';
 import 'song_for_the_page_section.dart';
 
 /// What To Do First rich-media dashboard.
 ///
 /// Cloned from the FamilyPrep (iOS) `WhatToDoFirstDashboardView`. Contains:
-/// 1. Memory — a replaceable photo (defaults to asset `wtdl_1`), persisted to
-///    Supabase storage via the existing attachments mechanism.
+/// 1. Memory — a replaceable photo (defaults to the bundled
+///    `assets/images/defaults/default_wtdf.jpeg`), persisted to Supabase
+///    storage via the existing attachments mechanism.
 /// 2. Immediate things you need to do
 /// 3. Medical certificate
 /// 4. Death certificate
@@ -412,12 +414,15 @@ class _WhatToDoFirstDashboardState
   Widget build(BuildContext context) {
     // Use valueOrNull so background re-fetches don't momentarily clear the
     // memory photo / certificates (which would cause a visible flicker).
-    final attachments =
-        ref.watch(attachmentsProvider(widget.sectionId)).valueOrNull ??
-            <Attachment>[];
+    final asyncAttachments = ref.watch(attachmentsProvider(widget.sectionId));
+    final attachments = asyncAttachments.valueOrNull ?? <Attachment>[];
     final memoryAttachment = _findMemoryAttachment(attachments);
     final petAttachment = _findPetAttachment(attachments);
     final certificateAttachments = _findCertificateAttachments(attachments);
+    // Hold the Memory photo until the first fetch resolves: painting the
+    // bundled default in the meantime shows two images in sequence.
+    final memoryPending =
+        asyncAttachments.isLoading && !asyncAttachments.hasValue;
 
     final asyncSection = ref.watch(sectionProvider(widget.sectionId));
     asyncSection.maybeWhen(
@@ -462,7 +467,7 @@ class _WhatToDoFirstDashboardState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildMemorySection(memoryAttachment),
+        _buildMemorySection(memoryAttachment, memoryPending),
         const SizedBox(height: 28),
         _buildImmediateSection(),
         const SizedBox(height: 28),
@@ -529,7 +534,7 @@ class _WhatToDoFirstDashboardState
 
   // MARK: - Memory
 
-  Widget _buildMemorySection(Attachment? memoryAttachment) {
+  Widget _buildMemorySection(Attachment? memoryAttachment, bool pending) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -551,22 +556,27 @@ class _WhatToDoFirstDashboardState
                     borderRadius: BorderRadius.circular(11),
                     child: AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: memoryAttachment != null &&
-                              memoryAttachment.downloadUrl.isNotEmpty
-                          ? Image.network(
-                              memoryAttachment.downloadUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              gaplessPlayback: true,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return _defaultMemoryImage();
-                              },
-                              errorBuilder: (_, __, ___) =>
-                                  _defaultMemoryImage(),
-                            )
-                          : _defaultMemoryImage(),
+                      child: pending
+                          ? const MemoryPhotoPlaceholder()
+                          : memoryAttachment != null &&
+                                  memoryAttachment.downloadUrl.isNotEmpty
+                              ? Image.network(
+                                  memoryAttachment.downloadUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  gaplessPlayback: true,
+                                  // Hold the placeholder until the stored
+                                  // photo has pixels: the default here would
+                                  // show as a second image fading out.
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const MemoryPhotoPlaceholder();
+                                  },
+                                  errorBuilder: (_, __, ___) =>
+                                      _defaultMemoryImage(),
+                                )
+                              : _defaultMemoryImage(),
                     ),
                   ),
                 ),
@@ -577,9 +587,11 @@ class _WhatToDoFirstDashboardState
                         size: 14, color: Colors.blue),
                     const SizedBox(width: 4),
                     Text(
-                      memoryAttachment != null
-                          ? 'Tap to expand'
-                          : 'Family photograph',
+                      pending
+                          ? ''
+                          : memoryAttachment != null
+                              ? 'Tap to expand'
+                              : 'Family photograph',
                       style:
                           TextStyle(fontSize: 12, color: Colors.blue.shade700),
                     ),
@@ -1907,10 +1919,8 @@ class _FullscreenPhotoViewer extends StatelessWidget {
                   gaplessPlayback: true,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return Image.asset(
-                      'assets/images/defaults/default_wtdf.jpeg',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
                     );
                   },
                   errorBuilder: (_, __, ___) => Image.asset(

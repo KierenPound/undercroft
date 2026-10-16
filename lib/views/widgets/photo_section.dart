@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
+import '../../services/estate_service.dart';
 import 'attachments_section.dart';
 
 /// A reusable photo section that can be added to any section.
@@ -11,6 +12,15 @@ import 'attachments_section.dart';
 /// Cloned from the Memory section in [WhatToDoFirstDashboard]. Shows a
 /// default asset image that the estate owner can replace with their own
 /// upload (persisted to Supabase storage via the attachments mechanism).
+///
+/// The photo is resolved before anything is painted, so only one image is
+/// ever shown:
+///
+/// 1. While the user's role is unknown, a neutral placeholder.
+/// 2. No role (a brand-new signup who has not joined an estate): the bundled
+///    default, without querying Supabase at all.
+/// 3. A role: whatever is stored for the section, falling back to the
+///    bundled default when nothing has been uploaded.
 class PhotoSection extends ConsumerStatefulWidget {
   final String sectionId;
   final String estateId;
@@ -109,16 +119,29 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncAttachments =
-        ref.watch(attachmentsProvider(widget.sectionId));
-    // Keep previously-loaded data during background re-fetches so the photo
-    // doesn't momentarily fall back to the default (flicker).
-    final attachments = asyncAttachments.valueOrNull ?? <Attachment>[];
-    final photoAttachment = _findPhotoAttachment(attachments);
-    // True only while waiting for the very first load — show a neutral
-    // placeholder instead of flashing the default asset before the real photo.
-    final isFirstLoad =
-        asyncAttachments.isLoading && !asyncAttachments.hasValue;
+    // A user with no role at all has not joined an estate yet, so there is
+    // nothing stored for them: the bundled default is the final answer and
+    // Supabase is never queried.
+    final asyncRole = ref.watch(estateRoleProvider);
+    final hasRole = (asyncRole.valueOrNull ?? '').isNotEmpty;
+
+    Attachment? photoAttachment;
+    // True while the photo's source is still unknown, so we can hold a
+    // neutral placeholder instead of painting an image about to be replaced.
+    var resolving = !asyncRole.hasValue;
+    if (asyncRole.hasValue && hasRole) {
+      final asyncAttachments =
+          ref.watch(attachmentsProvider(widget.sectionId));
+      // Keep previously-loaded data during background re-fetches so a stored
+      // photo doesn't momentarily fall back to the default (flicker).
+      if (asyncAttachments.hasValue) {
+        photoAttachment = _findPhotoAttachment(
+          asyncAttachments.valueOrNull ?? const <Attachment>[],
+        );
+      } else {
+        resolving = asyncAttachments.isLoading;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,31 +164,9 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
                     borderRadius: BorderRadius.circular(11),
                     child: AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: isFirstLoad
-                          ? Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : (photoAttachment != null &&
-                                  photoAttachment.downloadUrl.isNotEmpty
-                              ? Image.network(
-                                  photoAttachment.downloadUrl,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  gaplessPlayback: true,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return _defaultImage();
-                                  },
-                                  errorBuilder: (_, __, ___) =>
-                                      _defaultImage(),
-                                )
-                              : _defaultImage()),
+                      child: resolving
+                          ? const MemoryPhotoPlaceholder()
+                          : _photoImage(photoAttachment),
                     ),
                   ),
                 ),
@@ -176,9 +177,11 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
                         size: 14, color: Colors.blue),
                     const SizedBox(width: 4),
                     Text(
-                      photoAttachment != null
-                          ? 'Tap to expand'
-                          : '${widget.sectionTitle} photograph',
+                      resolving
+                          ? ''
+                          : photoAttachment != null
+                              ? 'Tap to expand'
+                              : '${widget.sectionTitle} photograph',
                       style: TextStyle(
                           fontSize: 12, color: Colors.blue.shade700),
                     ),
@@ -215,6 +218,23 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _photoImage(Attachment? photoAttachment) {
+    if (photoAttachment == null || photoAttachment.downloadUrl.isEmpty) {
+      return _defaultImage();
+    }
+    return Image.network(
+      photoAttachment.downloadUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      gaplessPlayback: true,
+      // Hold the placeholder until the stored photo has pixels: returning the
+      // default asset here paints a second image that then fades out.
+      loadingBuilder: (context, child, loadingProgress) =>
+          loadingProgress == null ? child : const MemoryPhotoPlaceholder(),
+      errorBuilder: (_, __, ___) => _defaultImage(),
     );
   }
 
@@ -270,6 +290,29 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
   }
 }
 
+/// Neutral stand-in shown while a Memory photo's source is still being
+/// resolved, or while a stored photo is downloading.
+///
+/// Deliberately not the default asset: painting the bundled default first and
+/// then swapping in the stored photo reads as two images loading in sequence.
+class MemoryPhotoPlaceholder extends StatelessWidget {
+  const MemoryPhotoPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.grey.shade200,
+      child: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+}
+
 /// Fullscreen viewer for the photo (asset or uploaded).
 class _FullscreenPhotoViewer extends StatelessWidget {
   final Attachment? photoAttachment;
@@ -303,11 +346,8 @@ class _FullscreenPhotoViewer extends StatelessWidget {
                   gaplessPlayback: true,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return Image.asset(
-                      defaultAsset,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
-                          const SizedBox.shrink(),
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
                     );
                   },
                   errorBuilder: (_, __, ___) => Image.asset(
