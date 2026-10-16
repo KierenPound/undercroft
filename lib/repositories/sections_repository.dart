@@ -32,16 +32,24 @@ class SectionsRepository {
       final currentYoutube = existing['youtube_url'] as String? ?? '';
       final currentOrder = existing['order_index'] as int? ?? 0;
       if (currentYoutube != youtubeUrl || currentOrder != orderIndex) {
-        final updated = await _client
+        // Executors can read sections but not write them (RLS:
+        // sections_owner_update), so for them this update matches no rows.
+        // Read the result back locally instead of asking PostgREST to coerce
+        // the updated row — an empty result set raises
+        // "Cannot coerce the result to a single JSON object".
+        await _client
             .from('sections')
             .update({
               'youtube_url': youtubeUrl,
               'order_index': orderIndex,
             })
-            .eq('id', existing['id'])
-            .select()
-            .single();
-        return PrepSection.fromJson(updated);
+            .eq('id', existing['id']);
+
+        return PrepSection.fromJson({
+          ...existing,
+          'youtube_url': youtubeUrl,
+          'order_index': orderIndex,
+        });
       }
       return PrepSection.fromJson(existing);
     }
