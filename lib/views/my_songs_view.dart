@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -649,6 +650,35 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     }
   }
 
+  /// Saves the bundled example playlist CSV so the owner can edit and re-upload it.
+  Future<void> _downloadExampleCsv() async {
+    try {
+      final csv =
+          await rootBundle.loadString('assets/data/test_video_list.csv');
+      final savedPath = await FilePicker.platform.saveFile(
+        fileName: 'example_playlist.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: Uint8List.fromList(utf8.encode(csv)),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            savedPath == null
+                ? 'Example CSV download cancelled.'
+                : 'Example CSV saved.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the example CSV.')),
+      );
+    }
+  }
+
   int _randomNextIndex() {
     if (_tracks.length <= 1) return 0;
     int next;
@@ -978,7 +1008,33 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 14),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _downloadExampleCsv,
+                  icon: Icon(Icons.download_outlined, size: 18, color: accent),
+                  label: Text(
+                    'Example CSV file',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: accent,
+                      decoration: TextDecoration.underline,
+                      decorationColor: accent,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
