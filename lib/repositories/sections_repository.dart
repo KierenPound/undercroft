@@ -299,7 +299,7 @@ const List<SectionConfig> allSectionConfigs = [
     youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
   ),
   SectionConfig(
-    title: "Kieren's Jukebox",
+    title: 'My Songs',
     orderIndex: 8,
   ),
 ];

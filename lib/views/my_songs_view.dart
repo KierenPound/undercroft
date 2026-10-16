@@ -1,21 +1,33 @@
+import 'dart:convert';
 import 'dart:math';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
-/// A single track in Kieren's Jukebox.
-class JukeboxTrack {
+import '../models/prep_section.dart';
+import '../repositories/sections_repository.dart';
+import '../services/estate_service.dart';
+
+/// A single track in My Songs.
+class MySongTrack {
   final String id;
   final String title;
+  final String artist;
 
-  const JukeboxTrack({required this.id, required this.title});
+  const MySongTrack({
+    required this.id,
+    required this.title,
+    required this.artist,
+  });
 }
 
 /// The raw playlist CSV, copied verbatim from the iOS FamilyPrep
 /// `final_shazam_list` asset. Parsed at runtime with the same rules
 /// (11-char video IDs, deduped, quoted titles unescaped).
-const String _playlistCsv = '''
+const String _defaultSongsCsv = '''
 sa6rZjJ43Js,The Small Faces - All Or Nothing (1966),Beat-Club
 DlnE2vNqpTw,Don Williams - Tulsa time (+lyrics),RomyEnTamara
 jqpAgMxhx30,Leona Lewis - Run (Official Video),leonalewis
@@ -270,36 +282,69 @@ ZIsp_AA2ElA,Darts - Duke of Earl,Adie D
 WbrSLLv0AlA,Will Young - Leave Right Now,Will Young
 ''';
 
-/// Parses the playlist CSV using the same rules as the iOS app:
+/// Parses the songs CSV:
 ///   - video ID must be exactly 11 alphanumeric / `-` / `_` chars
 ///   - duplicate IDs are dropped
-///   - quoted titles have surrounding quotes removed and `""` → `"`
-List<JukeboxTrack> _parseTracks(String csv) {
+///   - uploaded CSVs must start with the columns:
+///     You Tube video id, Song Title, Artist
+List<MySongTrack> _parseTracks(String csv, {required bool requireHeader}) {
   final seen = <String>{};
-  final tracks = <JukeboxTrack>[];
+  final tracks = <MySongTrack>[];
   final legalChars = RegExp(r'^[a-zA-Z0-9_-]+$');
 
-  for (final rawLine in csv.split('\n')) {
-    final line = rawLine.trim();
-    if (line.isEmpty) continue;
+  final lines = csv
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      .split('\n')
+      .where((line) => line.trim().isNotEmpty)
+      .toList();
 
-    final fields = _csvFields(line);
-    if (fields.length < 2) continue;
+  if (lines.isEmpty) return tracks;
+
+  var startIndex = 0;
+  final firstFields = _csvFields(lines.first);
+  final hasHeader = _matchesExpectedHeader(firstFields);
+  if (hasHeader) {
+    startIndex = 1;
+  } else if (requireHeader) {
+    return const [];
+  }
+
+  for (var i = startIndex; i < lines.length; i++) {
+    final fields = _csvFields(lines[i]);
+    if (fields.length < 3) continue;
 
     final rawId = fields[0].trim();
     if (rawId.length != 11 || !legalChars.hasMatch(rawId)) continue;
     if (!seen.add(rawId)) continue;
 
-    var title = fields[1];
-    if (title.length >= 2 && title.startsWith('"') && title.endsWith('"')) {
-      title = title.substring(1, title.length - 1);
-    }
-    title = title.replaceAll('""', '"');
+    final title = _cleanCsvField(fields[1]);
+    final artist = _cleanCsvField(fields[2]);
+    if (title.isEmpty) continue;
 
-    tracks.add(JukeboxTrack(id: rawId, title: title));
+    tracks.add(MySongTrack(id: rawId, title: title, artist: artist));
   }
 
   return tracks;
+}
+
+bool _matchesExpectedHeader(List<String> fields) {
+  if (fields.length < 3) return false;
+  final normalized = fields.take(3).map(_normalizeHeader).toList();
+  return normalized[0] == 'youtubevideoid' &&
+      normalized[1] == 'songtitle' &&
+      normalized[2] == 'artist';
+}
+
+String _normalizeHeader(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+String _cleanCsvField(String value) {
+  var cleaned = value.trim();
+  if (cleaned.length >= 2 && cleaned.startsWith('"') && cleaned.endsWith('"')) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned.replaceAll('""', '"').trim();
 }
 
 /// Simple CSV field splitter respecting double-quoted fields.
@@ -337,34 +382,114 @@ List<String> _csvFields(String line) {
   return fields;
 }
 
-class KierensJukeboxView extends StatefulWidget {
-  const KierensJukeboxView({super.key});
+class MySongsView extends ConsumerWidget {
+  const MySongsView({super.key});
+
+  static const _config = SectionConfig(
+    title: 'My Songs',
+    orderIndex: 8,
+  );
 
   @override
-  State<KierensJukeboxView> createState() => _KierensJukeboxViewState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncIsOwner = ref.watch(isOwnerProvider);
+    final isOwner = asyncIsOwner.valueOrNull ?? true;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Songs'),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!isOwner) ...[
+                  const _ReadOnlyBadge(),
+                  const SizedBox(height: 12),
+                ],
+                Expanded(
+                  child: ref.watch(sectionByTitleProvider(_config)).when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, _) => Center(
+                          child: Text(
+                            'Error: $error',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        data: (section) => _MySongsBody(
+                          sectionId: section.id,
+                          isOwner: isOwner,
+                        ),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _KierensJukeboxViewState extends State<KierensJukeboxView> {
-  late final List<JukeboxTrack> _tracks;
-  late final YoutubePlayerController _controller;
+class _ReadOnlyBadge extends StatelessWidget {
+  const _ReadOnlyBadge();
 
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade600),
+        const SizedBox(width: 6),
+        Text(
+          'Read-only — only the estate owner can replace this playlist.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+}
+
+class _MySongsBody extends ConsumerStatefulWidget {
+  final String sectionId;
+  final bool isOwner;
+
+  const _MySongsBody({
+    required this.sectionId,
+    required this.isOwner,
+  });
+
+  @override
+  ConsumerState<_MySongsBody> createState() => _MySongsBodyState();
+}
+
+class _MySongsBodyState extends ConsumerState<_MySongsBody> {
+  late final YoutubePlayerController _controller;
+  final List<int> _playHistory = [];
+  final Random _random = Random();
+
+  List<MySongTrack> _tracks = const [];
+  String _activeCsv = '';
   int _currentIndex = 0;
   bool _isPlaying = false;
   bool _shuffleOn = false;
-
-  /// History of played track indices, in order. The last entry is the
-  /// currently playing track. Used so that "Previous" always returns to the
-  /// last played song, even when shuffle was on.
-  final List<int> _playHistory = [];
-
-  final Random _random = Random();
+  bool _uploading = false;
 
   @override
   void initState() {
     super.initState();
-    _tracks = _parseTracks(_playlistCsv);
-    if (_tracks.isNotEmpty) _playHistory.add(0);
-
     final isAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
@@ -380,14 +505,10 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
           : null,
     );
 
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: _tracks.isNotEmpty ? _tracks.first.id : '',
-      autoPlay: false,
-      params: params,
-    );
+    _controller = YoutubePlayerController(params: params);
 
     _controller.stream.listen((value) {
-      if (!mounted) return;
+      if (!mounted || _tracks.isEmpty) return;
       setState(() {
         switch (value.playerState) {
           case PlayerState.playing:
@@ -423,17 +544,111 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
     super.dispose();
   }
 
-  JukeboxTrack get _currentTrack =>
+  MySongTrack get _currentTrack =>
       _tracks[_currentIndex.clamp(0, _tracks.length - 1)];
 
-  /// Whether the "Next" control can advance. In shuffle mode there is always
-  /// a random next track; in sequential mode we stop at the last track.
-  bool get _canGoNext =>
-      _shuffleOn || _currentIndex < _tracks.length - 1;
+  bool get _canGoNext => _shuffleOn || _currentIndex < _tracks.length - 1;
 
-  /// Picks a random index that is not the currently playing one, so the same
-  /// song never repeats back-to-back. If the playlist has only one track,
-  /// that track is returned.
+  Future<void> _cueTrack(int index) async {
+    if (index < 0 || index >= _tracks.length) return;
+    await _controller.cueVideoById(videoId: _tracks[index].id);
+  }
+
+  Future<void> _syncTracksFromCsv(
+    String csv, {
+    required bool requireHeader,
+  }) async {
+    if (_activeCsv == csv) return;
+
+    final tracks = _parseTracks(csv, requireHeader: requireHeader);
+    if (tracks.isEmpty) return;
+
+    _activeCsv = csv;
+    _playHistory
+      ..clear()
+      ..add(0);
+
+    if (mounted) {
+      setState(() {
+        _tracks = tracks;
+        _currentIndex = 0;
+        _isPlaying = false;
+        _shuffleOn = false;
+      });
+    } else {
+      _tracks = tracks;
+      _currentIndex = 0;
+      _isPlaying = false;
+      _shuffleOn = false;
+    }
+
+    await _cueTrack(0);
+  }
+
+  Future<void> _pickCsv(PrepSection section) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final picked = result.files.first;
+    final bytes = picked.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read the selected CSV file.')),
+      );
+      return;
+    }
+
+    final csv = utf8.decode(bytes, allowMalformed: true).replaceFirst(
+          '\ufeff',
+          '',
+        );
+    final tracks = _parseTracks(csv, requireHeader: true);
+    if (tracks.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'CSV must start with: You Tube video id, Song Title, Artist.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _uploading = true);
+    final repo = ref.read(sectionsRepositoryProvider);
+
+    try {
+      await repo.updateSection(section.copyWith(songsCsv: csv));
+      ref.invalidate(sectionProvider(widget.sectionId));
+      await _syncTracksFromCsv(csv, requireHeader: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Replaced playlist with ${tracks.length} song${tracks.length == 1 ? '' : 's'}.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save playlist CSV.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _uploading = false);
+      }
+    }
+  }
+
   int _randomNextIndex() {
     if (_tracks.length <= 1) return 0;
     int next;
@@ -447,8 +662,8 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
     setState(() => _shuffleOn = !_shuffleOn);
   }
 
-  /// Advances to the next track. Respects the shuffle toggle.
   void _advance() {
+    if (_tracks.isEmpty) return;
     if (_shuffleOn) {
       _playIndex(_randomNextIndex());
     } else if (_currentIndex < _tracks.length - 1) {
@@ -460,8 +675,6 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
 
   void _playIndex(int index) {
     if (index < 0 || index >= _tracks.length) return;
-    // Only push to history when the track actually changes, so the same
-    // track isn't recorded twice in a row.
     if (_playHistory.isEmpty || _playHistory.last != index) {
       _playHistory.add(index);
     }
@@ -473,6 +686,7 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
   }
 
   void _togglePlayPause() {
+    if (_tracks.isEmpty) return;
     if (_isPlaying) {
       _controller.pauseVideo();
     } else {
@@ -480,8 +694,6 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
     }
   }
 
-  /// Returns to the previously played track by walking back through
-  /// [_playHistory]. Works the same regardless of shuffle state.
   void _previous() {
     if (_playHistory.length <= 1) return;
     _playHistory.removeLast();
@@ -494,6 +706,7 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
   }
 
   void _next() {
+    if (_tracks.isEmpty) return;
     if (_shuffleOn) {
       _playIndex(_randomNextIndex());
     } else if (_currentIndex < _tracks.length - 1) {
@@ -506,35 +719,44 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFC44B8A);
+    final asyncSection = ref.watch(sectionProvider(widget.sectionId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Kieren's Jukebox"),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+    return asyncSection.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Text(
+          'Error: $error',
+          style: const TextStyle(color: Colors.red),
         ),
-        child: _tracks.isEmpty
-            ? const Center(
-                child: Text('Playlist missing.'),
-              )
-            : ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildHero(accent),
-                  const SizedBox(height: 24),
-                  _buildPlaylist(accent),
-                  const SizedBox(height: 32),
-                ],
-              ),
       ),
+      data: (section) {
+        final effectiveCsv = section.songsCsv.trim().isNotEmpty
+            ? section.songsCsv
+            : _defaultSongsCsv;
+        if (_activeCsv != effectiveCsv) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _syncTracksFromCsv(
+              effectiveCsv,
+              requireHeader: section.songsCsv.trim().isNotEmpty,
+            );
+          });
+        }
+
+        if (_tracks.isEmpty) {
+          return const Center(child: Text('No songs available.'));
+        }
+
+        return ListView(
+          children: [
+            _buildHero(accent),
+            const SizedBox(height: 24),
+            _buildUploadCard(accent, section),
+            const SizedBox(height: 24),
+            _buildPlaylist(accent),
+            const SizedBox(height: 32),
+          ],
+        );
+      },
     );
   }
 
@@ -555,7 +777,7 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
             ),
             const SizedBox(width: 10),
             const Text(
-              "Kieren's Jukebox",
+              'My Songs',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -589,7 +811,7 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                     Icon(Icons.play_circle_fill, color: accent, size: 18),
                     const SizedBox(width: 6),
                     Text(
-                      'Now Playing',
+                      _isPlaying ? 'Now Playing' : 'Selected Track',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -617,10 +839,19 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  _currentTrack.artist,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    // Shuffle toggle (left) — tinted when active.
                     SizedBox(
                       width: 48,
                       child: IconButton(
@@ -638,13 +869,13 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                             : null,
                       ),
                     ),
-                    // Transport controls (centered).
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton(
-                            onPressed: _playHistory.length <= 1 ? null : _previous,
+                            onPressed:
+                                _playHistory.length <= 1 ? null : _previous,
                             icon: const Icon(Icons.skip_previous),
                             iconSize: 32,
                             color: accent,
@@ -683,8 +914,6 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                         ],
                       ),
                     ),
-                    // Balance the shuffle button on the right so the
-                    // transport controls stay perfectly centered.
                     const SizedBox(width: 48),
                   ],
                 ),
@@ -693,6 +922,103 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUploadCard(Color accent, PrepSection section) {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.upload_file, color: accent, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Playlist CSV',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C2C2E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Choose a CSV file whose columns are: You Tube video id, Song Title, Artist.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF2C2C2E),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Uploading a file replaces the current list of tracks with the contents of that CSV.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    section.songsCsv.trim().isNotEmpty
+                        ? 'Using uploaded CSV'
+                        : 'Using built-in starter playlist',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: accent,
+                    ),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: widget.isOwner && !_uploading
+                      ? () => _pickCsv(section)
+                      : null,
+                  icon: _uploading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.upload_file),
+                  label: Text(_uploading ? 'Uploading...' : 'Choose CSV'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -755,7 +1081,7 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                   child: Icon(
                     isCurrent
                         ? (_isPlaying ? Icons.volume_up : Icons.play_arrow)
-                        : Icons.looks_one_outlined,
+                        : Icons.music_note,
                     color: accent,
                     size: 18,
                   ),
@@ -764,21 +1090,24 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                   track.title,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        isCurrent ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                     color: const Color(0xFF2C2C2E),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  isCurrent
-                      ? (_isPlaying ? 'Playing' : 'Paused')
-                      : 'Track ${index + 1}',
+                  track.artist.isNotEmpty
+                      ? track.artist
+                      : (isCurrent
+                          ? (_isPlaying ? 'Playing' : 'Paused')
+                          : 'Track ${index + 1}'),
                   style: TextStyle(
                     fontSize: 11,
                     color: isCurrent ? accent : Colors.grey,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 tileColor: isCurrent
                     ? accent.withValues(alpha: 0.06)

@@ -9,6 +9,7 @@ class PrepSection {
   final bool isStandard;
   final String notes;
   final String letterText;
+  final String songsCsv;
   final String youtubeUrl;
   final String registrarPhone;
   final String registrarEmail;
@@ -37,6 +38,7 @@ class PrepSection {
     required this.isStandard,
     required this.notes,
     required this.letterText,
+    required this.songsCsv,
     required this.youtubeUrl,
     required this.registrarPhone,
     required this.registrarEmail,
@@ -67,6 +69,7 @@ class PrepSection {
       isStandard: json['is_standard'] as bool? ?? false,
       notes: json['notes'] as String? ?? '',
       letterText: json['letter_text'] as String? ?? '',
+      songsCsv: json['songs_csv'] as String? ?? '',
       youtubeUrl: json['youtube_url'] as String? ?? '',
       registrarPhone: json['registrar_phone'] as String? ?? '',
       registrarEmail: json['registrar_email'] as String? ?? '',
@@ -96,6 +99,7 @@ class PrepSection {
       'is_standard': isStandard,
       'notes': notes,
       'letter_text': letterText,
+      'songs_csv': songsCsv,
       'youtube_url': youtubeUrl,
       'registrar_phone': registrarPhone,
       'registrar_email': registrarEmail,
@@ -121,6 +125,7 @@ class PrepSection {
       'is_standard': isStandard,
       'notes': notes,
       'letter_text': letterText,
+      'songs_csv': songsCsv,
       'youtube_url': youtubeUrl,
       'registrar_phone': registrarPhone,
       'registrar_email': registrarEmail,
@@ -143,6 +148,7 @@ class PrepSection {
   PrepSection copyWith({
     String? notes,
     String? letterText,
+    String? songsCsv,
     String? youtubeUrl,
     String? registrarPhone,
     String? registrarEmail,
@@ -169,6 +175,7 @@ class PrepSection {
       isStandard: isStandard,
       notes: notes ?? this.notes,
       letterText: letterText ?? this.letterText,
+      songsCsv: songsCsv ?? this.songsCsv,
       youtubeUrl: youtubeUrl ?? this.youtubeUrl,
       registrarPhone: registrarPhone ?? this.registrarPhone,
       registrarEmail: registrarEmail ?? this.registrarEmail,

@@ -8,7 +8,7 @@ import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'views/auth_view.dart';
 import 'views/home_dashboard_view.dart';
-import 'views/kierens_jukebox_view.dart';
+import 'views/my_songs_view.dart';
 import 'views/onboarding_view.dart';
 import 'views/password_reset_view.dart';
 import 'views/section_detail_view.dart';
@@ -64,9 +64,7 @@ class AppRouter extends ChangeNotifier {
           .eq('user_id', _user!.id)
           .eq('status', 'accepted')
           .limit(1);
-      _estateId = rows.isNotEmpty
-          ? rows.first['estate_id'] as String?
-          : null;
+      _estateId = rows.isNotEmpty ? rows.first['estate_id'] as String? : null;
     } catch (_) {
       _estateId = null;
     } finally {
@@ -134,8 +132,8 @@ final _router = GoRouter(
       builder: (context, state) => const WhoToNotifyListView(),
     ),
     GoRoute(
-      path: '/kierens-jukebox',
-      builder: (context, state) => const KierensJukeboxView(),
+      path: '/my-songs',
+      builder: (context, state) => const MySongsView(),
     ),
     GoRoute(
       path: '/who-to-notify/:id',

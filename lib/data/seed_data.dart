@@ -131,4 +131,8 @@ const List<DefaultSection> defaultSections = [
       'Final confirmation that all parties have been informed',
     ],
   ),
+  DefaultSection(
+    title: 'My Songs',
+    orderIndex: 8,
+  ),
 ];

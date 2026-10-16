@@ -48,10 +48,10 @@ class HomeDashboardView extends StatelessWidget {
       color: Color(0xFF2B8F6E),
     ),
     _SectionItem(
-      title: "Kieren's Jukebox",
+      title: 'My Songs',
       icon: Icons.music_note,
       color: Color(0xFFC44B8A),
-      route: '/kierens-jukebox',
+      route: '/my-songs',
     ),
   ];
 

@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS public.sections (
     is_standard   boolean NOT NULL DEFAULT false,
     notes         text NOT NULL DEFAULT '',
     letter_text   text NOT NULL DEFAULT '',
+    songs_csv     text NOT NULL DEFAULT '',
     youtube_url   text NOT NULL DEFAULT '',
     registrar_phone text NOT NULL DEFAULT '',
     registrar_email text NOT NULL DEFAULT '',
