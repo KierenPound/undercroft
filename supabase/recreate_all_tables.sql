@@ -150,10 +150,9 @@ CREATE TABLE IF NOT EXISTS public.sections (
     phone_pin_2          text NOT NULL DEFAULT '',
     computer_password_2  text NOT NULL DEFAULT '',
     pet_notes            text NOT NULL DEFAULT '',
-    vet_name             text NOT NULL DEFAULT 'Tower vets',
-    vet_phone            text NOT NULL DEFAULT '01738 583083',
-    vet_url              text NOT NULL DEFAULT
-        'https://ivc.co.uk/find-a-vet/tower-vets-perth?utm_source=gmb&utm_medium=organic&utm_campaign=attribute',
+    vet_name             text NOT NULL DEFAULT '',
+    vet_phone            text NOT NULL DEFAULT '',
+    vet_url              text NOT NULL DEFAULT '',
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now()
 );

@@ -82,10 +82,9 @@ class PrepSection {
       phonePin2: json['phone_pin_2'] as String? ?? '',
       computerPassword2: json['computer_password_2'] as String? ?? '',
       petNotes: json['pet_notes'] as String? ?? '',
-      vetName: json['vet_name'] as String? ?? 'Tower vets',
-      vetPhone: json['vet_phone'] as String? ?? '01738 583083',
-      vetUrl: json['vet_url'] as String? ??
-          'https://ivc.co.uk/find-a-vet/tower-vets-perth?utm_source=gmb&utm_medium=organic&utm_campaign=attribute',
+      vetName: json['vet_name'] as String? ?? '',
+      vetPhone: json['vet_phone'] as String? ?? '',
+      vetUrl: json['vet_url'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );

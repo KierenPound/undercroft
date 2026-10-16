@@ -43,12 +43,6 @@ class _WhatToDoFirstDashboardState
     extends ConsumerState<WhatToDoFirstDashboard> {
   bool _uploading = false;
 
-  // Default Perth registrar contact details. Used when the estate owner has
-  // not entered their own registrar's phone/email.
-  static const String _defaultRegistrarPhone = '01738 475121';
-  static const String _defaultRegistrarEmail = 'perth-registrars@pkc.gov.uk';
-  static const String _defaultCopiesUrl = 'https://my.pkc.gov.uk/en';
-
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _copiesUrlController = TextEditingController();
@@ -69,15 +63,7 @@ class _WhatToDoFirstDashboardState
   String _lastSavedPhonePin2 = '';
   String _lastSavedComputerPassword2 = '';
 
-  static const String _defaultPhonePin = '050168';
-  static const String _defaultComputerPassword = 'b1rm1ngham';
-
   // Pets — photo + notes + vet contact details.
-  static const String _defaultVetName = 'Tower vets';
-  static const String _defaultVetPhone = '01738 583083';
-  static const String _defaultVetUrl =
-      'https://ivc.co.uk/find-a-vet/tower-vets-perth?utm_source=gmb&utm_medium=organic&utm_campaign=attribute';
-
   final _petNotesController = TextEditingController();
   final _vetNameController = TextEditingController();
   final _vetPhoneController = TextEditingController();
@@ -107,13 +93,9 @@ class _WhatToDoFirstDashboardState
     super.dispose();
   }
 
-  String get _effectiveVetPhone => _vetPhoneController.text.trim().isNotEmpty
-      ? _vetPhoneController.text.trim()
-      : _defaultVetPhone;
+  String get _effectiveVetPhone => _vetPhoneController.text.trim();
 
-  String get _effectiveVetUrl => _vetUrlController.text.trim().isNotEmpty
-      ? _vetUrlController.text.trim()
-      : _defaultVetUrl;
+  String get _effectiveVetUrl => _vetUrlController.text.trim();
 
   void _schedulePetSave() {
     _petSaveTimer?.cancel();
@@ -159,17 +141,11 @@ class _WhatToDoFirstDashboardState
     }
   }
 
-  String get _effectivePhone => _phoneController.text.trim().isNotEmpty
-      ? _phoneController.text.trim()
-      : _defaultRegistrarPhone;
+  String get _effectivePhone => _phoneController.text.trim();
 
-  String get _effectiveEmail => _emailController.text.trim().isNotEmpty
-      ? _emailController.text.trim()
-      : _defaultRegistrarEmail;
+  String get _effectiveEmail => _emailController.text.trim();
 
-  String get _effectiveCopiesUrl => _copiesUrlController.text.trim().isNotEmpty
-      ? _copiesUrlController.text.trim()
-      : _defaultCopiesUrl;
+  String get _effectiveCopiesUrl => _copiesUrlController.text.trim();
 
   void _scheduleRegistrarSave() {
     _registrarSaveTimer?.cancel();
@@ -814,14 +790,14 @@ class _WhatToDoFirstDashboardState
                   controller: _vetNameController,
                   icon: Icons.store,
                   tint: Colors.teal,
-                  hint: _defaultVetName,
+                  hint: 'Vet name',
                 ),
                 const SizedBox(height: 10),
                 _petEditableContactField(
                   controller: _vetPhoneController,
                   icon: Icons.phone,
                   tint: Colors.green,
-                  hint: _defaultVetPhone,
+                  hint: 'Phone',
                   keyboardType: TextInputType.phone,
                   actionIcon: Icons.call,
                   onAction: () =>
@@ -832,7 +808,7 @@ class _WhatToDoFirstDashboardState
                   controller: _vetUrlController,
                   icon: Icons.link,
                   tint: Colors.blue,
-                  hint: _defaultVetUrl,
+                  hint: 'Website',
                   keyboardType: TextInputType.url,
                   actionIcon: Icons.open_in_new,
                   onAction: () => _launch(_effectiveVetUrl),
@@ -847,7 +823,7 @@ class _WhatToDoFirstDashboardState
 
   Widget _defaultPetImage() {
     return Image.asset(
-      'assets/images/IMG_1007.jpeg',
+      'assets/images/defaults/default_cat.jpeg',
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
@@ -1070,6 +1046,9 @@ class _WhatToDoFirstDashboardState
 
   /// Builds the registrar contact row. Estate owners see editable phone/email
   /// fields (auto-saved); everyone else sees the tappable pill buttons.
+  ///
+  /// Nothing is pre-filled: each estate's registrar differs, so the owner
+  /// enters their own details and empty values are simply not shown.
   Widget _buildRegistrarContactRow() {
     if (widget.isOwner) {
       return Column(
@@ -1078,7 +1057,7 @@ class _WhatToDoFirstDashboardState
             controller: _phoneController,
             icon: Icons.phone,
             tint: Colors.green,
-            hint: 'Phone (default: $_defaultRegistrarPhone)',
+            hint: 'Phone',
             keyboardType: TextInputType.phone,
             actionIcon: Icons.call,
             onAction: () =>
@@ -1089,7 +1068,7 @@ class _WhatToDoFirstDashboardState
             controller: _emailController,
             icon: Icons.email,
             tint: Colors.blue,
-            hint: 'Email (default: $_defaultRegistrarEmail)',
+            hint: 'Email',
             keyboardType: TextInputType.emailAddress,
             actionIcon: Icons.send,
             onAction: () => _launch('mailto:$_effectiveEmail'),
@@ -1101,21 +1080,26 @@ class _WhatToDoFirstDashboardState
     return Row(
       children: [
         Expanded(
-          child: _pillButton(
-            icon: Icons.phone,
-            label: _effectivePhone,
-            tint: Colors.green,
-            onTap: () => _launch('tel:${_effectivePhone.replaceAll(' ', '')}'),
-          ),
+          child: _effectivePhone.isEmpty
+              ? const SizedBox.shrink()
+              : _pillButton(
+                  icon: Icons.phone,
+                  label: _effectivePhone,
+                  tint: Colors.green,
+                  onTap: () =>
+                      _launch('tel:${_effectivePhone.replaceAll(' ', '')}'),
+                ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _pillButton(
-            icon: Icons.email,
-            label: _effectiveEmail,
-            tint: Colors.blue,
-            onTap: () => _launch('mailto:$_effectiveEmail'),
-          ),
+          child: _effectiveEmail.isEmpty
+              ? const SizedBox.shrink()
+              : _pillButton(
+                  icon: Icons.email,
+                  label: _effectiveEmail,
+                  tint: Colors.blue,
+                  onTap: () => _launch('mailto:$_effectiveEmail'),
+                ),
         ),
       ],
     );
@@ -1229,13 +1213,13 @@ class _WhatToDoFirstDashboardState
                     controller: _copiesUrlController,
                     icon: Icons.language,
                     tint: Colors.blue,
-                    hint: 'Order copies link (default: $_defaultCopiesUrl)',
+                    hint: 'Order copies link',
                     keyboardType: TextInputType.url,
                     actionIcon: Icons.open_in_new_rounded,
                     onAction: () => _launch(_effectiveCopiesUrl),
                     onChanged: (_) => _scheduleCopiesUrlSave(),
                   )
-                else
+                else if (_effectiveCopiesUrl.isNotEmpty)
                   GestureDetector(
                     onTap: () => _launch(_effectiveCopiesUrl),
                     child: Container(
@@ -1384,7 +1368,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.phone_android_rounded,
                   tint: blue,
                   controller: _phonePin1Controller,
-                  hint: _defaultPhonePin,
+                  hint: 'Phone PIN',
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 10),
@@ -1392,7 +1376,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.keyboard_rounded,
                   tint: blue,
                   controller: _computerPassword1Controller,
-                  hint: _defaultComputerPassword,
+                  hint: 'Computer password',
                   keyboardType: TextInputType.visiblePassword,
                 ),
                 const SizedBox(height: 10),
@@ -1400,7 +1384,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.phone_android_rounded,
                   tint: pink,
                   controller: _phonePin2Controller,
-                  hint: _defaultPhonePin,
+                  hint: 'Phone PIN',
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 10),
@@ -1408,7 +1392,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.keyboard_rounded,
                   tint: pink,
                   controller: _computerPassword2Controller,
-                  hint: _defaultComputerPassword,
+                  hint: 'Computer password',
                   keyboardType: TextInputType.visiblePassword,
                 ),
               ],
@@ -1442,7 +1426,7 @@ class _WhatToDoFirstDashboardState
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                value.isNotEmpty ? value : hint,
+                value,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

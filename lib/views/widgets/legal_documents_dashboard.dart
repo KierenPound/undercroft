@@ -44,12 +44,6 @@ class _LegalDocumentsDashboardState
     extends ConsumerState<LegalDocumentsDashboard> {
   bool _uploading = false;
 
-  // Default solicitor contact details.
-  static const String _defaultSolicitorPhone = '01738231178';
-  static const String _defaultSolicitorPhoneDisplay = '01738 231178';
-  static const String _defaultSolicitorEmail = 'AHoggan@solicitor-law.co.uk';
-  static const String _defaultSolicitorUrl = 'https://www.solicitor-law.co.uk';
-
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _urlController = TextEditingController();
@@ -71,17 +65,11 @@ class _LegalDocumentsDashboardState
     super.dispose();
   }
 
-  String get _effectivePhone => _phoneController.text.trim().isNotEmpty
-      ? _phoneController.text.trim()
-      : _defaultSolicitorPhone;
+  String get _effectivePhone => _phoneController.text.trim();
 
-  String get _effectiveEmail => _emailController.text.trim().isNotEmpty
-      ? _emailController.text.trim()
-      : _defaultSolicitorEmail;
+  String get _effectiveEmail => _emailController.text.trim();
 
-  String get _effectiveUrl => _urlController.text.trim().isNotEmpty
-      ? _urlController.text.trim()
-      : _defaultSolicitorUrl;
+  String get _effectiveUrl => _urlController.text.trim();
 
   void _scheduleSave() {
     _saveTimer?.cancel();
@@ -439,7 +427,7 @@ class _LegalDocumentsDashboardState
                     controller: _phoneController,
                     icon: Icons.phone,
                     tint: Colors.green,
-                    hint: 'Phone (default: $_defaultSolicitorPhoneDisplay)',
+                    hint: 'Phone',
                     keyboardType: TextInputType.phone,
                     actionIcon: Icons.call,
                     onAction: () => _launch('tel:$_effectivePhone'),
@@ -449,7 +437,7 @@ class _LegalDocumentsDashboardState
                     controller: _emailController,
                     icon: Icons.email,
                     tint: Colors.blue,
-                    hint: 'Email (default: $_defaultSolicitorEmail)',
+                    hint: 'Email',
                     keyboardType: TextInputType.emailAddress,
                     actionIcon: Icons.send,
                     onAction: () => _launch('mailto:$_effectiveEmail'),
@@ -459,35 +447,40 @@ class _LegalDocumentsDashboardState
                     controller: _urlController,
                     icon: Icons.language,
                     tint: Colors.teal,
-                    hint: 'Website (default: $_defaultSolicitorUrl)',
+                    hint: 'Website',
                     keyboardType: TextInputType.url,
                     actionIcon: Icons.open_in_new_rounded,
                     onAction: () => _launch(_effectiveUrl),
                   ),
-                ] else
+                ] else if (_effectivePhone.isNotEmpty ||
+                    _effectiveEmail.isNotEmpty ||
+                    _effectiveUrl.isNotEmpty)
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _pillButton(
-                        icon: Icons.phone,
-                        label: _defaultSolicitorPhoneDisplay,
-                        tint: Colors.green,
-                        onTap: () => _launch('tel:$_effectivePhone'),
-                      ),
-                      _pillButton(
-                        icon: Icons.email,
-                        label: _effectiveEmail,
-                        tint: Colors.blue,
-                        onTap: () => _launch('mailto:$_effectiveEmail'),
-                      ),
-                      _pillButton(
-                        icon: Icons.language,
-                        label: _effectiveUrl.replaceFirst(
-                            RegExp(r'^https?://'), ''),
-                        tint: Colors.teal,
-                        onTap: () => _launch(_effectiveUrl),
-                      ),
+                      if (_effectivePhone.isNotEmpty)
+                        _pillButton(
+                          icon: Icons.phone,
+                          label: _effectivePhone,
+                          tint: Colors.green,
+                          onTap: () => _launch('tel:$_effectivePhone'),
+                        ),
+                      if (_effectiveEmail.isNotEmpty)
+                        _pillButton(
+                          icon: Icons.email,
+                          label: _effectiveEmail,
+                          tint: Colors.blue,
+                          onTap: () => _launch('mailto:$_effectiveEmail'),
+                        ),
+                      if (_effectiveUrl.isNotEmpty)
+                        _pillButton(
+                          icon: Icons.language,
+                          label: _effectiveUrl.replaceFirst(
+                              RegExp(r'^https?://'), ''),
+                          tint: Colors.teal,
+                          onTap: () => _launch(_effectiveUrl),
+                        ),
                     ],
                   ),
                 const SizedBox(height: 14),
