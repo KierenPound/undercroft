@@ -205,12 +205,28 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildContactRow(Icons.phone, 'Contact number', entry.contactNumber,
-                _contactNumberController),
+            _buildContactRow(
+              icon: Icons.phone,
+              hint: 'Contact number',
+              value: entry.contactNumber,
+              controller: _contactNumberController,
+              tint: Colors.green,
+              keyboardType: TextInputType.phone,
+              actionIcon: Icons.call,
+              onAction: () => _launchPhone(_contactNumberController.text),
+            ),
             const SizedBox(height: 12),
             _buildContactRow(
-                Icons.link, 'Web link', entry.weblink, _weblinkController,
-                isUrl: true),
+              icon: Icons.link,
+              hint: 'Web link',
+              value: entry.weblink,
+              controller: _weblinkController,
+              tint: Colors.blue,
+              keyboardType: TextInputType.url,
+              actionIcon: Icons.open_in_new_rounded,
+              onAction: () => _launchUrl(_weblinkController.text),
+              isUrl: true,
+            ),
             const SizedBox(height: 12),
             _buildNotesField(entry),
           ],
@@ -219,42 +235,77 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     );
   }
 
-  Widget _buildContactRow(IconData icon, String label, String? value,
-      TextEditingController controller,
-      {bool isUrl = false}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _editing
-              ? TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: label,
-                    border: const OutlineInputBorder(),
-                    isDense: true,
+  Widget _buildContactRow({
+    required IconData icon,
+    required String hint,
+    required String? value,
+    required TextEditingController controller,
+    required Color tint,
+    required TextInputType keyboardType,
+    required IconData actionIcon,
+    required VoidCallback onAction,
+    bool isUrl = false,
+  }) {
+    final text = _editing ? controller.text : (value ?? '');
+    final hasValue = text.trim().isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tint.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: tint),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _editing
+                ? TextField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 0,
+                      ),
+                      isDense: true,
+                    ),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: tint,
+                    ),
+                  )
+                : Text(
+                    hasValue ? text : hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: hasValue ? tint : Colors.grey.shade500,
+                    ),
                   ),
-                )
-              : (value != null && value.isNotEmpty
-                  ? isUrl
-                      ? InkWell(
-                          onTap: () => _launchUrl(value),
-                          child: Text(
-                            value,
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        )
-                      : Text(value, style: const TextStyle(fontSize: 15))
-                  : Text(label,
-                      style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 15))),
-        ),
-      ],
+          ),
+          IconButton(
+            icon: Icon(
+              actionIcon,
+              size: 18,
+              color: hasValue ? tint : tint.withValues(alpha: 0.35),
+            ),
+            onPressed: hasValue ? onAction : null,
+          ),
+        ],
+      ),
     );
   }
 
@@ -388,8 +439,19 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     }
   }
 
+  void _launchPhone(String value) {
+    final digits = value.replaceAll(RegExp(r'\s+'), '');
+    if (digits.isEmpty) return;
+    _launchUrl('tel:$digits');
+  }
+
   Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+
+    final uri = trimmed.startsWith('tel:')
+        ? Uri.parse(trimmed)
+        : Uri.parse(trimmed.startsWith('http') ? trimmed : 'https://$trimmed');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -515,6 +577,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
               _otherCodeController,
               'Reference, member no., etc.',
               _editing,
+              showHintWhenEmpty: false,
             ),
             const SizedBox(height: 8),
             _buildField(
@@ -535,6 +598,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
     String hint,
     bool editing, {
     List<TextInputFormatter>? inputFormatters,
+    bool showHintWhenEmpty = true,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -567,9 +631,11 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
                       style: const TextStyle(
                           fontFamily: 'monospace', fontSize: 14),
                     )
-                  : Text(hint,
-                      style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 14))),
+                  : showHintWhenEmpty
+                      ? Text(hint,
+                          style: TextStyle(
+                              color: Colors.grey.shade400, fontSize: 14))
+                      : const SizedBox.shrink()),
         ),
       ],
     );

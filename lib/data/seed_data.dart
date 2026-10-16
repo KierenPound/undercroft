@@ -26,11 +26,16 @@ class DefaultSection {
 
 const List<DefaultSection> defaultSections = [
   DefaultSection(
-    title: 'What to Do First',
+    title: 'My Letter to You',
     orderIndex: 0,
+  ),
+  DefaultSection(
+    title: 'What to Do First',
+    orderIndex: 1,
     youtubeUrl: 'https://www.youtube.com/watch?v=b4ZypVnbYHM',
     checklistItems: [
-      'Register the death (within 5 days in England/Wales)',
+      'Contact the GP or hospital doctor to get the Medical Certificate of Cause of Death (MCCD)',
+      'Register the death (within 8 days in Scotland, 5 days in England/Wales)',
       'Obtain multiple copies of the death certificate',
       'Arrange for the immediate care of dependents or pets',
       'Secure the home and any valuables',
@@ -40,7 +45,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Legal Documents',
-    orderIndex: 1,
+    orderIndex: 2,
     youtubeUrl: 'https://youtu.be/AL8chWFuM-s',
     checklistItems: [
       'Locate the last will and testament',
@@ -54,7 +59,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Who to Notify',
-    orderIndex: 2,
+    orderIndex: 3,
     youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
     checklistItems: [
       'Family members and close friends',
@@ -71,7 +76,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Running the Houses',
-    orderIndex: 3,
+    orderIndex: 4,
     youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
     checklistItems: [
       'Secure all properties and update alarm codes if needed',
@@ -86,7 +91,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Funeral Arrangements',
-    orderIndex: 4,
+    orderIndex: 5,
     youtubeUrl: 'https://www.youtube.com/watch?v=02T6xLNXEE0',
     checklistItems: [
       'Check for any funeral wishes or a prepaid plan',
@@ -102,7 +107,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Cars',
-    orderIndex: 5,
+    orderIndex: 6,
     youtubeUrl: 'https://www.youtube.com/watch?v=rbgiJu7YFvo',
     checklistItems: [
       'Locate the vehicle registration document (V5C)',
@@ -116,7 +121,7 @@ const List<DefaultSection> defaultSections = [
   ),
   DefaultSection(
     title: 'Confirmation',
-    orderIndex: 6,
+    orderIndex: 7,
     youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
     checklistItems: [
       'Confirm all utility accounts are closed or transferred',

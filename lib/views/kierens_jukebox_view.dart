@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -348,11 +350,20 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
 
   int _currentIndex = 0;
   bool _isPlaying = false;
+  bool _shuffleOn = false;
+
+  /// History of played track indices, in order. The last entry is the
+  /// currently playing track. Used so that "Previous" always returns to the
+  /// last played song, even when shuffle was on.
+  final List<int> _playHistory = [];
+
+  final Random _random = Random();
 
   @override
   void initState() {
     super.initState();
     _tracks = _parseTracks(_playlistCsv);
+    if (_tracks.isNotEmpty) _playHistory.add(0);
 
     final isAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -415,8 +426,32 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
   JukeboxTrack get _currentTrack =>
       _tracks[_currentIndex.clamp(0, _tracks.length - 1)];
 
+  /// Whether the "Next" control can advance. In shuffle mode there is always
+  /// a random next track; in sequential mode we stop at the last track.
+  bool get _canGoNext =>
+      _shuffleOn || _currentIndex < _tracks.length - 1;
+
+  /// Picks a random index that is not the currently playing one, so the same
+  /// song never repeats back-to-back. If the playlist has only one track,
+  /// that track is returned.
+  int _randomNextIndex() {
+    if (_tracks.length <= 1) return 0;
+    int next;
+    do {
+      next = _random.nextInt(_tracks.length);
+    } while (next == _currentIndex);
+    return next;
+  }
+
+  void _toggleShuffle() {
+    setState(() => _shuffleOn = !_shuffleOn);
+  }
+
+  /// Advances to the next track. Respects the shuffle toggle.
   void _advance() {
-    if (_currentIndex < _tracks.length - 1) {
+    if (_shuffleOn) {
+      _playIndex(_randomNextIndex());
+    } else if (_currentIndex < _tracks.length - 1) {
       _playIndex(_currentIndex + 1);
     } else {
       setState(() => _isPlaying = false);
@@ -425,6 +460,11 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
 
   void _playIndex(int index) {
     if (index < 0 || index >= _tracks.length) return;
+    // Only push to history when the track actually changes, so the same
+    // track isn't recorded twice in a row.
+    if (_playHistory.isEmpty || _playHistory.last != index) {
+      _playHistory.add(index);
+    }
     setState(() {
       _currentIndex = index;
       _isPlaying = true;
@@ -440,12 +480,23 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
     }
   }
 
+  /// Returns to the previously played track by walking back through
+  /// [_playHistory]. Works the same regardless of shuffle state.
   void _previous() {
-    if (_currentIndex > 0) _playIndex(_currentIndex - 1);
+    if (_playHistory.length <= 1) return;
+    _playHistory.removeLast();
+    final previousIndex = _playHistory.last;
+    setState(() {
+      _currentIndex = previousIndex;
+      _isPlaying = true;
+    });
+    _controller.loadVideoById(videoId: _tracks[previousIndex].id);
   }
 
   void _next() {
-    if (_currentIndex < _tracks.length - 1) {
+    if (_shuffleOn) {
+      _playIndex(_randomNextIndex());
+    } else if (_currentIndex < _tracks.length - 1) {
       _playIndex(_currentIndex + 1);
     } else {
       _controller.pauseVideo();
@@ -568,47 +619,73 @@ class _KierensJukeboxViewState extends State<KierensJukeboxView> {
                 ),
                 const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      onPressed: _currentIndex == 0 ? null : _previous,
-                      icon: const Icon(Icons.skip_previous),
-                      iconSize: 32,
-                      color: accent,
-                    ),
-                    const SizedBox(width: 24),
-                    GestureDetector(
-                      onTap: _togglePlayPause,
-                      child: Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          color: accent,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 3,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                    // Shuffle toggle (left) — tinted when active.
+                    SizedBox(
+                      width: 48,
+                      child: IconButton(
+                        onPressed: _toggleShuffle,
+                        tooltip: _shuffleOn ? 'Shuffle: On' : 'Shuffle: Off',
+                        icon: Icon(
+                          Icons.shuffle_rounded,
+                          color: _shuffleOn ? accent : Colors.grey,
+                          size: 26,
                         ),
-                        child: Icon(
-                          _isPlaying ? Icons.pause : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 36,
-                        ),
+                        style: _shuffleOn
+                            ? IconButton.styleFrom(
+                                backgroundColor: accent.withValues(alpha: 0.15),
+                              )
+                            : null,
                       ),
                     ),
-                    const SizedBox(width: 24),
-                    IconButton(
-                      onPressed: _currentIndex == _tracks.length - 1
-                          ? null
-                          : _next,
-                      icon: const Icon(Icons.skip_next),
-                      iconSize: 32,
-                      color: accent,
+                    // Transport controls (centered).
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: _playHistory.length <= 1 ? null : _previous,
+                            icon: const Icon(Icons.skip_previous),
+                            iconSize: 32,
+                            color: accent,
+                          ),
+                          const SizedBox(width: 24),
+                          GestureDetector(
+                            onTap: _togglePlayPause,
+                            child: Container(
+                              width: 68,
+                              height: 68,
+                              decoration: BoxDecoration(
+                                color: accent,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 3,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                _isPlaying ? Icons.pause : Icons.play_arrow,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          IconButton(
+                            onPressed: !_canGoNext ? null : _next,
+                            icon: const Icon(Icons.skip_next),
+                            iconSize: 32,
+                            color: accent,
+                          ),
+                        ],
+                      ),
                     ),
+                    // Balance the shuffle button on the right so the
+                    // transport controls stay perfectly centered.
+                    const SizedBox(width: 48),
                   ],
                 ),
               ],

@@ -10,6 +10,7 @@ import 'views/auth_view.dart';
 import 'views/home_dashboard_view.dart';
 import 'views/kierens_jukebox_view.dart';
 import 'views/onboarding_view.dart';
+import 'views/password_reset_view.dart';
 import 'views/section_detail_view.dart';
 import 'views/settings_view.dart';
 import 'views/who_to_notify_detail_view.dart';
@@ -33,10 +34,19 @@ class AppRouter extends ChangeNotifier {
   String? _estateId;
   bool _checked = false;
   User? _user;
+  bool _needsPasswordReset = false;
 
   void _init() {
     _user = Supabase.instance.client.auth.currentUser;
     Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      // When the user taps the reset link in their email, Supabase fires a
+      // passwordRecovery event. We set a flag so the router redirects them to
+      // the password reset screen to choose a new password.
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        _needsPasswordReset = true;
+      } else {
+        _needsPasswordReset = false;
+      }
       _user = state.session?.user;
       _checked = false;
       _estateId = null;
@@ -91,6 +101,10 @@ final _router = GoRouter(
       builder: (context, state) => const AuthView(),
     ),
     GoRoute(
+      path: '/password-reset',
+      builder: (context, state) => const PasswordResetView(),
+    ),
+    GoRoute(
       path: '/onboarding',
       builder: (context, state) => OnboardingView(
         onComplete: (estateId) => _appRouter.setEstateId(estateId),
@@ -139,11 +153,19 @@ final _router = GoRouter(
     final user = Supabase.instance.client.auth.currentUser;
     final location = state.matchedLocation;
 
-    if (user == null) {
-      return location == '/login' ? null : '/login';
+    // If a password-recovery event fired, route the user to the reset screen
+    // so they can set a new password.
+    if (_appRouter._needsPasswordReset) {
+      return location == '/password-reset' ? null : '/password-reset';
     }
 
-    if (location == '/login') return '/';
+    if (user == null) {
+      return location == '/login' || location == '/password-reset'
+          ? null
+          : '/login';
+    }
+
+    if (location == '/login' || location == '/password-reset') return '/';
 
     if (!_appRouter._checked) return null;
 
@@ -167,6 +189,7 @@ class UnderCroftApp extends StatelessWidget {
       title: 'UnderCroft',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.light,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );

@@ -7,6 +7,11 @@ class HomeDashboardView extends StatelessWidget {
 
   static const List<_SectionItem> _sections = [
     _SectionItem(
+      title: 'My Letter to You',
+      icon: Icons.mail_outline,
+      color: Color(0xFF8B5E3C),
+    ),
+    _SectionItem(
       title: 'What to Do First',
       icon: Icons.flag,
       color: Color(0xFFD64545),
@@ -84,18 +89,13 @@ class HomeDashboardView extends StatelessWidget {
             ],
           ),
         ),
-        child: GridView.builder(
+        child: ListView.separated(
           padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.1,
-          ),
           itemCount: _sections.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final section = _sections[index];
-            return _SectionCard(section: section);
+            return _SectionRow(section: section);
           },
         ),
       ),
@@ -117,10 +117,10 @@ class _SectionItem {
   });
 }
 
-class _SectionCard extends StatelessWidget {
+class _SectionRow extends StatelessWidget {
   final _SectionItem section;
 
-  const _SectionCard({required this.section});
+  const _SectionRow({required this.section});
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +139,8 @@ class _SectionCard extends StatelessWidget {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
             children: [
               Container(
                 width: 44,
@@ -152,16 +151,21 @@ class _SectionCard extends StatelessWidget {
                 ),
                 child: Icon(section.icon, color: section.color, size: 24),
               ),
-              const Spacer(),
-              Text(
-                section.title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2E),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  section.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2C2C2E),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: Colors.grey.shade400,
+                size: 24,
               ),
             ],
           ),

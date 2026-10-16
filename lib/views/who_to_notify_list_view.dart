@@ -60,79 +60,92 @@ class WhoToNotifyListView extends ConsumerWidget {
                 colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
               ),
             ),
-            child: asyncEntries.when(
+            child: asyncSection.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              error: (error, _) => Center(child: Text('Error: $error')),
+              data: (section) {
+                return ListView(
+                  padding: const EdgeInsets.all(16),
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.grey),
-                    const SizedBox(height: 12),
-                    Text('Error: $error', textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(whoToNotifyListProvider),
-                      child: const Text('Retry'),
+                    PhotoSection(
+                      sectionId: section.id,
+                      estateId: estateId,
+                      isOwner: isOwner,
+                      defaultAsset: 'assets/images/who_to_notify_1.jpg',
+                      sectionTitle: 'Who to Notify',
                     ),
+                    const SizedBox(height: 24),
+                    const _LifeLedgerCallout(),
+                    const SizedBox(height: 16),
+                    _StaticOrgCard.lifeLedger(),
+                    // Entries list loads independently so the Memory photo
+                    // and section content render without waiting for it.
+                    asyncEntries.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (error, _) => Center(
+                        child: Column(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                size: 40, color: Colors.grey),
+                            const SizedBox(height: 8),
+                            Text('Error: $error', textAlign: TextAlign.center),
+                            TextButton(
+                              onPressed: () =>
+                                  ref.invalidate(whoToNotifyListProvider),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      data: (entries) {
+                        if (entries.isEmpty) {
+                          return _EmptyState(
+                            onAdd: () => _showAddDialog(context, ref, estateId),
+                          );
+                        }
+                        return Column(
+                          children: [
+                            _AddOrganisationButton(
+                              onAdd: () =>
+                                  _showAddDialog(context, ref, estateId),
+                            ),
+                            ...entries.map((entry) => _EntryCard(
+                                  entry: entry,
+                                  onTap: () => context.push(
+                                    '/who-to-notify/${entry.whoToNotifyId}',
+                                  ),
+                                )),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _StaticOrgCard.digitalSubscriptions(),
+                    const SizedBox(height: 24),
+                    const _AppleAccountInstructions(),
+                    const SizedBox(height: 24),
+                    SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    const SizedBox(height: 24),
+                    ChecklistSection(
+                      sectionId: section.id,
+                      isOwner: isOwner,
+                    ),
+                    const SizedBox(height: 24),
+                    NotesSection(
+                      sectionId: section.id,
+                      isOwner: isOwner,
+                    ),
+                    const SizedBox(height: 24),
+                    AttachmentsSection(
+                      sectionId: section.id,
+                      estateId: estateId,
+                      isOwner: isOwner,
+                    ),
+                    const SizedBox(height: 32),
                   ],
-                ),
-              ),
-              data: (entries) {
-                return asyncSection.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(child: Text('Error: $error')),
-                  data: (section) {
-                    return ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        PhotoSection(
-                          sectionId: section.id,
-                          estateId: estateId,
-                          isOwner: isOwner,
-                          defaultAsset: 'assets/images/wtdl_1.jpg',
-                          sectionTitle: 'Who to Notify',
-                        ),
-                        const SizedBox(height: 24),
-                        const _LifeLedgerCallout(),
-                        if (entries.isEmpty)
-                          _EmptyState(
-                            onAdd: () => _showAddDialog(context, ref, estateId),
-                          )
-                        else ...[
-                          _AddOrganisationButton(
-                            onAdd: () => _showAddDialog(context, ref, estateId),
-                          ),
-                          ...entries.map((entry) => _EntryCard(
-                                entry: entry,
-                                onTap: () => context.push(
-                                  '/who-to-notify/${entry.whoToNotifyId}',
-                                ),
-                              )),
-                        ],
-                        const SizedBox(height: 24),
-                        SongForThePageSection(youtubeUrl: section.youtubeUrl),
-                        const SizedBox(height: 24),
-                        ChecklistSection(
-                          sectionId: section.id,
-                          isOwner: isOwner,
-                        ),
-                        const SizedBox(height: 24),
-                        NotesSection(
-                          sectionId: section.id,
-                          isOwner: isOwner,
-                        ),
-                        const SizedBox(height: 24),
-                        AttachmentsSection(
-                          sectionId: section.id,
-                          estateId: estateId,
-                          isOwner: isOwner,
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-                    );
-                  },
                 );
               },
             ),
@@ -328,39 +341,6 @@ class _LifeLedgerCallout extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () => _launchLifeLedger(),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.public,
-                            color: Colors.purple, size: 18),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Open Official Portal',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.purple,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(Icons.open_in_new,
-                            color: Colors.purple.withValues(alpha: 0.8),
-                            size: 16),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -370,10 +350,375 @@ class _LifeLedgerCallout extends StatelessWidget {
   }
 }
 
-Future<void> _launchLifeLedger() async {
-  final uri = Uri.parse('https://lifeledger.com/');
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+/// Static organisation cards cloned from the FamilyPrep (iOS) WTN seed data.
+/// These are not user-editable entries — they're fixed reference cards for
+/// Life Ledger, Digital Subscriptions and Computers.
+class _StaticOrgCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color tint;
+  final String? leadParagraph;
+  final String? linkLabel;
+  final String? linkUrl;
+  final List<String> notes;
+
+  const _StaticOrgCard({
+    required this.title,
+    required this.icon,
+    required this.tint,
+    this.leadParagraph,
+    this.linkLabel,
+    this.linkUrl,
+    required this.notes,
+  });
+
+  factory _StaticOrgCard.lifeLedger() => const _StaticOrgCard(
+        title: 'Life Ledger',
+        icon: Icons.layers,
+        tint: Colors.purple,
+        leadParagraph:
+            'This secure, free online service allows you to report a death to multiple commercial companies all at once.',
+        linkLabel: 'Open Official Portal',
+        linkUrl: 'https://lifeledger.com/',
+        notes: [
+          'Automatically notifies banks, savings, utilities and other places in one go.',
+          'Completely free — just bring the company names and account numbers listed below.',
+          'Exceptions: eToro and Tembo may not be on Life Ledger — follow their individual sections.',
+        ],
+      );
+
+  factory _StaticOrgCard.digitalSubscriptions() => const _StaticOrgCard(
+        title: 'Digital Subscriptions (Amazon, Apple, etc.)',
+        icon: Icons.credit_card,
+        tint: Colors.grey,
+        notes: [
+          'Amazon, Apple, and anything else running on a direct debit or recurring card payment should get cancelled automatically by the bank once they freeze the accounts.',
+          "You shouldn't have to contact them. Aside from setting up your own Amazon Prime account or paying for your own deliveries!",
+        ],
+      );
+
+  Future<void> _openLink(BuildContext context) async {
+    if (linkUrl == null) return;
+    final uri = Uri.parse(linkUrl!);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: tint, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (leadParagraph != null) ...[
+                Text(
+                  leadParagraph!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF6B6B6E),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+              if (linkLabel != null && linkUrl != null) ...[
+                InkWell(
+                  onTap: () => _openLink(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: tint.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.public, color: tint, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          linkLabel!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: tint,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.open_in_new,
+                            color: tint.withValues(alpha: 0.8), size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+              for (var i = 0; i < notes.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info, color: tint, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          notes[i],
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF2C2C2E),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AppleAccountInstructions extends StatelessWidget {
+  const _AppleAccountInstructions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child:
+                  const Icon(Icons.apple, color: Color(0xFF007AFF), size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'How to Access My Apple Account',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Step(
+                number: '1',
+                title: 'Locate Your Legacy Access Key',
+                body:
+                    'You will have either received an iMessage or an email with the access key.',
+                bullets: [
+                  'For iPhone users, go to: Settings → {Your Name} → Sign in & Security → Legacy Contact → Asset Key → {My Name}',
+                ],
+              ),
+              SizedBox(height: 18),
+              _Step(
+                number: '2',
+                title: 'Request Access Online',
+                bullets: [
+                  'Go to digital-legacy.apple.com on any web browser (phone, tablet, PC, or Mac).',
+                  'Click Request Access.',
+                  'Sign in using your own Apple Account (if you don\'t have one, you can create a free account on that screen).',
+                  'Enter or scan your Legacy Access Key.',
+                ],
+              ),
+              SizedBox(height: 18),
+              _Step(
+                number: '3',
+                title: 'Submit Required Documents',
+                bullets: [
+                  'Apple will ask you to upload a clear photo or copy of the official Death Certificate.',
+                  'Submit the request.',
+                ],
+              ),
+              SizedBox(height: 18),
+              _Step(
+                number: '4',
+                title: 'What Happens Next?',
+                bullets: [
+                  'Apple\'s legal and support team will review the death certificate (this usually takes 2 to 5 business days).',
+                  'Once approved, you will receive an email from Apple with a secure link to log in and download all my photos, messages, files, and account data.',
+                  'Unlocking Hardware: Approval automatically removes the Activation Lock from my iPhone and Mac, allowing the devices to be safely reset and repurposed or sold.',
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Step extends StatelessWidget {
+  final String number;
+  final String title;
+  final String? body;
+  final List<String> bullets;
+
+  const _Step({
+    required this.number,
+    required this.title,
+    this.body,
+    this.bullets = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          decoration: const BoxDecoration(
+            color: Color(0xFF007AFF),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C2C2E),
+                ),
+              ),
+              if (body != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  body!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (bullets.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...bullets.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade500,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            b,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade800,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

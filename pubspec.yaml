@@ -58,6 +58,18 @@ flutter:
     - assets/icon/
     - assets/fonts/
 
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/Caveat-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Caveat-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Caveat-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Caveat-Bold.ttf
+          weight: 700
+
 flutter_launcher_icons:
   android: true
   ios: true

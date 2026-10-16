@@ -111,10 +111,14 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
   Widget build(BuildContext context) {
     final asyncAttachments =
         ref.watch(attachmentsProvider(widget.sectionId));
-    final photoAttachment = asyncAttachments.maybeWhen(
-      data: _findPhotoAttachment,
-      orElse: () => null,
-    );
+    // Keep previously-loaded data during background re-fetches so the photo
+    // doesn't momentarily fall back to the default (flicker).
+    final attachments = asyncAttachments.valueOrNull ?? <Attachment>[];
+    final photoAttachment = _findPhotoAttachment(attachments);
+    // True only while waiting for the very first load — show a neutral
+    // placeholder instead of flashing the default asset before the real photo.
+    final isFirstLoad =
+        asyncAttachments.isLoading && !asyncAttachments.hasValue;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,15 +141,31 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
                     borderRadius: BorderRadius.circular(11),
                     child: AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: photoAttachment != null &&
-                              photoAttachment.downloadUrl.isNotEmpty
-                          ? Image.network(
-                              photoAttachment.downloadUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (_, __, ___) => _defaultImage(),
+                      child: isFirstLoad
+                          ? Container(
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             )
-                          : _defaultImage(),
+                          : (photoAttachment != null &&
+                                  photoAttachment.downloadUrl.isNotEmpty
+                              ? Image.network(
+                                  photoAttachment.downloadUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  gaplessPlayback: true,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return _defaultImage();
+                                  },
+                                  errorBuilder: (_, __, ___) =>
+                                      _defaultImage(),
+                                )
+                              : _defaultImage()),
                     ),
                   ),
                 ),
@@ -280,6 +300,16 @@ class _FullscreenPhotoViewer extends StatelessWidget {
               ? Image.network(
                   photoAttachment!.downloadUrl,
                   fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Image.asset(
+                      defaultAsset,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox.shrink(),
+                    );
+                  },
                   errorBuilder: (_, __, ___) => Image.asset(
                     defaultAsset,
                     fit: BoxFit.contain,

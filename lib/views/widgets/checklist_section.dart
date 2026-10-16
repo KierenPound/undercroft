@@ -182,20 +182,8 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
                 color: Color(0xFF2C2C2E),
               ),
             ),
-            if (!widget.isOwner) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'Read-only',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
-              ),
-            ],
+            // Both owners and executors can tick items off, so the section
+            // is never read-only. Only add/rename/delete are owner-only.
             const Spacer(),
             asyncItems.maybeWhen(
               data: (items) {
@@ -257,7 +245,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: widget.isOwner ? () => _toggleItem(item) : null,
+            onTap: () => _toggleItem(item),
             child: Icon(
               item.isCompleted
                   ? Icons.check_circle

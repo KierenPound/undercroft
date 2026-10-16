@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../repositories/sections_repository.dart';
+import '../services/estate_service.dart';
 
 class OnboardingView extends ConsumerStatefulWidget {
   final ValueChanged<String> onComplete;
@@ -19,6 +20,56 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   final _codeController = TextEditingController();
   bool _isLoading = false;
   String? _error;
+  bool _hasPendingInvite = false;
+  String? _pendingEstateName;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPendingInvite();
+  }
+
+  /// If the signed-in user's email matches a pending invite, they were
+  /// invited to an estate — disable the "create new estate" path so they
+  /// can only join via their invite code.
+  Future<void> _checkPendingInvite() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user?.email == null) return;
+    try {
+      final rows = await client
+          .from('estate_access')
+          .select('estate_id')
+          .eq('invited_email', user!.email!)
+          .eq('status', 'pending')
+          .isFilter('user_id', null)
+          .limit(1);
+      if (mounted && rows.isNotEmpty) {
+        final estateId = rows.first['estate_id'] as String?;
+        String estateName = '';
+        if (estateId != null && estateId.isNotEmpty) {
+          final estateRows = await client
+              .from('estates')
+              .select('name')
+              .eq('id', estateId)
+              .limit(1);
+          if (estateRows.isNotEmpty) {
+            estateName = estateRows.first['name'] as String? ?? '';
+          }
+        }
+
+        setState(() {
+          _hasPendingInvite = true;
+          _pendingEstateName = estateName;
+          if (estateName.isNotEmpty) {
+            _nameController.text = estateName;
+          }
+        });
+      }
+    } catch (_) {
+      // Ignore — fall back to the normal create-or-join flow.
+    }
+  }
 
   @override
   void dispose() {
@@ -49,40 +100,11 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     try {
       String? completedEstateId;
 
-      if (_isOwner) {
-        final estateName = _nameController.text.trim();
-        if (estateName.isEmpty) {
-          setState(() => _error = 'Please enter a name for your estate.');
-          return;
-        }
-
-        // create_estate is a SECURITY DEFINER function that deletes any
-        // existing estate owned by this user, creates a fresh one, and
-        // guarantees the owner access row — all while bypassing RLS so the
-        // insert never fails on policy checks.
-        final estateId = await client.rpc('create_estate', params: {
-          'estate_name': estateName,
-        });
-
-        completedEstateId = estateId as String?;
-
-        // Seed the new estate with default sections and starter checklist
-        // items. This runs only for owners; executors joining an existing
-        // estate inherit whatever the owner already set up.
-        if (completedEstateId != null) {
-          final repo = ref.read(sectionsRepositoryProvider);
-          await repo.seedDefaults(completedEstateId);
-        }
-      } else {
-        final code = _codeController.text.trim().toUpperCase();
-        if (code.isEmpty) {
-          setState(() => _error = 'Please enter the invite code.');
-          return;
-        }
-
-        // If this user already has accepted access to an estate (e.g. they
-        // are the owner testing the invite flow on their own account), don't
-        // let them claim an executor invite — they already have a role.
+      // Helper: claim a pending invite by code. Returns the estate id or
+      // null if the code is invalid/expired. Sets _error on failure.
+      Future<String?> claimInvite(String code) async {
+        // Don't let a user who already has accepted access claim another
+        // invite — they already have a role on an estate.
         final existing = await client
             .from('estate_access')
             .select('estate_id, role')
@@ -91,26 +113,22 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             .limit(1);
 
         if (existing.isNotEmpty) {
-          final existingEstateId = existing.first['estate_id'] as String?;
-          if (existingEstateId != null) {
-            setState(() => _error =
-                'You already have access to an estate. Sign out and use a different account to join as an executor.');
-            return;
-          }
+          setState(() => _error =
+              'You already have access to an estate. Sign out and use a different account to join with this invite code.');
+          return null;
         }
 
         final invite = await client
             .from('estate_access')
-            .select('id, estate_id')
+            .select('id, estate_id, role')
             .eq('invite_code', code)
             .eq('status', 'pending')
-            .eq('role', 'executor')
             .isFilter('user_id', null)
             .maybeSingle();
 
         if (invite == null) {
           setState(() => _error = 'Invalid or expired invite code.');
-          return;
+          return null;
         }
 
         await client.from('estate_access').update({
@@ -118,10 +136,71 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
           'status': 'accepted',
         }).eq('id', invite['id'] as String);
 
-        completedEstateId = invite['estate_id'] as String?;
+        return invite['estate_id'] as String?;
+      }
+
+      if (_isOwner) {
+        final ownerCode = _codeController.text.trim().toUpperCase();
+
+        // If an owner invite code was provided (or the user was invited —
+        // i.e. they have a pending invite for their email), claim it
+        // (join as co-owner of an existing estate) instead of creating.
+        if (ownerCode.isNotEmpty || _hasPendingInvite) {
+          if (ownerCode.isEmpty) {
+            setState(() =>
+                _error = 'Please enter the invite code you were sent.');
+            return;
+          }
+          completedEstateId = await claimInvite(ownerCode);
+          if (completedEstateId == null) return;
+        } else {
+          final estateName = _nameController.text.trim();
+          if (estateName.isEmpty) {
+            setState(() => _error =
+                'Please enter an estate name to create a new estate, or an invite code to join an existing one.');
+            return;
+          }
+
+          // create_estate is a SECURITY DEFINER function that deletes any
+          // existing estate owned by this user, creates a fresh one, and
+          // guarantees the owner access row — all while bypassing RLS so
+          // the insert never fails on policy checks.
+          final estateId = await client.rpc('create_estate', params: {
+            'estate_name': estateName,
+          });
+
+          completedEstateId = estateId as String?;
+
+          // Seed the new estate with default sections and starter checklist
+          // items. This runs only for owners creating a new estate;
+          // co-owners joining via invite inherit whatever is already set up.
+          if (completedEstateId != null) {
+            final repo = ref.read(sectionsRepositoryProvider);
+            await repo.seedDefaults(completedEstateId);
+          }
+        }
+      } else {
+        final code = _codeController.text.trim().toUpperCase();
+        if (code.isEmpty) {
+          setState(() => _error = 'Please enter the invite code.');
+          return;
+        }
+
+        completedEstateId = await claimInvite(code);
+        if (completedEstateId == null) return;
       }
 
       if (mounted) {
+        // The estate_access row was just created/claimed, but the providers
+        // that derive role/estate-id from it are cached off currentUserProvider,
+        // which doesn't re-emit when the user's database row changes (only
+        // when auth state changes). Invalidate them so downstream screens
+        // fetch fresh values, but don't block navigation on that refresh.
+        ref.invalidate(estateIdProvider);
+        ref.invalidate(estateRoleProvider);
+        ref.invalidate(estateNameProvider);
+        ref.invalidate(hasEstateProvider);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('All set!')),
         );
@@ -219,17 +298,52 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      if (_isOwner)
+                      if (_isOwner) ...[
                         TextField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
+                          enabled: !_hasPendingInvite,
+                          decoration: InputDecoration(
                             labelText: 'Estate name',
-                            hintText: 'e.g. My Estate',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.home_outlined),
+                            hintText: _hasPendingInvite
+                                ? 'Loading invited estate...'
+                                : 'e.g. My Estate',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.home_outlined),
                           ),
-                        )
-                      else
+                        ),
+                        const SizedBox(height: 12),
+                        if (!_hasPendingInvite)
+                          const Text(
+                            'or',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.black45),
+                          ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _codeController,
+                          textCapitalization: TextCapitalization.characters,
+                          autofocus: _hasPendingInvite,
+                          decoration: InputDecoration(
+                            labelText: _hasPendingInvite
+                                ? 'Invite code'
+                                : 'Owner invite code',
+                            hintText: '6-character code',
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.vpn_key_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _hasPendingInvite
+                              ? (_pendingEstateName?.isNotEmpty ?? false)
+                                  ? 'You were invited to join "${_pendingEstateName!}". Enter your invite code to join.'
+                                  : 'You were invited to an estate. Enter your invite code to join.'
+                              : 'Enter a name to create a new estate, or an invite '
+                                  'code to join an existing estate as a co-owner.',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black45),
+                        ),
+                      ] else
                         TextField(
                           controller: _codeController,
                           textCapitalization: TextCapitalization.characters,
@@ -257,9 +371,9 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                         child: _isLoading
                             ? const CircularProgressIndicator(
                                 color: Colors.white)
-                            : Text(
-                                _isOwner ? 'Create estate' : 'Join estate',
-                                style: const TextStyle(fontSize: 16),
+                            : const Text(
+                                'Proceed',
+                                style: TextStyle(fontSize: 16),
                               ),
                       ),
                     ],

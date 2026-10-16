@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthView extends StatefulWidget {
@@ -176,6 +177,16 @@ class _AuthViewState extends State<AuthView> {
                               ),
                       ),
                       const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.push('/password-reset'),
+                          child: const Text(
+                            'Forgot password?',
+                            style: TextStyle(color: Color(0xFF3A8D5A)),
+                          ),
+                        ),
+                      ),
                       TextButton(
                         onPressed: () => setState(() => _isSignUp = !_isSignUp),
                         child: Text(

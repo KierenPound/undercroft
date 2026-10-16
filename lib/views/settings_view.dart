@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/estate_service.dart';
 
@@ -13,12 +14,16 @@ class SettingsView extends ConsumerStatefulWidget {
 
 class _SettingsViewState extends ConsumerState<SettingsView> {
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _ownerEmailController = TextEditingController();
   String? _generatedCode;
+  String? _ownerGeneratedCode;
   bool _inviting = false;
+  bool _invitingOwner = false;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _ownerEmailController.dispose();
     super.dispose();
   }
 
@@ -30,6 +35,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         invitedEmail: _emailController.text.trim(),
       );
       setState(() => _generatedCode = code);
+      _launchInviteEmail(
+        to: _emailController.text.trim(),
+        roleLabel: 'Executor',
+        pinCode: code,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -41,9 +51,81 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     }
   }
 
-  void _copyCode() {
-    if (_generatedCode == null) return;
-    Clipboard.setData(ClipboardData(text: _generatedCode!));
+  Future<void> _generateOwnerInvite(String estateId) async {
+    setState(() => _invitingOwner = true);
+    try {
+      final code = await inviteOwner(
+        estateId: estateId,
+        invitedEmail: _ownerEmailController.text.trim(),
+      );
+      setState(() => _ownerGeneratedCode = code);
+      _launchInviteEmail(
+        to: _ownerEmailController.text.trim(),
+        roleLabel: 'Estate Owner',
+        pinCode: code,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create invite: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _invitingOwner = false);
+    }
+  }
+
+  /// Opens the device email client with a pre-filled invitation email for the
+  /// given role and PIN code. The [to] address may be empty; in that case the
+  /// user fills in the recipient manually.
+  Future<void> _launchInviteEmail({
+    required String to,
+    required String roleLabel,
+    required String pinCode,
+  }) async {
+    final subject = 'You have been appointed as an $roleLabel';
+    final body = '''Hello,
+
+You have been designated as an $roleLabel in my Family Estate plan.
+
+To accept this invitation and connect to my estate records:
+1. Download the UnderCroft App from the App/Play Store.
+2. Select "Sign Up" with your email and what password you want.
+3. Select $roleLabel and use this PIN code: $pinCode
+
+Best regards,
+Estate Owner''';
+
+    final params = <String, String>{
+      if (subject.isNotEmpty) 'subject': subject,
+      if (body.isNotEmpty) 'body': body,
+    };
+    final mailto = Uri(
+      scheme: 'mailto',
+      path: to,
+      query: params.entries
+          .map((e) =>
+              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+          .join('&'),
+    );
+
+    try {
+      await launchUrl(mailto);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not open your email app. The invite code has been generated — copy it and send it manually.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _copyCode(String? code) {
+    if (code == null) return;
+    Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Invite code copied to clipboard')),
     );
@@ -54,11 +136,15 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final asyncRole = ref.watch(estateRoleProvider);
     final simulatedRole = ref.watch(simulatedRoleProvider);
     final asyncEstateId = ref.watch(estateIdProvider);
+    final asyncUser = ref.watch(currentUserProvider);
+    final asyncEstateName = ref.watch(estateNameProvider);
 
     final actualRole = asyncRole.valueOrNull ?? '';
     final effectiveRole = simulatedRole ?? actualRole;
     final isOwner = effectiveRole == 'owner';
     final isSimulating = simulatedRole != null;
+    final userEmail = asyncUser.valueOrNull?.email ?? 'Not signed in';
+    final estateName = asyncEstateName.valueOrNull ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -80,6 +166,79 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Your ID
+            _SectionCard(
+              title: 'Your ID',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'You are signed in with',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.alternate_email,
+                        color: Color(0xFF5B7C6A),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SelectableText(
+                          userEmail,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Estate name
+            _SectionCard(
+              title: 'Estate',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'You are managing',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.home_outlined,
+                        color: Color(0xFF5B7C6A),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          estateName.isEmpty ? '—' : estateName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Current role
             _SectionCard(
               title: 'Your role',
@@ -247,7 +406,116 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             ),
                             const SizedBox(height: 10),
                             TextButton.icon(
-                              onPressed: _copyCode,
+                              onPressed: () => _copyCode(_generatedCode),
+                              icon: const Icon(
+                                Icons.copy,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              label: const Text(
+                                'Copy code',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Invite estate owner (owners only)
+              _SectionCard(
+                title: 'Invite an estate owner',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Generate a 6-character invite code. The person who '
+                      'uses this code will become a co-owner of this estate, '
+                      'with the same full privileges as you. They enter the '
+                      'code when they first sign in.',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _ownerEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email (optional)',
+                        hintText: 'name@example.com',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _invitingOwner
+                            ? null
+                            : () {
+                                final eid = asyncEstateId.valueOrNull;
+                                if (eid == null || eid.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Estate not loaded yet — try again',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                _generateOwnerInvite(eid);
+                              },
+                        icon: _invitingOwner
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.shield),
+                        label: const Text('Generate owner invite code'),
+                      ),
+                    ),
+                    if (_ownerGeneratedCode != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B5E3C),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Owner invite code',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            SelectableText(
+                              _ownerGeneratedCode!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 6,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextButton.icon(
+                              onPressed: () => _copyCode(_ownerGeneratedCode),
                               icon: const Icon(
                                 Icons.copy,
                                 color: Colors.white,

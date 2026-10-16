@@ -93,6 +93,25 @@ final hasEstateProvider = FutureProvider<bool>((ref) async {
   return estateId.isNotEmpty;
 });
 
+/// The display name of the estate the current user belongs to.
+final estateNameProvider = FutureProvider<String>((ref) async {
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) return '';
+
+  final client = Supabase.instance.client;
+  try {
+    final rows = await client
+        .from('estates')
+        .select('name')
+        .eq('id', estateId)
+        .limit(1);
+    if (rows.isEmpty) return '';
+    return rows.first['name'] as String? ?? '';
+  } catch (_) {
+    return '';
+  }
+});
+
 /// Characters used when generating invite codes. Ambiguous glyphs
 /// (0/O, 1/I) are excluded to avoid confusion when reading the code.
 const String _inviteCodeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -123,6 +142,35 @@ Future<String> inviteExecutor({
   await client.from('estate_access').insert({
     'estate_id': estateId,
     'role': 'executor',
+    'status': 'pending',
+    'invite_code': code,
+    if (invitedEmail != null && invitedEmail.isNotEmpty)
+      'invited_email': invitedEmail,
+  });
+
+  return code;
+}
+
+/// Creates a pending co-owner invite for the given estate.
+///
+/// Inserts an `estate_access` row with `role = 'owner'`,
+/// `status = 'pending'`, a freshly generated 6-char [invite_code], and
+/// optionally the [invitedEmail]. Returns the invite code.
+///
+/// The person who claims this code becomes a co-owner of the estate with
+/// the same privileges as the original owner.
+///
+/// Only the estate owner can do this (enforced by RLS on the server).
+Future<String> inviteOwner({
+  required String estateId,
+  String? invitedEmail,
+}) async {
+  final client = Supabase.instance.client;
+  final code = generateInviteCode();
+
+  await client.from('estate_access').insert({
+    'estate_id': estateId,
+    'role': 'owner',
     'status': 'pending',
     'invite_code': code,
     if (invitedEmail != null && invitedEmail.isNotEmpty)

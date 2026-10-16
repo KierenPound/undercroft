@@ -3,10 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import 'my_letter_view.dart';
 import 'widgets/attachments_section.dart';
+import 'widgets/cars_dashboard.dart';
 import 'widgets/checklist_section.dart';
+import 'widgets/confirmation_dashboard.dart';
+import 'widgets/funeral_arrangements_dashboard.dart';
+import 'widgets/legal_documents_dashboard.dart';
 import 'widgets/notes_section.dart';
 import 'widgets/photo_section.dart';
+import 'widgets/running_the_houses_dashboard.dart';
 import 'widgets/song_for_the_page_section.dart';
 import 'widgets/what_to_do_first_dashboard.dart';
 
@@ -34,8 +40,15 @@ class SectionDetailView extends ConsumerWidget {
           );
         }
 
-        final asyncSection = ref.watch(sectionByTitleProvider(config));
         final isOwner = asyncIsOwner.valueOrNull ?? true;
+
+        // "My Letter to You" is a standalone page: just the letter, with no
+        // checklist, notes or attachments sections below it.
+        if (config.title == 'My Letter to You') {
+          return MyLetterView(config: config);
+        }
+
+        final asyncSection = ref.watch(sectionByTitleProvider(config));
 
         return Scaffold(
           appBar: AppBar(
@@ -65,7 +78,73 @@ class SectionDetailView extends ConsumerWidget {
                         isOwner: isOwner,
                         youtubeUrl: section.youtubeUrl,
                       )
-                    else ...[
+                    else if (section.title == 'Legal Documents') ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/gemini_legal_800.jpeg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 28),
+                      LegalDocumentsDashboard(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        youtubeUrl: section.youtubeUrl,
+                      ),
+                    ] else if (section.title == 'Confirmation') ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/confirmation_1.jpg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 28),
+                      const ConfirmationDashboard(),
+                      const SizedBox(height: 28),
+                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    ] else if (section.title == 'Cars') ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/gemini_cars_800.jpeg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 28),
+                      const CarsDashboard(),
+                      const SizedBox(height: 28),
+                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    ] else if (section.title == 'Funeral Arrangements') ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/funeral_gemini.jpeg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 28),
+                      FuneralArrangementsDashboard(
+                        estateId: estateId,
+                        isOwner: isOwner,
+                      ),
+                      const SizedBox(height: 28),
+                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    ] else if (section.title == 'Running the Houses') ...[
+                      PhotoSection(
+                        sectionId: section.id,
+                        estateId: estateId,
+                        isOwner: isOwner,
+                        defaultAsset: 'assets/images/gemini_houses_800.jpeg',
+                        sectionTitle: section.title,
+                      ),
+                      const SizedBox(height: 28),
+                      const RunningTheHousesDashboard(),
+                      const SizedBox(height: 28),
+                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    ] else ...[
                       PhotoSection(
                         sectionId: section.id,
                         estateId: estateId,

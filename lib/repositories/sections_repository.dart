@@ -237,7 +237,7 @@ final wtnSectionProvider = FutureProvider.autoDispose
   return repo.getOrCreateSection(
     estateId: estateId,
     title: 'Who to Notify',
-    orderIndex: 2,
+    orderIndex: 3,
     isStandard: true,
     youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
   );
@@ -260,43 +260,47 @@ class SectionConfig {
 /// by title (survives browser refreshes, unlike `go_router`'s `extra`).
 const List<SectionConfig> allSectionConfigs = [
   SectionConfig(
-    title: 'What to Do First',
+    title: 'My Letter to You',
     orderIndex: 0,
+  ),
+  SectionConfig(
+    title: 'What to Do First',
+    orderIndex: 1,
     youtubeUrl: 'https://www.youtube.com/watch?v=b4ZypVnbYHM',
   ),
   SectionConfig(
     title: 'Legal Documents',
-    orderIndex: 1,
+    orderIndex: 2,
     youtubeUrl: 'https://youtu.be/AL8chWFuM-s',
   ),
   SectionConfig(
     title: 'Who to Notify',
-    orderIndex: 2,
+    orderIndex: 3,
     youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
   ),
   SectionConfig(
     title: 'Running the Houses',
-    orderIndex: 3,
+    orderIndex: 4,
     youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
   ),
   SectionConfig(
     title: 'Funeral Arrangements',
-    orderIndex: 4,
+    orderIndex: 5,
     youtubeUrl: 'https://www.youtube.com/watch?v=02T6xLNXEE0',
   ),
   SectionConfig(
     title: 'Cars',
-    orderIndex: 5,
+    orderIndex: 6,
     youtubeUrl: 'https://www.youtube.com/watch?v=rbgiJu7YFvo',
   ),
   SectionConfig(
     title: 'Confirmation',
-    orderIndex: 6,
+    orderIndex: 7,
     youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
   ),
   SectionConfig(
     title: "Kieren's Jukebox",
-    orderIndex: 7,
+    orderIndex: 8,
   ),
 ];
 
