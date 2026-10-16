@@ -46,7 +46,7 @@ const List<DefaultSection> defaultSections = [
   DefaultSection(
     title: 'Legal Documents',
     orderIndex: 2,
-    youtubeUrl: 'https://youtu.be/AL8chWFuM-s',
+    youtubeUrl: 'https://www.youtube.com/watch?v=GaZp4fJVHmQ',
     checklistItems: [
       'Locate the last will and testament',
       'Find any enduring/lasting power of attorney documents',

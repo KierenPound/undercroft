@@ -311,7 +311,7 @@ const List<SectionConfig> allSectionConfigs = [
   SectionConfig(
     title: 'Legal Documents',
     orderIndex: 2,
-    youtubeUrl: 'https://youtu.be/AL8chWFuM-s',
+    youtubeUrl: 'https://www.youtube.com/watch?v=GaZp4fJVHmQ',
   ),
   SectionConfig(
     title: 'Who to Notify',
