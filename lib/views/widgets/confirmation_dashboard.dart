@@ -541,18 +541,17 @@ class ConfirmationDashboard extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Contact the following for final balances across '
-                            'all listed account numbers (see Who to Contact):',
+                            'Contact the following types of organisations for final balances  '
+                            'across all listed account numbers (see Who to Notify):',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
                           _flowChipRow(
                             items: const [
-                              'TSB',
-                              'Starling',
-                              'Tembo',
-                              'NS&I',
-                              'eToro',
+                              'Main bank',
+                              'Premium bonds',
+                              'ISA',
+                              'Savings'
                             ],
                             tint: Colors.indigo,
                           ),
@@ -790,7 +789,7 @@ class ConfirmationDashboard extends StatelessWidget {
     );
   }
 
-  // MARK: - IHT421 Stamped Cert + Perth Sheriff Court
+  // MARK: - IHT421 Stamped Cert + Sheriff Court
 
   Widget _buildIht421AndCourtSection() {
     const tint = Colors.red;
@@ -805,7 +804,7 @@ class ConfirmationDashboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'IHT421 Stamped Certificate & Perth Sheriff Court',
+          title: 'IHT421 Stamped Certificate & local Sheriff Court',
           icon: Icons.mail,
           tint: tint,
         ),
@@ -854,9 +853,9 @@ class ConfirmationDashboard extends StatelessWidget {
                   icon: Icons.account_balance,
                   tint: Colors.purple,
                   stepNumber: 3,
-                  title: 'Submit to the Perth Sheriff Court',
+                  title: 'Submit to the local Sheriff Court',
                   body: 'Once HMRC issues your tax clearance code, mail your '
-                      'final court package to the Perth Sheriff Court:',
+                      'final court package to the local Sheriff Court:',
                 ),
                 const SizedBox(height: 12),
                 Padding(
