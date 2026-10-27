@@ -77,7 +77,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
       }
     }
 
-    ref.refresh(attachmentsProvider(widget.sectionId));
+    ref.invalidate(attachmentsProvider(widget.sectionId));
     if (mounted) setState(() => _uploading = false);
   }
 
@@ -120,7 +120,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
       }
     }
 
-    ref.refresh(attachmentsProvider(widget.sectionId));
+    ref.invalidate(attachmentsProvider(widget.sectionId));
     if (mounted) setState(() => _uploading = false);
   }
 
@@ -156,7 +156,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
       final repo = ref.read(sectionsRepositoryProvider);
       try {
         await repo.deleteAttachment(attachment);
-        ref.refresh(attachmentsProvider(widget.sectionId));
+        ref.invalidate(attachmentsProvider(widget.sectionId));
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -286,7 +286,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
               );
             }
             return SizedBox(
-              height: 210,
+              height: 238,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: attachments.length,
@@ -412,21 +412,36 @@ class _AttachmentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            attachment.fileName,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2C2C2E),
+          SizedBox(
+            height: 86,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  attachment.fileName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2C2C2E),
+                  ),
+                ),
+                if (attachment.formattedSize.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    attachment.formattedSize,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+                const SizedBox(height: 2),
+                Text(
+                  attachment.formattedDate,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ],
             ),
           ),
-          if (attachment.formattedSize.isNotEmpty)
-            Text(
-              attachment.formattedSize,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            ),
         ],
       ),
     );

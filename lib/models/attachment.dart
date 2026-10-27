@@ -1,5 +1,20 @@
 enum AttachmentType { photo, pdf, unknown }
 
+const _attachmentMonthAbbreviations = <String>[
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
 class Attachment {
   final String id;
   final String sectionId;
@@ -90,5 +105,11 @@ class Attachment {
       unitIndex++;
     }
     return '${size.toStringAsFixed(size >= 10 || unitIndex == 0 ? 0 : 1)} ${units[unitIndex]}';
+  }
+
+  String get formattedDate {
+    final local = createdAt.toLocal();
+    final month = _attachmentMonthAbbreviations[local.month - 1];
+    return '${local.day} $month ${local.year}';
   }
 }
