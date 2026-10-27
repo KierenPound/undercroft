@@ -38,7 +38,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
     final updated = item.copyWith(isCompleted: !item.isCompleted);
     try {
       await repo.updateChecklistItem(updated);
-      ref.refresh(checklistItemsProvider(widget.sectionId));
+      ref.invalidate(checklistItemsProvider(widget.sectionId));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -69,7 +69,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       if (mounted) {
         _newItemController.clear();
         setState(() {});
-        ref.refresh(checklistItemsProvider(widget.sectionId));
+        ref.invalidate(checklistItemsProvider(widget.sectionId));
       }
     } catch (e) {
       if (mounted) {
@@ -110,7 +110,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       final repo = ref.read(sectionsRepositoryProvider);
       try {
         await repo.updateChecklistItem(item.copyWith(text: result.trim()));
-        ref.refresh(checklistItemsProvider(widget.sectionId));
+        ref.invalidate(checklistItemsProvider(widget.sectionId));
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -144,7 +144,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       final repo = ref.read(sectionsRepositoryProvider);
       try {
         await repo.deleteChecklistItem(item.id);
-        ref.refresh(checklistItemsProvider(widget.sectionId));
+        ref.invalidate(checklistItemsProvider(widget.sectionId));
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

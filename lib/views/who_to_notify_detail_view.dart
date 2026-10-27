@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/notify_account_details.dart';
 import '../models/who_to_notify.dart';
 import '../repositories/who_to_notify_repository.dart';
+import '../services/estate_service.dart';
+import 'who_to_notify_list_view.dart';
 
 final accountDetailsProvider = FutureProvider.autoDispose
     .family<List<NotifyAccountDetails>, String>((ref, whoToNotifyId) async {
@@ -30,11 +32,17 @@ class WhoToNotifyDetailView extends ConsumerStatefulWidget {
 }
 
 class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
-  bool _editing = false;
+  static const Color _tint = Color(0xFF3A8D5A);
+
   late TextEditingController _companyNameController;
   late TextEditingController _contactNumberController;
   late TextEditingController _weblinkController;
   late TextEditingController _notesController;
+
+  /// Tracks which entry the controllers are currently primed with, so the
+  /// fields load their saved values once and are never overwritten while the
+  /// user is typing.
+  String? _syncedEntryId;
 
   @override
   void initState() {
@@ -85,7 +93,41 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     final repo = ref.read(whoToNotifyRepositoryProvider);
     await repo.update(updated);
     ref.invalidate(whoToNotifyEntryProvider(widget.whoToNotifyId));
-    setState(() => _editing = false);
+    ref.invalidate(whoToNotifyListProvider);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saved.')),
+    );
+  }
+
+  Future<void> _confirmDeleteEntry(WhoToNotify entry) async {
+    final label = entry.companyName.trim().isEmpty
+        ? 'this organisation'
+        : '"${entry.companyName.trim()}"';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete organisation?'),
+        content: Text('This will permanently delete $label.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final repo = ref.read(whoToNotifyRepositoryProvider);
+    await repo.delete(widget.whoToNotifyId);
+    ref.invalidate(whoToNotifyListProvider);
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   @override
@@ -94,6 +136,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
         ref.watch(whoToNotifyEntryProvider(widget.whoToNotifyId));
     final asyncDetails =
         ref.watch(accountDetailsProvider(widget.whoToNotifyId));
+    final isOwner = ref.watch(isOwnerProvider).valueOrNull ?? true;
 
     return Scaffold(
       appBar: AppBar(
@@ -103,28 +146,6 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        actions: [
-          asyncEntry.maybeWhen(
-            data: (entry) {
-              if (!_editing) {
-                return IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Edit details',
-                  onPressed: () {
-                    _syncControllers(entry);
-                    setState(() => _editing = true);
-                  },
-                );
-              }
-              return IconButton(
-                icon: const Icon(Icons.check),
-                tooltip: 'Save',
-                onPressed: () => _saveEntry(entry),
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -148,12 +169,16 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
             ),
           ),
           data: (entry) {
+            if (isOwner && _syncedEntryId != entry.whoToNotifyId) {
+              _syncControllers(entry);
+              _syncedEntryId = entry.whoToNotifyId;
+            }
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _buildHeader(entry),
+                _buildHeader(entry, isOwner),
                 const SizedBox(height: 20),
-                _buildAccountDetailsSection(asyncDetails),
+                _buildAccountDetailsSection(asyncDetails, isOwner),
               ],
             );
           },
@@ -162,7 +187,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     );
   }
 
-  Widget _buildHeader(WhoToNotify entry) {
+  Widget _buildHeader(WhoToNotify entry, bool isOwner) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -176,15 +201,14 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3A8D5A).withValues(alpha: 0.12),
+                    color: _tint.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(entry.icon,
-                      color: const Color(0xFF3A8D5A), size: 26),
+                  child: Icon(entry.icon, color: _tint, size: 26),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _editing
+                  child: isOwner
                       ? TextField(
                           controller: _companyNameController,
                           style: const TextStyle(
@@ -214,6 +238,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               keyboardType: TextInputType.phone,
               actionIcon: Icons.call,
               onAction: () => _launchPhone(_contactNumberController.text),
+              isOwner: isOwner,
             ),
             const SizedBox(height: 12),
             _buildContactRow(
@@ -225,10 +250,40 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               keyboardType: TextInputType.url,
               actionIcon: Icons.open_in_new_rounded,
               onAction: () => _launchUrl(_weblinkController.text),
-              isUrl: true,
+              isOwner: isOwner,
             ),
             const SizedBox(height: 12),
-            _buildNotesField(entry),
+            _buildNotesField(entry, isOwner),
+            if (isOwner) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _saveEntry(entry),
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Save'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _tint,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton.icon(
+                    onPressed: () => _confirmDeleteEntry(entry),
+                    icon: const Icon(Icons.delete_outline,
+                        size: 18, color: Colors.red),
+                    label: const Text('Delete',
+                        style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -244,9 +299,9 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     required TextInputType keyboardType,
     required IconData actionIcon,
     required VoidCallback onAction,
-    bool isUrl = false,
+    required bool isOwner,
   }) {
-    final text = _editing ? controller.text : (value ?? '');
+    final text = isOwner ? controller.text : (value ?? '');
     final hasValue = text.trim().isNotEmpty;
 
     return Container(
@@ -261,7 +316,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
           Icon(icon, size: 18, color: tint),
           const SizedBox(width: 8),
           Expanded(
-            child: _editing
+            child: isOwner
                 ? TextField(
                     controller: controller,
                     keyboardType: keyboardType,
@@ -309,14 +364,14 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     );
   }
 
-  Widget _buildNotesField(WhoToNotify entry) {
+  Widget _buildNotesField(WhoToNotify entry, bool isOwner) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(Icons.notes, size: 20, color: Colors.grey.shade600),
         const SizedBox(width: 10),
         Expanded(
-          child: _editing
+          child: isOwner
               ? TextField(
                   controller: _notesController,
                   maxLines: 3,
@@ -338,7 +393,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
   }
 
   Widget _buildAccountDetailsSection(
-      AsyncValue<List<NotifyAccountDetails>> asyncDetails) {
+      AsyncValue<List<NotifyAccountDetails>> asyncDetails, bool isOwner) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -349,11 +404,12 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               'Account details',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
-            TextButton.icon(
-              onPressed: () => _addAccountDetails(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
-            ),
+            if (isOwner)
+              TextButton.icon(
+                onPressed: () => _addAccountDetails(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add'),
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -374,7 +430,9 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                   padding: const EdgeInsets.all(16),
                   child: Center(
                     child: Text(
-                      'No account details yet.\nTap "Add" to add sort codes, account numbers, etc.',
+                      isOwner
+                          ? 'No account details yet.\nTap "Add" to add sort codes, account numbers, etc.'
+                          : 'No account details yet.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey.shade500),
                     ),
@@ -386,6 +444,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               children: details
                   .map((d) => _AccountDetailsCard(
                         details: d,
+                        isOwner: isOwner,
                         onUpdate: (updated) => _updateAccountDetails(updated),
                         onDelete: () => _deleteAccountDetails(d),
                       ))
@@ -460,11 +519,13 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
 
 class _AccountDetailsCard extends StatefulWidget {
   final NotifyAccountDetails details;
+  final bool isOwner;
   final ValueChanged<NotifyAccountDetails> onUpdate;
   final VoidCallback onDelete;
 
   const _AccountDetailsCard({
     required this.details,
+    required this.isOwner,
     required this.onUpdate,
     required this.onDelete,
   });
@@ -478,7 +539,6 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
   late TextEditingController _accountCodeController;
   late TextEditingController _otherCodeController;
   late TextEditingController _otherDescriptionController;
-  bool _editing = false;
 
   @override
   void initState() {
@@ -517,11 +577,14 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
           : _otherDescriptionController.text.trim(),
     );
     widget.onUpdate(updated);
-    setState(() => _editing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saved.')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final editing = widget.isOwner;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -530,33 +593,11 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (!_editing)
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => setState(() => _editing = true),
-                    tooltip: 'Edit',
-                  )
-                else
-                  IconButton(
-                    icon: const Icon(Icons.check, size: 20),
-                    onPressed: _save,
-                    tooltip: 'Save',
-                  ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: widget.onDelete,
-                  tooltip: 'Delete',
-                ),
-              ],
-            ),
             _buildField(
               'Sort code',
               _sortCodeController,
               '00-00-00',
-              _editing,
+              editing,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9-]')),
               ],
@@ -565,10 +606,10 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
             _buildField(
               'Account number',
               _accountCodeController,
-              '00000000',
-              _editing,
+              'e.g. ACC-51OZR4',
+              editing,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
               ],
             ),
             const SizedBox(height: 8),
@@ -576,7 +617,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
               'Other code',
               _otherCodeController,
               'Reference, member no., etc.',
-              _editing,
+              editing,
               showHintWhenEmpty: false,
             ),
             const SizedBox(height: 8),
@@ -584,8 +625,38 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
               'Description',
               _otherDescriptionController,
               'e.g. Kieren current account',
-              _editing,
+              editing,
             ),
+            if (widget.isOwner) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Save'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _WhoToNotifyDetailViewState._tint,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton.icon(
+                    onPressed: widget.onDelete,
+                    icon: const Icon(Icons.delete_outline,
+                        size: 18, color: Colors.red),
+                    label: const Text('Delete',
+                        style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

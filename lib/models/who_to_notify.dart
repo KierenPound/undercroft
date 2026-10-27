@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+const _unsetWhoToNotifyField = Object();
+
 class WhoToNotify {
   final String whoToNotifyId;
   final String estateId;
@@ -44,25 +46,32 @@ class WhoToNotify {
   Map<String, dynamic> toUpdateJson() {
     return {
       'company_name': companyName,
-      if (contactNumber != null) 'contact_number': contactNumber,
-      if (weblink != null) 'weblink': weblink,
-      if (supplementaryNotes != null) 'supplementary_notes': supplementaryNotes,
+      'contact_number': contactNumber,
+      'weblink': weblink,
+      'supplementary_notes': supplementaryNotes,
     };
   }
 
   WhoToNotify copyWith({
     String? companyName,
-    String? contactNumber,
-    String? weblink,
-    String? supplementaryNotes,
+    Object? contactNumber = _unsetWhoToNotifyField,
+    Object? weblink = _unsetWhoToNotifyField,
+    Object? supplementaryNotes = _unsetWhoToNotifyField,
   }) {
     return WhoToNotify(
       whoToNotifyId: whoToNotifyId,
       estateId: estateId,
       companyName: companyName ?? this.companyName,
-      contactNumber: contactNumber ?? this.contactNumber,
-      weblink: weblink ?? this.weblink,
-      supplementaryNotes: supplementaryNotes ?? this.supplementaryNotes,
+      contactNumber: identical(contactNumber, _unsetWhoToNotifyField)
+          ? this.contactNumber
+          : contactNumber as String?,
+      weblink: identical(weblink, _unsetWhoToNotifyField)
+          ? this.weblink
+          : weblink as String?,
+      supplementaryNotes:
+          identical(supplementaryNotes, _unsetWhoToNotifyField)
+              ? this.supplementaryNotes
+              : supplementaryNotes as String?,
       createdAt: createdAt,
     );
   }
