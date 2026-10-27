@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS public.sections (
     computer_password_1  text NOT NULL DEFAULT '',
     phone_pin_2          text NOT NULL DEFAULT '',
     computer_password_2  text NOT NULL DEFAULT '',
+    wifi_password        text NOT NULL DEFAULT '',
     pet_notes            text NOT NULL DEFAULT '',
     vet_name             text NOT NULL DEFAULT '',
     vet_phone            text NOT NULL DEFAULT '',

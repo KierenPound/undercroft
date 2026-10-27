@@ -41,18 +41,18 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
           ),
           error: (error, _) => Center(
             child: Column(
-            children: [
-              const Icon(Icons.error_outline, size: 40, color: Colors.grey),
-              const SizedBox(height: 8),
-              Text('Error: $error', textAlign: TextAlign.center),
-              TextButton(
-                onPressed: () =>
-                    ref.invalidate(funeralArrangementsListProvider),
-                child: const Text('Retry'),
-              ),
-            ],
+              children: [
+                const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                const SizedBox(height: 8),
+                Text('Error: $error', textAlign: TextAlign.center),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(funeralArrangementsListProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
-        ),
           data: (entries) {
             if (entries.isEmpty) {
               return _EmptyState(
@@ -176,7 +176,8 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.celebration_outlined, size: 48, color: Colors.grey.shade400),
+          Icon(Icons.celebration_outlined,
+              size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           const Text(
             'No funeral arrangements yet',
@@ -253,9 +254,9 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
     super.didUpdateWidget(oldWidget);
     // Keep controllers in sync only when the underlying record id changes
     // (e.g. after a save round-trip) but never clobber in-progress typing.
-    if (oldWidget.entry.funeralArrangementId != widget.entry.funeralArrangementId ||
-        (_initialized &&
-            _nameController.text != widget.entry.name)) {
+    if (oldWidget.entry.funeralArrangementId !=
+            widget.entry.funeralArrangementId ||
+        (_initialized && _nameController.text != widget.entry.name)) {
       _nameController.text = widget.entry.name;
       _notesController.text = widget.entry.notes;
       _urlController.text = widget.entry.url;
@@ -302,7 +303,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete arrangement?'),
-        content: Text('This will permanently delete "Funeral (${widget.entry.name})".'),
+        content: Text(
+            'This will permanently delete "Funeral (${widget.entry.name})".'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -325,7 +327,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
 
   @override
   Widget build(BuildContext context) {
-    final name = _nameController.text.trim().isEmpty ? '—' : _nameController.text.trim();
+    final name =
+        _nameController.text.trim().isEmpty ? '—' : _nameController.text.trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +357,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
             ),
             if (widget.isOwner)
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.red, size: 20),
                 onPressed: _confirmDelete,
                 tooltip: 'Delete arrangement',
               ),
@@ -426,7 +430,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
                           vertical: 12,
                         ),
                         prefixIcon: const Icon(
-                          Icons.link,
+                          Icons.public_rounded,
                           color: Colors.blue,
                           size: 18,
                         ),
@@ -505,9 +509,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400),
             filled: true,
-            fillColor: enabled
-                ? Colors.grey.shade50
-                : Colors.grey.shade100,
+            fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade100,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,

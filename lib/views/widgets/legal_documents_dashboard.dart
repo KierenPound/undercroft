@@ -445,7 +445,7 @@ class _LegalDocumentsDashboardState
                   const SizedBox(height: 8),
                   _editableContactField(
                     controller: _urlController,
-                    icon: Icons.language,
+                    icon: Icons.public_rounded,
                     tint: Colors.teal,
                     hint: 'Website',
                     keyboardType: TextInputType.url,
@@ -475,7 +475,7 @@ class _LegalDocumentsDashboardState
                         ),
                       if (_effectiveUrl.isNotEmpty)
                         _pillButton(
-                          icon: Icons.language,
+                          icon: Icons.public_rounded,
                           label: _effectiveUrl.replaceFirst(
                               RegExp(r'^https?://'), ''),
                           tint: Colors.teal,

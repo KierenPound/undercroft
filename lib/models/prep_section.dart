@@ -21,6 +21,7 @@ class PrepSection {
   final String computerPassword1;
   final String phonePin2;
   final String computerPassword2;
+  final String wifiPassword;
   final String petNotes;
   final String vetName;
   final String vetPhone;
@@ -50,6 +51,7 @@ class PrepSection {
     required this.computerPassword1,
     required this.phonePin2,
     required this.computerPassword2,
+    required this.wifiPassword,
     required this.petNotes,
     required this.vetName,
     required this.vetPhone,
@@ -81,6 +83,7 @@ class PrepSection {
       computerPassword1: json['computer_password_1'] as String? ?? '',
       phonePin2: json['phone_pin_2'] as String? ?? '',
       computerPassword2: json['computer_password_2'] as String? ?? '',
+      wifiPassword: json['wifi_password'] as String? ?? '',
       petNotes: json['pet_notes'] as String? ?? '',
       vetName: json['vet_name'] as String? ?? '',
       vetPhone: json['vet_phone'] as String? ?? '',
@@ -110,6 +113,7 @@ class PrepSection {
       'computer_password_1': computerPassword1,
       'phone_pin_2': phonePin2,
       'computer_password_2': computerPassword2,
+      'wifi_password': wifiPassword,
       'pet_notes': petNotes,
       'vet_name': vetName,
       'vet_phone': vetPhone,
@@ -136,6 +140,7 @@ class PrepSection {
       'computer_password_1': computerPassword1,
       'phone_pin_2': phonePin2,
       'computer_password_2': computerPassword2,
+      'wifi_password': wifiPassword,
       'pet_notes': petNotes,
       'vet_name': vetName,
       'vet_phone': vetPhone,
@@ -159,6 +164,7 @@ class PrepSection {
     String? computerPassword1,
     String? phonePin2,
     String? computerPassword2,
+    String? wifiPassword,
     String? petNotes,
     String? vetName,
     String? vetPhone,
@@ -186,6 +192,7 @@ class PrepSection {
       computerPassword1: computerPassword1 ?? this.computerPassword1,
       phonePin2: phonePin2 ?? this.phonePin2,
       computerPassword2: computerPassword2 ?? this.computerPassword2,
+      wifiPassword: wifiPassword ?? this.wifiPassword,
       petNotes: petNotes ?? this.petNotes,
       vetName: vetName ?? this.vetName,
       vetPhone: vetPhone ?? this.vetPhone,

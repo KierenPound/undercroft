@@ -217,7 +217,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
             ),
             const SizedBox(height: 12),
             _buildContactRow(
-              icon: Icons.link,
+              icon: Icons.public_rounded,
               hint: 'Web link',
               value: entry.weblink,
               controller: _weblinkController,

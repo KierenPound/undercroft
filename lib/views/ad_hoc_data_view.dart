@@ -97,7 +97,8 @@ class AdHocDataView extends ConsumerWidget {
                         const SizedBox(height: 8),
                         Text('Error: $error', textAlign: TextAlign.center),
                         TextButton(
-                          onPressed: () => ref.invalidate(adHocDataListProvider),
+                          onPressed: () =>
+                              ref.invalidate(adHocDataListProvider),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -234,7 +235,8 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+          Icon(Icons.inventory_2_outlined,
+              size: 48, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           const Text(
             'No ad hoc data yet',
@@ -355,7 +357,8 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
   Future<void> _launch(String url) async {
     final trimmed = url.trim();
     if (trimmed.isEmpty) return;
-    final uri = Uri.parse(trimmed.startsWith('http') ? trimmed : 'https://$trimmed');
+    final uri =
+        Uri.parse(trimmed.startsWith('http') ? trimmed : 'https://$trimmed');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -438,7 +441,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
             ),
             const SizedBox(height: 12),
             _buildRow(
-              icon: Icons.link,
+              icon: Icons.public_rounded,
               hint: 'URL',
               value: widget.entry.url,
               controller: _urlController,

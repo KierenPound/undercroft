@@ -57,11 +57,14 @@ class _WhatToDoFirstDashboardState
   final _computerPassword1Controller = TextEditingController();
   final _phonePin2Controller = TextEditingController();
   final _computerPassword2Controller = TextEditingController();
+  final _wifiPasswordController = TextEditingController();
   Timer? _credentialsSaveTimer;
   String _lastSavedPhonePin1 = '';
   String _lastSavedComputerPassword1 = '';
   String _lastSavedPhonePin2 = '';
   String _lastSavedComputerPassword2 = '';
+  String _lastSavedWifiPassword = '';
+  final Set<String> _revealedCredentialKeys = <String>{};
 
   // Pets — photo + notes + vet contact details.
   final _petNotesController = TextEditingController();
@@ -86,6 +89,7 @@ class _WhatToDoFirstDashboardState
     _computerPassword1Controller.dispose();
     _phonePin2Controller.dispose();
     _computerPassword2Controller.dispose();
+    _wifiPasswordController.dispose();
     _petNotesController.dispose();
     _vetNameController.dispose();
     _vetPhoneController.dispose();
@@ -218,10 +222,12 @@ class _WhatToDoFirstDashboardState
     final pw1 = _computerPassword1Controller.text.trim();
     final pin2 = _phonePin2Controller.text.trim();
     final pw2 = _computerPassword2Controller.text.trim();
+    final wifi = _wifiPasswordController.text.trim();
     if (pin1 == _lastSavedPhonePin1 &&
         pw1 == _lastSavedComputerPassword1 &&
         pin2 == _lastSavedPhonePin2 &&
-        pw2 == _lastSavedComputerPassword2) {
+        pw2 == _lastSavedComputerPassword2 &&
+        wifi == _lastSavedWifiPassword) {
       return;
     }
 
@@ -235,12 +241,14 @@ class _WhatToDoFirstDashboardState
             computerPassword1: pw1,
             phonePin2: pin2,
             computerPassword2: pw2,
+            wifiPassword: wifi,
           ),
         );
         _lastSavedPhonePin1 = pin1;
         _lastSavedComputerPassword1 = pw1;
         _lastSavedPhonePin2 = pin2;
         _lastSavedComputerPassword2 = pw2;
+        _lastSavedWifiPassword = wifi;
         ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
@@ -420,10 +428,12 @@ class _WhatToDoFirstDashboardState
           _computerPassword1Controller.text = section.computerPassword1;
           _phonePin2Controller.text = section.phonePin2;
           _computerPassword2Controller.text = section.computerPassword2;
+          _wifiPasswordController.text = section.wifiPassword;
           _lastSavedPhonePin1 = section.phonePin1;
           _lastSavedComputerPassword1 = section.computerPassword1;
           _lastSavedPhonePin2 = section.phonePin2;
           _lastSavedComputerPassword2 = section.computerPassword2;
+          _lastSavedWifiPassword = section.wifiPassword;
 
           _petNotesController.text = section.petNotes;
           _vetNameController.text = section.vetName;
@@ -806,7 +816,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 10),
                 _petEditableContactField(
                   controller: _vetUrlController,
-                  icon: Icons.link,
+                  icon: Icons.public_rounded,
                   tint: Colors.blue,
                   hint: 'Website',
                   keyboardType: TextInputType.url,
@@ -1211,7 +1221,7 @@ class _WhatToDoFirstDashboardState
                 if (widget.isOwner)
                   _buildEditableContactField(
                     controller: _copiesUrlController,
-                    icon: Icons.language,
+                    icon: Icons.public_rounded,
                     tint: Colors.blue,
                     hint: 'Order copies link',
                     keyboardType: TextInputType.url,
@@ -1220,33 +1230,9 @@ class _WhatToDoFirstDashboardState
                     onChanged: (_) => _scheduleCopiesUrlSave(),
                   )
                 else if (_effectiveCopiesUrl.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => _launch(_effectiveCopiesUrl),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.language,
-                              size: 14, color: Colors.blue.shade700),
-                          const SizedBox(width: 6),
-                          Text(
-                            _effectiveCopiesUrl.replaceFirst(
-                                RegExp(r'^https?://'), ''),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  _externalLinkRow(
+                    url: _effectiveCopiesUrl,
+                    tint: Colors.blue,
                   ),
               ],
             ),
@@ -1295,47 +1281,12 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () => _launch(
-                      'https://www.gov.uk/after-a-death/organisations-you-need-to-contact-and-tell-us-once'),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.open_in_new_rounded,
-                            size: 22, color: Colors.green.shade700),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Official GOV.UK Tell Us Once Service',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.green.shade700,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'www.gov.uk/after-a-death',
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _externalLinkRow(
+                  url:
+                      'https://www.gov.uk/after-a-death/organisations-you-need-to-contact-and-tell-us-once',
+                  tint: Colors.green,
+                  title: 'Official GOV.UK Tell Us Once Service',
+                  subtitle: 'www.gov.uk/after-a-death',
                 ),
               ],
             ),
@@ -1365,6 +1316,7 @@ class _WhatToDoFirstDashboardState
             child: Column(
               children: [
                 _credentialRow(
+                  fieldKey: 'phone_pin_1',
                   icon: Icons.phone_android_rounded,
                   tint: blue,
                   controller: _phonePin1Controller,
@@ -1373,6 +1325,7 @@ class _WhatToDoFirstDashboardState
                 ),
                 const SizedBox(height: 10),
                 _credentialRow(
+                  fieldKey: 'computer_password_1',
                   icon: Icons.keyboard_rounded,
                   tint: blue,
                   controller: _computerPassword1Controller,
@@ -1381,6 +1334,7 @@ class _WhatToDoFirstDashboardState
                 ),
                 const SizedBox(height: 10),
                 _credentialRow(
+                  fieldKey: 'phone_pin_2',
                   icon: Icons.phone_android_rounded,
                   tint: pink,
                   controller: _phonePin2Controller,
@@ -1389,10 +1343,20 @@ class _WhatToDoFirstDashboardState
                 ),
                 const SizedBox(height: 10),
                 _credentialRow(
+                  fieldKey: 'computer_password_2',
                   icon: Icons.keyboard_rounded,
                   tint: pink,
                   controller: _computerPassword2Controller,
                   hint: 'Computer password',
+                  keyboardType: TextInputType.visiblePassword,
+                ),
+                const SizedBox(height: 10),
+                _credentialRow(
+                  fieldKey: 'wifi_password',
+                  icon: Icons.wifi_rounded,
+                  tint: Colors.green,
+                  controller: _wifiPasswordController,
+                  hint: 'Wi-Fi password',
                   keyboardType: TextInputType.visiblePassword,
                 ),
               ],
@@ -1404,6 +1368,7 @@ class _WhatToDoFirstDashboardState
   }
 
   Widget _credentialRow({
+    required String fieldKey,
     required IconData icon,
     required Color tint,
     required TextEditingController controller,
@@ -1411,6 +1376,7 @@ class _WhatToDoFirstDashboardState
     required TextInputType keyboardType,
   }) {
     final value = controller.text.trim();
+    final isRevealed = _revealedCredentialKeys.contains(fieldKey);
     if (!widget.isOwner) {
       // Read-only display for executors / viewers.
       return Container(
@@ -1426,7 +1392,7 @@ class _WhatToDoFirstDashboardState
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                value,
+                isRevealed ? value : _maskedCredentialValue(value),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -1434,6 +1400,19 @@ class _WhatToDoFirstDashboardState
                   fontFamily: 'monospace',
                 ),
               ),
+            ),
+            IconButton(
+              icon: Icon(
+                isRevealed
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                size: 20,
+                color: tint,
+              ),
+              onPressed: value.isEmpty
+                  ? null
+                  : () => _toggleCredentialVisibility(fieldKey),
+              tooltip: isRevealed ? 'Hide value' : 'Show value',
             ),
             const SizedBox(width: 12),
           ],
@@ -1456,6 +1435,7 @@ class _WhatToDoFirstDashboardState
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
+              obscureText: !isRevealed,
               onChanged: (_) => _scheduleCredentialsSave(),
               decoration: InputDecoration(
                 hintText: hint,
@@ -1477,8 +1457,79 @@ class _WhatToDoFirstDashboardState
               ),
             ),
           ),
+          IconButton(
+            icon: Icon(
+              isRevealed
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+              size: 20,
+              color: tint,
+            ),
+            onPressed: () => _toggleCredentialVisibility(fieldKey),
+            tooltip: isRevealed ? 'Hide value' : 'Show value',
+          ),
           const SizedBox(width: 12),
         ],
+      ),
+    );
+  }
+
+  Widget _externalLinkRow({
+    required String url,
+    required Color tint,
+    String? title,
+    String? subtitle,
+  }) {
+    final trimmed = url.trim();
+    final fallback = trimmed.replaceFirst(RegExp(r'^https?://'), '');
+    return GestureDetector(
+      onTap: () => _launch(trimmed),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: tint.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.public_rounded, size: 24, color: tint),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title ?? fallback,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: tint,
+                    ),
+                  ),
+                  if ((subtitle ?? (title != null ? fallback : ''))
+                      .isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle ?? fallback,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(Icons.open_in_new_rounded, size: 22, color: tint),
+          ],
+        ),
       ),
     );
   }
@@ -1866,10 +1917,37 @@ class _WhatToDoFirstDashboardState
     );
   }
 
+  void _toggleCredentialVisibility(String fieldKey) {
+    setState(() {
+      if (_revealedCredentialKeys.contains(fieldKey)) {
+        _revealedCredentialKeys.remove(fieldKey);
+      } else {
+        _revealedCredentialKeys.add(fieldKey);
+      }
+    });
+  }
+
+  String _maskedCredentialValue(String value) {
+    if (value.isEmpty) return '';
+    return List.filled(value.length.clamp(8, 16), '•').join();
+  }
+
   Future<void> _launch(String url) async {
-    final uri = Uri.parse(url);
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return;
+    final hasScheme = trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('mailto:') ||
+        trimmed.startsWith('tel:');
+    final normalized = hasScheme ? trimmed : 'https://$trimmed';
+    final uri = Uri.parse(normalized);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(
+        uri,
+        mode: uri.scheme == 'http' || uri.scheme == 'https'
+            ? LaunchMode.externalApplication
+            : LaunchMode.platformDefault,
+      );
     }
   }
 }

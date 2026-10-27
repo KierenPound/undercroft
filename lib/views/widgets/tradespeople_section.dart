@@ -396,7 +396,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
         ),
         const SizedBox(height: 10),
         _fieldRow(
-          icon: Icons.link,
+          icon: Icons.public_rounded,
           hint: 'Web link',
           value: widget.tradesperson.url,
           controller: _urlController,
@@ -431,8 +431,8 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                 onPressed: _confirmDelete,
                 icon: const Icon(Icons.delete_outline,
                     size: 18, color: Colors.red),
-                label: const Text('Delete',
-                    style: TextStyle(color: Colors.red)),
+                label:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
