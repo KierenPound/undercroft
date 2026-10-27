@@ -48,3 +48,7 @@ app.*.map.json
 
 # Supabase credentials (local only — never commit)
 supabase_config.json
+
+# Release APK kept in the repo root for ad-hoc sideloading — a build artifact,
+# not source. 64 MB, and rebuildable from any commit.
+/undercroft-release.apk

@@ -9,6 +9,7 @@ import '../repositories/who_to_notify_repository.dart';
 import '../services/estate_service.dart';
 import 'widgets/attachments_section.dart';
 import 'widgets/checklist_section.dart';
+import 'widgets/contacts_section.dart';
 import 'widgets/notes_section.dart';
 import 'widgets/photo_section.dart';
 import 'widgets/song_for_the_page_section.dart';
@@ -26,6 +27,7 @@ class WhoToNotifyListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final config = sectionConfigByTitle('Who to Notify');
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncIsOwner = ref.watch(isOwnerProvider);
 
@@ -51,6 +53,29 @@ class WhoToNotifyListView extends ConsumerWidget {
             title: const Text('Who to Notify'),
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
+            actions: [
+              if ((config?.infoText ?? '').isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  tooltip: 'About this page',
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Who to Notify'),
+                      content: Text(
+                        config!.infoText,
+                        style: const TextStyle(fontSize: 15, height: 1.4),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
           body: Container(
             decoration: const BoxDecoration(
@@ -76,9 +101,15 @@ class WhoToNotifyListView extends ConsumerWidget {
                       sectionTitle: 'Who to Notify',
                     ),
                     const SizedBox(height: 24),
+                    ContactsSection(
+                      estateId: estateId,
+                      isOwner: isOwner,
+                    ),
+                    const SizedBox(height: 24),
                     const _LifeLedgerCallout(),
                     const SizedBox(height: 16),
                     _StaticOrgCard.lifeLedger(),
+                    const SizedBox(height: 24),
                     // Entries list loads independently so the Memory photo
                     // and section content render without waiting for it.
                     asyncEntries.when(
@@ -335,7 +366,7 @@ class _LifeLedgerCallout extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'It bulk-notifies dozens of companies automatically using the accounts below. Only a few exceptions (Tembo, @SIPP) require direct calls.',
+                  'It bulk-notifies dozens of companies automatically using the accounts below. Only a few exceptions require direct calls.',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -384,7 +415,7 @@ class _StaticOrgCard extends StatelessWidget {
         notes: [
           'Automatically notifies banks, savings, utilities and other places in one go.',
           'Completely free — just bring the company names and account numbers listed below.',
-          'Exceptions: eToro and Tembo may not be on Life Ledger — follow their individual sections.',
+          'Exceptions: Some organisations may not be on Life Ledger — follow their individual sections.',
         ],
       );
 

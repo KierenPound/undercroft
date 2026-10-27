@@ -18,6 +18,12 @@ class _AuthViewState extends State<AuthView> {
   String? _info;
 
   @override
+  void initState() {
+    super.initState();
+    debugPrint('[auth_view] mounted key=${widget.key}');
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -32,12 +38,17 @@ class _AuthViewState extends State<AuthView> {
 
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    debugPrint('[auth_view] submit mode=${_isSignUp ? 'sign_up' : 'sign_in'} '
+        'email=$email');
 
     try {
       final client = Supabase.instance.client;
       if (_isSignUp) {
         final response =
             await client.auth.signUp(email: email, password: password);
+        debugPrint('[auth_view] sign_up complete '
+            'sessionUser=${response.session?.user.id} '
+            'currentUser=${client.auth.currentUser?.id}');
         if (response.user?.emailConfirmedAt == null) {
           if (mounted) {
             setState(() => _info =
@@ -46,12 +57,17 @@ class _AuthViewState extends State<AuthView> {
         }
       } else {
         await client.auth.signInWithPassword(email: email, password: password);
+        debugPrint('[auth_view] sign_in complete '
+            'currentSessionUser=${client.auth.currentSession?.user.id} '
+            'currentUser=${client.auth.currentUser?.id}');
       }
     } on AuthException catch (e) {
+      debugPrint('[auth_view] auth error=${e.message}');
       if (mounted) {
         setState(() => _error = e.message);
       }
     } catch (e) {
+      debugPrint('[auth_view] unexpected error=$e');
       if (mounted) {
         setState(() => _error = 'Something went wrong. Please try again.');
       }

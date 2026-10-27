@@ -53,6 +53,12 @@ class HomeDashboardView extends StatelessWidget {
       color: Color(0xFFC44B8A),
       route: '/my-songs',
     ),
+    _SectionItem(
+      title: 'Ad Hoc Data',
+      icon: Icons.inventory_2_outlined,
+      color: Color(0xFF5B6BB5),
+      route: '/ad-hoc-data',
+    ),
   ];
 
   @override

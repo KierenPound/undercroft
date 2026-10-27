@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'repositories/sections_repository.dart';
+import 'services/estate_service.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
+import 'views/ad_hoc_data_view.dart';
 import 'views/auth_view.dart';
+import 'views/biometric_lock_gate.dart';
 import 'views/home_dashboard_view.dart';
 import 'views/my_songs_view.dart';
 import 'views/onboarding_view.dart';
@@ -39,6 +42,11 @@ class AppRouter extends ChangeNotifier {
   void _init() {
     _user = Supabase.instance.client.auth.currentUser;
     Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      debugPrint(
+        '[auth] event=${state.event.name} '
+        'sessionUser=${state.session?.user.id} '
+        'currentUser=${Supabase.instance.client.auth.currentUser?.id}',
+      );
       // When the user taps the reset link in their email, Supabase fires a
       // passwordRecovery event. We set a flag so the router redirects them to
       // the password reset screen to choose a new password.
@@ -57,19 +65,30 @@ class AppRouter extends ChangeNotifier {
   }
 
   Future<void> _checkEstate() async {
-    try {
-      final rows = await Supabase.instance.client
-          .from('estate_access')
-          .select('estate_id')
-          .eq('user_id', _user!.id)
-          .eq('status', 'accepted')
-          .limit(1);
-      _estateId = rows.isNotEmpty ? rows.first['estate_id'] as String? : null;
-    } catch (_) {
+    final user = _user;
+    if (user == null) {
       _estateId = null;
-    } finally {
       _checked = true;
       notifyListeners();
+      return;
+    }
+
+    try {
+      final context = await fetchCurrentEstateContext();
+      if (_user?.id != user.id) return;
+
+      _estateId = context?.estateId;
+      debugPrint('[estate] uid=${user.id} email=${user.email} '
+          'role=${context?.role} estateId=$_estateId');
+    } catch (e) {
+      if (_user?.id != user.id) return;
+      debugPrint('[estate] lookup threw: $e');
+      _estateId = null;
+    } finally {
+      if (_user?.id == user.id) {
+        _checked = true;
+        notifyListeners();
+      }
     }
   }
 
@@ -96,7 +115,10 @@ final _router = GoRouter(
   routes: [
     GoRoute(
       path: '/login',
-      builder: (context, state) => const AuthView(),
+      pageBuilder: (context, state) => MaterialPage<void>(
+        key: state.pageKey,
+        child: AuthView(key: state.pageKey),
+      ),
     ),
     GoRoute(
       path: '/password-reset',
@@ -136,6 +158,10 @@ final _router = GoRouter(
       builder: (context, state) => const MySongsView(),
     ),
     GoRoute(
+      path: '/ad-hoc-data',
+      builder: (context, state) => const AdHocDataView(),
+    ),
+    GoRoute(
       path: '/who-to-notify/:id',
       builder: (context, state) {
         final id = state.pathParameters['id']!;
@@ -148,30 +174,64 @@ final _router = GoRouter(
     ),
   ],
   redirect: (context, state) {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _appRouter._user;
     final location = state.matchedLocation;
+
+    String? decision;
 
     // If a password-recovery event fired, route the user to the reset screen
     // so they can set a new password.
     if (_appRouter._needsPasswordReset) {
-      return location == '/password-reset' ? null : '/password-reset';
+      decision = location == '/password-reset' ? null : '/password-reset';
+      debugPrint('[router] location=$location user=${user?.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=${decision ?? 'stay'} reason=password_recovery');
+      return decision;
     }
 
     if (user == null) {
-      return location == '/login' || location == '/password-reset'
+      decision = location == '/login' || location == '/password-reset'
           ? null
           : '/login';
+      debugPrint('[router] location=$location user=null '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=${decision ?? 'stay'} reason=no_user');
+      return decision;
     }
 
-    if (location == '/login' || location == '/password-reset') return '/';
+    if (location == '/login' || location == '/password-reset') {
+      decision = '/';
+      debugPrint('[router] location=$location user=${user.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=$decision reason=authed_on_auth_screen');
+      return decision;
+    }
 
-    if (!_appRouter._checked) return null;
+    if (!_appRouter._checked) {
+      debugPrint('[router] location=$location user=${user.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=stay reason=awaiting_estate_check');
+      return null;
+    }
 
     final hasEstate = _appRouter._estateId != null;
     if (!hasEstate) {
-      return location == '/onboarding' ? null : '/onboarding';
+      decision = location == '/onboarding' ? null : '/onboarding';
+      debugPrint('[router] location=$location user=${user.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=${decision ?? 'stay'} reason=no_estate');
+      return decision;
     }
-    if (location == '/onboarding') return '/';
+    if (location == '/onboarding') {
+      decision = '/';
+      debugPrint('[router] location=$location user=${user.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=$decision reason=has_estate');
+      return decision;
+    }
+    debugPrint('[router] location=$location user=${user.id} '
+        'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+        'decision=stay reason=allowed');
     return null;
   },
 );
@@ -189,6 +249,11 @@ class UnderCroftApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.light,
       routerConfig: _router,
+      // Sits above the router so the lock screen covers every route without
+      // disturbing the navigation stack.
+      builder: (context, child) => BiometricLockGate(
+        child: child ?? const SizedBox.shrink(),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }

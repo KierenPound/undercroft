@@ -389,6 +389,9 @@ class MySongsView extends ConsumerWidget {
   static const _config = SectionConfig(
     title: 'My Songs',
     orderIndex: 8,
+    infoText: 'This page is for the music that matters to you. It gives you '
+        'one place to keep the songs you would want remembered, played or '
+        'passed on.',
   );
 
   @override
@@ -401,6 +404,29 @@ class MySongsView extends ConsumerWidget {
         title: const Text('My Songs'),
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          if (_config.infoText.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'About this page',
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('My Songs'),
+                  content: Text(
+                    _config.infoText,
+                    style: const TextStyle(fontSize: 15, height: 1.4),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(

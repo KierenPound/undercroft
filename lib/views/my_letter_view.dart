@@ -29,6 +29,29 @@ class MyLetterView extends ConsumerWidget {
         title: Text(config.title),
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          if (config.infoText.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'About this page',
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(config.title),
+                  content: Text(
+                    config.infoText,
+                    style: const TextStyle(fontSize: 15, height: 1.4),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(

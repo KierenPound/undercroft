@@ -195,15 +195,13 @@ class SectionsRepository {
     final path =
         'estate-documents/$estateId/sections/$sectionId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
-    await _client.storage.from('estate-documents').uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(contentType: mimeType, upsert: true),
-        );
-
     final downloadUrl =
         _client.storage.from('estate-documents').getPublicUrl(path);
 
+    // Record the row *before* uploading the bytes. If the upload then fails we
+    // delete the row again, so this flow can never leave a file sitting in the
+    // bucket that no row points at: an orphan is still billed for, yet no API
+    // can ever reach it, because the Storage API works from the rows.
     final data = await _client
         .from('attachments')
         .insert({
@@ -216,6 +214,19 @@ class SectionsRepository {
         })
         .select()
         .single();
+
+    try {
+      await _client.storage.from('estate-documents').uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(contentType: mimeType, upsert: true),
+          );
+    } catch (_) {
+      try {
+        await _client.from('attachments').delete().eq('id', data['id'] as String);
+      } catch (_) {}
+      rethrow;
+    }
 
     return Attachment.fromJson(data);
   }
@@ -288,10 +299,15 @@ class SectionConfig {
   final int orderIndex;
   final String youtubeUrl;
 
+  /// Plain-language explanation of what the page is for, shown in a dialog
+  /// when the info icon in the app bar is tapped. Empty means no icon.
+  final String infoText;
+
   const SectionConfig({
     required this.title,
     required this.orderIndex,
     this.youtubeUrl = '',
+    this.infoText = '',
   });
 }
 
@@ -302,45 +318,74 @@ const List<SectionConfig> allSectionConfigs = [
   SectionConfig(
     title: 'My Letter to You',
     orderIndex: 0,
+    infoText: 'This page is for your personal letter to the people you leave '
+        'behind. It can be as short or as long as you like, and it is simply '
+        'a space for your own words.',
   ),
   SectionConfig(
     title: 'What to Do First',
     orderIndex: 1,
     youtubeUrl: 'https://www.youtube.com/watch?v=b4ZypVnbYHM',
+    infoText: 'This page is just about all the things you need to do first. '
+        "There isn't any immediate rush other than registering the death and "
+        'looking after any pets. Take your time and stay calm',
   ),
   SectionConfig(
     title: 'Legal Documents',
     orderIndex: 2,
     youtubeUrl: 'https://www.youtube.com/watch?v=GaZp4fJVHmQ',
+    infoText: 'This page is for the important legal paperwork people may need '
+        'to find after your death, such as wills, insurance, pensions and '
+        'anything else official. The aim is simply to make those documents '
+        'easier to locate.',
   ),
   SectionConfig(
     title: 'Who to Notify',
     orderIndex: 3,
     youtubeUrl: 'https://www.youtube.com/watch?v=tuyBCSYTs5A',
+    infoText: 'This page is for the people and organisations that may need '
+        'to be contacted after your death. It helps gather everything in one '
+        'place so nobody has to search around at an already difficult time.',
   ),
   SectionConfig(
     title: 'Running the Houses',
     orderIndex: 4,
     youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
+    infoText: 'This page is about the practical day to day running of the '
+        'house or houses, including utilities, tradespeople and anything '
+        'someone may need to keep things going. It is there to make the '
+        'household side feel more manageable.',
   ),
   SectionConfig(
     title: 'Funeral Arrangements',
     orderIndex: 5,
     youtubeUrl: 'https://www.youtube.com/watch?v=02T6xLNXEE0',
+    infoText: 'This page is for your wishes and thoughts about your funeral. '
+        'It helps the people around you understand what you would have wanted, '
+        'without them having to guess.',
   ),
   SectionConfig(
     title: 'Cars',
     orderIndex: 6,
     youtubeUrl: 'https://www.youtube.com/watch?v=rbgiJu7YFvo',
+    infoText: 'This page is about transferring ownership of any cars, vans '
+        'or other vehicles in the event you want to keep them, drive them or '
+        'sell them.',
   ),
   SectionConfig(
     title: 'Confirmation',
     orderIndex: 7,
     youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
+    infoText: 'This page is for the executors and is the final list of steps '
+        'to finish the transfer of the estate to the beneficiaries in the '
+        'will.',
   ),
   SectionConfig(
     title: 'My Songs',
     orderIndex: 8,
+    infoText: 'This page is for the music that matters to you. It gives you '
+        'one place to keep the songs you would want remembered, played or '
+        'passed on.',
   ),
 ];
 

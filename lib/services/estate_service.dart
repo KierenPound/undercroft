@@ -3,6 +3,34 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class EstateContext {
+  final String estateId;
+  final String role;
+
+  const EstateContext({
+    required this.estateId,
+    required this.role,
+  });
+}
+
+Future<EstateContext?> fetchCurrentEstateContext() async {
+  final client = Supabase.instance.client;
+  final result = await client.rpc('get_or_create_current_estate_context');
+  if (result is! List || result.isEmpty) return null;
+
+  final row = result.first;
+  if (row is! Map) return null;
+
+  final estateId = row['estate_id'] as String?;
+  final role = row['role'] as String?;
+  if (estateId == null || estateId.isEmpty) return null;
+
+  return EstateContext(
+    estateId: estateId,
+    role: role ?? '',
+  );
+}
+
 /// Emits the current signed-in user whenever the auth state changes.
 ///
 /// Other providers watch this so they re-evaluate on sign-in/sign-out
@@ -29,21 +57,9 @@ final estateRoleProvider = FutureProvider<String>((ref) async {
   final user = ref.watch(currentUserProvider).valueOrNull;
   if (user == null) return '';
 
-  final client = Supabase.instance.client;
-
   try {
-    // A user should only ever have one accepted row per estate, but if a
-    // duplicate ever slips through (e.g. testing invite flow on the owner's
-    // own account), prefer 'owner' so the UI reflects the highest privilege.
-    final rows = await client
-        .from('estate_access')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted')
-        .order('role', ascending: false);
-
-    if (rows.isEmpty) return '';
-    return rows.first['role'] as String? ?? '';
+    final context = await fetchCurrentEstateContext();
+    return context?.role ?? '';
   } catch (_) {
     return '';
   }
@@ -71,18 +87,9 @@ final estateIdProvider = FutureProvider<String>((ref) async {
   final user = ref.watch(currentUserProvider).valueOrNull;
   if (user == null) return '';
 
-  final client = Supabase.instance.client;
-
   try {
-    final rows = await client
-        .from('estate_access')
-        .select('estate_id')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted')
-        .limit(1);
-
-    if (rows.isEmpty) return '';
-    return rows.first['estate_id'] as String;
+    final context = await fetchCurrentEstateContext();
+    return context?.estateId ?? '';
   } catch (_) {
     return '';
   }
@@ -111,6 +118,19 @@ final estateNameProvider = FutureProvider<String>((ref) async {
     return '';
   }
 });
+
+/// Renames the estate. Read/write for estate owners only; executors get a
+/// rejection from RLS on the server, so the UI hides the control for them.
+///
+/// The `estates` UPDATE policy permits any accepted member with the `owner`
+/// role, so co-owners can rename as well as the original owner.
+Future<void> updateEstateName({
+  required String estateId,
+  required String name,
+}) async {
+  final client = Supabase.instance.client;
+  await client.from('estates').update({'name': name}).eq('id', estateId);
+}
 
 /// Characters used when generating invite codes. Ambiguous glyphs
 /// (0/O, 1/I) are excluded to avoid confusion when reading the code.

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/biometric_lock_service.dart';
 import '../services/estate_service.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
@@ -19,6 +20,89 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   String? _ownerGeneratedCode;
   bool _inviting = false;
   bool _invitingOwner = false;
+  bool _lockLoading = true;
+  bool _lockSupported = false;
+  bool _lockEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLockState();
+  }
+
+  Future<void> _loadLockState() async {
+    final supported = await BiometricLockService.isSupported();
+    final enabled = await BiometricLockService.isEnabled();
+    if (!mounted) return;
+    setState(() {
+      _lockSupported = supported;
+      _lockEnabled = enabled;
+      _lockLoading = false;
+    });
+  }
+
+  /// Enabling the lock authenticates first, so the user proves it works on
+  /// this device before it can shut them out.
+  Future<void> _toggleLock(bool value) async {
+    if (value && !await BiometricLockService.authenticate()) return;
+    await BiometricLockService.setEnabled(value);
+    if (!mounted) return;
+    setState(() => _lockEnabled = value);
+  }
+
+  /// Renames the estate. Owner-only: the caller hides the control for
+  /// executors, and RLS rejects the write server-side regardless.
+  Future<void> _renameEstate(String currentName) async {
+    final controller = TextEditingController(text: currentName);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Estate name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            hintText: 'e.g. The Pound Estate',
+          ),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+
+    final newName = result?.trim() ?? '';
+    if (newName.isEmpty || newName == currentName) return;
+
+    final estateId = ref.read(estateIdProvider).valueOrNull ?? '';
+    if (estateId.isEmpty) return;
+
+    try {
+      await updateEstateName(estateId: estateId, name: newName);
+      ref.invalidate(estateNameProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Estate name updated')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update the estate name')),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -231,6 +315,13 @@ Estate Owner''';
                           ),
                         ),
                       ),
+                      if (isOwner)
+                        IconButton(
+                          onPressed: () => _renameEstate(estateName),
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          color: const Color(0xFF5B7C6A),
+                          tooltip: 'Rename estate',
+                        ),
                     ],
                   ),
                 ],
@@ -283,6 +374,50 @@ Estate Owner''';
                   ],
                 ],
               ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Privacy: biometric app lock
+            _SectionCard(
+              title: 'Privacy',
+              child: _lockLoading
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : !_lockSupported
+                      ? const Text(
+                          'This device has no biometrics set up. Add Face ID '
+                          'or a fingerprint in your device settings, then '
+                          'return here to enable the app lock.',
+                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Require your fingerprint or face to reopen '
+                              'UnderCroft after it has been in the background '
+                              'for more than a minute.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Unlock with biometrics'),
+                              value: _lockEnabled,
+                              onChanged: _toggleLock,
+                            ),
+                          ],
+                        ),
             ),
 
             const SizedBox(height: 16),

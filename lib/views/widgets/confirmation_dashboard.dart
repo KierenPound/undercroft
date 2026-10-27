@@ -954,12 +954,9 @@ class ConfirmationDashboard extends StatelessWidget {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            'Pay for 10+ Certified Copies of this '
-                            'certificate.  Send a copy to TSB, Starling, '
-                            'Tembo, eToro and NS&I.  They will instantly lift '
-                            'the freezes, release the cash to the executors\' '
-                            'bank account, and allow the property titles to be '
-                            'transferred or sold.',
+                            'If you have reached here, well done! '
+                            'I know it has been a lot of paperwork, but it  '
+                            'only has to be done once ',
                             style: TextStyle(fontSize: 15, color: Colors.grey),
                           ),
                         ],
