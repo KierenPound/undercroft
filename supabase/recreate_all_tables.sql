@@ -182,10 +182,17 @@ CREATE TABLE IF NOT EXISTS public.utility_details (
     kind              text NOT NULL CHECK (kind IN ('gas_meter', 'electric_meter', 'stopcock')),
     notes             text NOT NULL DEFAULT '',
     storage_path      text NOT NULL DEFAULT '',
+    file_size         bigint NOT NULL DEFAULT 0,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     UNIQUE (estate_id, kind)
 );
+
+DO $$
+BEGIN
+    ALTER TABLE public.utility_details ADD COLUMN file_size bigint NOT NULL DEFAULT 0;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Sections: prep sections (e.g. Who to Notify, Legal Documents) belonging to

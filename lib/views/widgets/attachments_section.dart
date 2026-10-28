@@ -50,7 +50,11 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
 
   Future<void> _pickPhotos() async {
     final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(imageQuality: 85);
+    final picked = await picker.pickMultiImage(
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
+    );
     if (picked.isEmpty) return;
 
     setState(() => _uploading = true);

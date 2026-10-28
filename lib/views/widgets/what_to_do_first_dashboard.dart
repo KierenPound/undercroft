@@ -275,7 +275,9 @@ class _WhatToDoFirstDashboardState
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
     );
     if (picked == null) return;
 
@@ -349,7 +351,9 @@ class _WhatToDoFirstDashboardState
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
     );
     if (picked == null) return;
 
@@ -1583,7 +1587,11 @@ class _WhatToDoFirstDashboardState
     }
 
     final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(imageQuality: 85);
+    final picked = await picker.pickMultiImage(
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
+    );
     if (picked.isEmpty) return;
 
     setState(() => _uploading = true);

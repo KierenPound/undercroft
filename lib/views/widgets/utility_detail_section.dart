@@ -37,8 +37,10 @@ class UtilityDetailSection extends ConsumerStatefulWidget {
 
 class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
   final _notesController = TextEditingController();
+  final _notesFocusNode = FocusNode();
   Timer? _saveTimer;
   String _lastSavedNotes = '';
+  String? _lastAppliedStoredNotes;
   bool _uploading = false;
 
   UtilityKind get _kind => widget.kind;
@@ -46,6 +48,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _notesFocusNode.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -54,7 +57,9 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
     );
     if (picked == null) return;
 
@@ -141,9 +146,10 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
     // Adopt whatever is stored the first time it arrives, and again whenever
     // it changes underneath us, without stomping on an in-flight edit.
     final storedNotes = detail?.notes ?? '';
-    if (_lastSavedNotes != storedNotes) {
+    if (_lastAppliedStoredNotes != storedNotes && !_notesFocusNode.hasFocus) {
       _notesController.text = storedNotes;
       _lastSavedNotes = storedNotes;
+      _lastAppliedStoredNotes = storedNotes;
     }
 
     final resolving = !asyncDetails.hasValue;
@@ -356,6 +362,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
                 : widget.isOwner
                     ? TextField(
                         controller: _notesController,
+                        focusNode: _notesFocusNode,
                         keyboardType: TextInputType.multiline,
                         maxLines: null,
                         expands: true,

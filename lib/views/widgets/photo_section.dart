@@ -59,7 +59,9 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 80,
     );
     if (picked == null) return;
 

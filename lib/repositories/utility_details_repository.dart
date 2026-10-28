@@ -85,21 +85,23 @@ class UtilityDetailsRepository {
   }) async {
     final existing = await _client
         .from(_table)
-        .select('storage_path')
+        .select('storage_path, file_size')
         .eq('estate_id', estateId)
         .eq('kind', kind.dbValue)
         .maybeSingle();
 
     final superseded = (existing?['storage_path'] as String?) ?? '';
+    final supersededSize = (existing?['file_size'] as int?) ?? 0;
 
     final path = '$_bucket/$estateId/utilities/${kind.dbValue}/'
         '${DateTime.now().millisecondsSinceEpoch}_image.jpg';
 
-    Future<void> writePath(String value) => _client.from(_table).upsert(
+    Future<void> writePath(String value, int size) => _client.from(_table).upsert(
           {
             'estate_id': estateId,
             'kind': kind.dbValue,
             'storage_path': value,
+            'file_size': size,
             'updated_at': DateTime.now().toIso8601String(),
           },
           onConflict: 'estate_id,kind',
@@ -109,7 +111,7 @@ class UtilityDetailsRepository {
     // can leave a row without a file but never a file without a row. An orphan
     // is still billed for and no API can ever reach it, because the Storage API
     // works from the rows.
-    await writePath(path);
+    await writePath(path, bytes.length);
 
     try {
       await _client.storage.from(_bucket).uploadBinary(
@@ -119,7 +121,7 @@ class UtilityDetailsRepository {
           );
     } catch (_) {
       try {
-        await writePath(superseded);
+        await writePath(superseded, supersededSize);
       } catch (_) {}
       rethrow;
     }
