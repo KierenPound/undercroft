@@ -171,6 +171,133 @@ Future<String> inviteExecutor({
   return code;
 }
 
+const _inviteMonthAbbreviations = <String>[
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/// One row from `estate_access`: somebody invited to, or already sharing,
+/// this estate.
+class EstateInvite {
+  final String id;
+  final String? invitedEmail;
+  final String role;
+  final String status;
+  final DateTime? createdAt;
+
+  /// True when this row belongs to the signed-in user, so the UI can avoid
+  /// offering them the means to remove their own access.
+  final bool isSelf;
+
+  const EstateInvite({
+    required this.id,
+    required this.invitedEmail,
+    required this.role,
+    required this.status,
+    required this.createdAt,
+    required this.isSelf,
+  });
+
+  bool get isPending => status == 'pending';
+  bool get isRevoked => status == 'revoked';
+
+  String get roleLabel => role == 'owner' ? 'Estate Owner' : 'Executor';
+
+  String get statusLabel {
+    switch (status) {
+      case 'accepted':
+        return 'Accepted';
+      case 'revoked':
+        return 'Revoked';
+      default:
+        return 'Pending';
+    }
+  }
+
+  String get formattedDate {
+    final created = createdAt;
+    if (created == null) return '';
+    final local = created.toLocal();
+    final month = _inviteMonthAbbreviations[local.month - 1];
+    return '${local.day} $month ${local.year}';
+  }
+}
+
+/// Lists everyone who has been invited to, or already shares, [estateId].
+///
+/// Owners can read every row for their estate (`estate_access_select_linked`).
+/// Revoked rows are included on purpose: because revocation keeps the row,
+/// the estate retains a record of who previously had access.
+Future<List<EstateInvite>> fetchEstateInvites({
+  required String estateId,
+  required String currentUserId,
+}) async {
+  final client = Supabase.instance.client;
+  final rows = await client
+      .from('estate_access')
+      .select('id, invited_email, role, status, created_at, user_id')
+      .eq('estate_id', estateId)
+      .order('created_at', ascending: false);
+
+  return rows.map((row) {
+    final userId = row['user_id'] as String?;
+    return EstateInvite(
+      id: row['id'] as String,
+      invitedEmail: row['invited_email'] as String?,
+      role: row['role'] as String? ?? 'executor',
+      status: row['status'] as String? ?? 'pending',
+      createdAt: DateTime.tryParse(row['created_at'] as String? ?? ''),
+      isSelf: userId != null && userId == currentUserId,
+    );
+  }).toList();
+}
+
+/// Revokes an invitation or an existing member's access.
+///
+/// The row is kept and marked `revoked` rather than deleted, so the estate
+/// keeps a record of who was removed. Access ends as soon as this lands:
+/// both `get_allowed_estate_ids` and `get_or_create_current_estate_context`
+/// only honour rows whose status is 'accepted'.
+///
+/// This also cancels an unused invite, because claiming one requires
+/// `status = 'pending'`, so the code stops working.
+///
+/// Note: this cannot remove the estate's original owner. Their row is
+/// recreated on next launch by `get_or_create_current_estate_context`, which
+/// matches on `estates.owner_id`.
+Future<void> revokeEstateAccess(String accessId) async {
+  final client = Supabase.instance.client;
+  await client
+      .from('estate_access')
+      .update({'status': 'revoked'}).eq('id', accessId);
+}
+
+/// Everybody invited to the current estate, most recent first.
+final estateInvitesProvider = FutureProvider<List<EstateInvite>>((ref) async {
+  final userId = ref.watch(currentUserProvider).valueOrNull?.id ?? '';
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) return [];
+
+  try {
+    return await fetchEstateInvites(
+      estateId: estateId,
+      currentUserId: userId,
+    );
+  } catch (_) {
+    return [];
+  }
+});
+
 /// Creates a pending co-owner invite for the given estate.
 ///
 /// Inserts an `estate_access` row with `role = 'owner'`,

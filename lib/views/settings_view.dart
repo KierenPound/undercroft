@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/biometric_lock_service.dart';
@@ -23,6 +24,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _lockLoading = true;
   bool _lockSupported = false;
   bool _lockEnabled = false;
+
+  /// Read once and reused, so the footer doesn't refetch on every rebuild.
+  late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
 
   @override
   void initState() {
@@ -212,6 +216,91 @@ Estate Owner''';
     Clipboard.setData(ClipboardData(text: code));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Invite code copied to clipboard')),
+    );
+  }
+
+  /// Revoking keeps the row but ends any access it granted. Unused invites are
+  /// worded as a cancellation because that is what the owner is actually doing.
+  Future<void> _confirmRevoke(EstateInvite invite) async {
+    final who = invite.invitedEmail ?? 'This person';
+    final cancelling = invite.isPending;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(cancelling ? 'Cancel this invite?' : 'Remove access?'),
+        content: Text(
+          cancelling
+              ? 'The invite code for $who will stop working. You can invite '
+                  'them again at any time.'
+              : '$who will lose access to this estate straight away.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(cancelling ? 'Cancel invite' : 'Remove access'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await revokeEstateAccess(invite.id);
+      ref.invalidate(estateInvitesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(cancelling ? 'Invite cancelled' : 'Access removed'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update this invitation')),
+      );
+    }
+  }
+
+  Widget _buildInvites(AsyncValue<List<EstateInvite>> asyncInvites) {
+    return asyncInvites.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (_, __) => const Text(
+        'Could not load invitations.',
+        style: TextStyle(fontSize: 13, color: Colors.black54),
+      ),
+      data: (invites) {
+        if (invites.isEmpty) {
+          return const Text(
+            'Nobody has been invited yet.',
+            style: TextStyle(fontSize: 13, color: Colors.black54),
+          );
+        }
+
+        return Column(
+          children: [
+            for (var i = 0; i < invites.length; i++) ...[
+              if (i > 0) const Divider(height: 24),
+              _InviteRow(
+                invite: invites[i],
+                onRevoke: () => _confirmRevoke(invites[i]),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -668,8 +757,147 @@ Estate Owner''';
                   ],
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // Who has been invited, and whether they accepted.
+              _SectionCard(
+                title: 'Invitations',
+                child: _buildInvites(ref.watch(estateInvitesProvider)),
+              ),
             ],
+
+            // Version, so a problem can be reported against a known build.
+            const SizedBox(height: 24),
+            Center(
+              child: FutureBuilder<PackageInfo>(
+                future: _packageInfo,
+                builder: (context, snapshot) {
+                  final info = snapshot.data;
+                  if (info == null) return const SizedBox.shrink();
+                  return Text(
+                    'UnderCroft ${info.version}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black38,
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A single invitation or existing member: who it is, whether it has been
+/// accepted, and an action to revoke it.
+class _InviteRow extends StatelessWidget {
+  final EstateInvite invite;
+  final VoidCallback onRevoke;
+
+  const _InviteRow({required this.invite, required this.onRevoke});
+
+  @override
+  Widget build(BuildContext context) {
+    final canRevoke = !invite.isRevoked && !invite.isSelf;
+    final subtitle = [
+      invite.roleLabel,
+      if (invite.formattedDate.isNotEmpty) invite.formattedDate,
+    ].join(' · ');
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                invite.invitedEmail ?? 'No email recorded',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: invite.isRevoked ? Colors.black45 : Colors.black87,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _StatusPill(status: invite.status),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (canRevoke)
+          TextButton(
+            onPressed: onRevoke,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+            ),
+            child: Text(invite.isPending ? 'Cancel' : 'Remove'),
+          ),
+      ],
+    );
+  }
+}
+
+/// Small coloured label showing whether an invite is pending, accepted, or
+/// revoked. Pending reuses the amber used by the role-simulation badge.
+class _StatusPill extends StatelessWidget {
+  final String status;
+
+  const _StatusPill({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    late final Color background;
+    late final Color foreground;
+    late final String label;
+
+    switch (status) {
+      case 'accepted':
+        background = const Color(0xFFE4EDE7);
+        foreground = const Color(0xFF3D5C4A);
+        label = 'Accepted';
+      case 'revoked':
+        background = const Color(0xFFEDEDED);
+        foreground = Colors.black45;
+        label = 'Revoked';
+      default:
+        background = const Color(0xFFFFE9B0);
+        foreground = const Color(0xFF7A5A00);
+        label = 'Pending';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: foreground,
         ),
       ),
     );
