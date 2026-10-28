@@ -14,16 +14,41 @@ import 'widgets/attachments_section.dart';
 /// Each record carries a title, email, URL and notes, and is saved or deleted
 /// individually — the same interaction as the organisation entries in
 /// Who to Notify.
-class AdHocDataView extends ConsumerWidget {
+class AdHocDataView extends ConsumerStatefulWidget {
   const AdHocDataView({super.key});
 
+  @override
+  ConsumerState<AdHocDataView> createState() => _AdHocDataViewState();
+}
+
+class _AdHocDataViewState extends ConsumerState<AdHocDataView> {
   static const _config = SectionConfig(
     title: 'Ad Hoc Data',
     orderIndex: 9,
   );
 
+  /// An entry that has not been written to the database yet. It only exists
+  /// in memory, so backing out of it leaves nothing behind.
+  AdHocData? _draft;
+
+  void _startDraft(String estateId) {
+    setState(() {
+      _draft = AdHocData(
+        adHocDataId: '',
+        estateId: estateId,
+        title: '',
+        email: '',
+        url: '',
+        notes: '',
+        createdAt: DateTime.now(),
+      );
+    });
+  }
+
+  void _clearDraft() => setState(() => _draft = null);
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncIsOwner = ref.watch(isOwnerProvider);
     final asyncSection = ref.watch(sectionByTitleProvider(_config));
@@ -80,8 +105,8 @@ class AdHocDataView extends ConsumerWidget {
               children: [
                 const _Intro(),
                 const SizedBox(height: 20),
-                if (isOwner) ...[
-                  _AddButton(onAdd: () => _add(ref, estateId)),
+                if (isOwner && _draft == null) ...[
+                  _AddButton(onAdd: () => _startDraft(estateId)),
                   const SizedBox(height: 16),
                 ],
                 asyncEntries.when(
@@ -105,13 +130,26 @@ class AdHocDataView extends ConsumerWidget {
                     ),
                   ),
                   data: (entries) {
-                    if (entries.isEmpty) {
+                    final draft = _draft;
+                    if (entries.isEmpty && draft == null) {
                       return const _EmptyState();
                     }
                     return Column(
                       children: [
                         for (final entry in entries)
-                          _AdHocCard(entry: entry, isOwner: isOwner),
+                          _AdHocCard(
+                            key: ValueKey(entry.adHocDataId),
+                            entry: entry,
+                            isOwner: isOwner,
+                          ),
+                        if (draft != null)
+                          _AdHocCard(
+                            key: const ValueKey('ad-hoc-draft'),
+                            entry: draft,
+                            isOwner: true,
+                            isDraft: true,
+                            onCommitted: _clearDraft,
+                          ),
                       ],
                     );
                   },
@@ -137,20 +175,6 @@ class AdHocDataView extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _add(WidgetRef ref, String estateId) async {
-    final repo = ref.read(adHocDataRepositoryProvider);
-    await repo.insert(AdHocData(
-      adHocDataId: '',
-      estateId: estateId,
-      title: '',
-      email: '',
-      url: '',
-      notes: '',
-      createdAt: DateTime.now(),
-    ));
-    ref.invalidate(adHocDataListProvider);
   }
 }
 
@@ -262,7 +286,18 @@ class _AdHocCard extends ConsumerStatefulWidget {
   final AdHocData entry;
   final bool isOwner;
 
-  const _AdHocCard({required this.entry, required this.isOwner});
+  /// True while this card represents an unsaved entry. Saving inserts it,
+  /// and deleting simply discards the draft.
+  final bool isDraft;
+  final VoidCallback? onCommitted;
+
+  const _AdHocCard({
+    super.key,
+    required this.entry,
+    required this.isOwner,
+    this.isDraft = false,
+    this.onCommitted,
+  });
 
   @override
   ConsumerState<_AdHocCard> createState() => _AdHocCardState();
@@ -275,7 +310,6 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
   late TextEditingController _emailController;
   late TextEditingController _urlController;
   late TextEditingController _notesController;
-  late bool _editing;
 
   @override
   void initState() {
@@ -284,9 +318,6 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
     _emailController = TextEditingController(text: widget.entry.email);
     _urlController = TextEditingController(text: widget.entry.url);
     _notesController = TextEditingController(text: widget.entry.notes);
-    // A record with no title yet is one that has just been added, so open it
-    // straight into edit mode ready to be filled in.
-    _editing = widget.isOwner && widget.entry.title.trim().isEmpty;
   }
 
   @override
@@ -296,13 +327,6 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
     _urlController.dispose();
     _notesController.dispose();
     super.dispose();
-  }
-
-  void _syncControllers(AdHocData entry) {
-    _titleController.text = entry.title;
-    _emailController.text = entry.email;
-    _urlController.text = entry.url;
-    _notesController.text = entry.notes;
   }
 
   Future<void> _save() async {
@@ -315,6 +339,21 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
     }
 
     final repo = ref.read(adHocDataRepositoryProvider);
+    if (widget.isDraft) {
+      await repo.insert(AdHocData(
+        adHocDataId: '',
+        estateId: widget.entry.estateId,
+        title: title,
+        email: _emailController.text.trim(),
+        url: _urlController.text.trim(),
+        notes: _notesController.text.trim(),
+        createdAt: DateTime.now(),
+      ));
+      ref.invalidate(adHocDataListProvider);
+      widget.onCommitted?.call();
+      return;
+    }
+
     await repo.update(widget.entry.copyWith(
       title: title,
       email: _emailController.text.trim(),
@@ -322,10 +361,15 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
       notes: _notesController.text.trim(),
     ));
     ref.invalidate(adHocDataListProvider);
-    if (mounted) setState(() => _editing = false);
   }
 
   Future<void> _confirmDelete() async {
+    // A draft was never saved, so there is nothing to confirm or delete.
+    if (widget.isDraft) {
+      widget.onCommitted?.call();
+      return;
+    }
+
     final label = widget.entry.title.trim().isEmpty
         ? 'this entry'
         : '"${widget.entry.title.trim()}"';
@@ -383,52 +427,27 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _editing
-                      ? TextField(
-                          controller: _titleController,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w700),
-                          decoration: const InputDecoration(
-                            hintText: 'Title',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 10),
-                          ),
-                        )
-                      : Text(
-                          widget.entry.title.trim().isEmpty
-                              ? 'Untitled'
-                              : widget.entry.title,
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w700),
-                        ),
+            if (widget.isOwner)
+              TextField(
+                controller: _titleController,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                decoration: const InputDecoration(
+                  hintText: 'Title',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 ),
-                if (widget.isOwner)
-                  IconButton(
-                    icon: Icon(_editing ? Icons.check : Icons.edit, size: 20),
-                    tooltip: _editing ? 'Save' : 'Edit details',
-                    onPressed: () {
-                      if (_editing) {
-                        _save();
-                      } else {
-                        _syncControllers(widget.entry);
-                        setState(() => _editing = true);
-                      }
-                    },
-                  ),
-                if (widget.isOwner)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        size: 20, color: Colors.red),
-                    tooltip: 'Delete entry',
-                    onPressed: _confirmDelete,
-                  ),
-              ],
-            ),
+              )
+            else
+              Text(
+                widget.entry.title.trim().isEmpty
+                    ? 'Untitled'
+                    : widget.entry.title,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
             const SizedBox(height: 12),
             _buildRow(
               icon: Icons.mail_outline,
@@ -452,6 +471,36 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
             ),
             const SizedBox(height: 12),
             _buildNotes(),
+            if (widget.isOwner) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Save'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: tint,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  TextButton.icon(
+                    onPressed: _confirmDelete,
+                    icon: const Icon(Icons.delete_outline,
+                        size: 18, color: Colors.red),
+                    label: const Text('Delete',
+                        style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -468,7 +517,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
     required VoidCallback onAction,
     bool isUrl = false,
   }) {
-    final text = _editing ? controller.text : value;
+    final text = widget.isOwner ? controller.text : value;
     final hasValue = text.trim().isNotEmpty;
     final color = isUrl ? Colors.blue : tint;
 
@@ -484,7 +533,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: _editing
+            child: widget.isOwner
                 ? TextField(
                     controller: controller,
                     keyboardType: keyboardType,
@@ -542,7 +591,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _editing
+          child: widget.isOwner
               ? TextField(
                   controller: _notesController,
                   maxLines: null,

@@ -12,7 +12,7 @@ import '../../repositories/contacts_repository.dart';
 /// expands to reveal their name / telephone / email. Owners get editable
 /// fields there; everyone else gets a read-only view with tap-to-call and
 /// tap-to-email actions.
-class ContactsSection extends ConsumerWidget {
+class ContactsSection extends ConsumerStatefulWidget {
   final String estateId;
   final bool isOwner;
 
@@ -25,7 +25,31 @@ class ContactsSection extends ConsumerWidget {
   static const Color tint = Color(0xFF3A8D5A);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ContactsSection> createState() => _ContactsSectionState();
+}
+
+class _ContactsSectionState extends ConsumerState<ContactsSection> {
+  /// A contact that has not been written to the database yet. It only exists
+  /// in memory, so backing out of it leaves nothing behind.
+  Contact? _draft;
+
+  void _startDraft() {
+    setState(() {
+      _draft = Contact(
+        contactId: '',
+        estateId: widget.estateId,
+        name: '',
+        telephone: '',
+        email: '',
+        createdAt: DateTime.now(),
+      );
+    });
+  }
+
+  void _clearDraft() => setState(() => _draft = null);
+
+  @override
+  Widget build(BuildContext context) {
     final asyncContacts = ref.watch(contactsListProvider);
 
     return Column(
@@ -33,8 +57,8 @@ class ContactsSection extends ConsumerWidget {
       children: [
         const _Header(),
         const SizedBox(height: 14),
-        if (isOwner) ...[
-          _AddContactButton(onAdd: () => _addContact(ref, estateId)),
+        if (widget.isOwner && _draft == null) ...[
+          _AddContactButton(onAdd: _startDraft),
           const SizedBox(height: 12),
         ],
         asyncContacts.when(
@@ -56,7 +80,8 @@ class ContactsSection extends ConsumerWidget {
             ),
           ),
           data: (contacts) {
-            if (contacts.isEmpty) return const _EmptyCard();
+            final draft = _draft;
+            if (contacts.isEmpty && draft == null) return const _EmptyCard();
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -67,7 +92,22 @@ class ContactsSection extends ConsumerWidget {
                 children: [
                   for (var i = 0; i < contacts.length; i++) ...[
                     if (i > 0) Divider(height: 1, color: Colors.grey.shade200),
-                    _ContactTile(contact: contacts[i], isOwner: isOwner),
+                    _ContactTile(
+                      key: ValueKey(contacts[i].contactId),
+                      contact: contacts[i],
+                      isOwner: widget.isOwner,
+                    ),
+                  ],
+                  if (draft != null) ...[
+                    if (contacts.isNotEmpty)
+                      Divider(height: 1, color: Colors.grey.shade200),
+                    _ContactTile(
+                      key: const ValueKey('contact-draft'),
+                      contact: draft,
+                      isOwner: true,
+                      isDraft: true,
+                      onCommitted: _clearDraft,
+                    ),
                   ],
                 ],
               ),
@@ -76,21 +116,6 @@ class ContactsSection extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  /// Adds a blank contact. The tile opens straight into edit mode (it has no
-  /// name yet), the same interaction as a new Ad Hoc Data entry.
-  Future<void> _addContact(WidgetRef ref, String estateId) async {
-    final repo = ref.read(contactsRepositoryProvider);
-    await repo.insert(Contact(
-      contactId: '',
-      estateId: estateId,
-      name: '',
-      telephone: '',
-      email: '',
-      createdAt: DateTime.now(),
-    ));
-    ref.invalidate(contactsListProvider);
   }
 }
 
@@ -191,7 +216,18 @@ class _ContactTile extends ConsumerStatefulWidget {
   final Contact contact;
   final bool isOwner;
 
-  const _ContactTile({required this.contact, required this.isOwner});
+  /// True while this tile represents an unsaved contact. Saving inserts it,
+  /// and deleting simply discards the draft.
+  final bool isDraft;
+  final VoidCallback? onCommitted;
+
+  const _ContactTile({
+    super.key,
+    required this.contact,
+    required this.isOwner,
+    this.isDraft = false,
+    this.onCommitted,
+  });
 
   @override
   ConsumerState<_ContactTile> createState() => _ContactTileState();
@@ -244,6 +280,20 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
     }
 
     final repo = ref.read(contactsRepositoryProvider);
+    if (widget.isDraft) {
+      await repo.insert(Contact(
+        contactId: '',
+        estateId: widget.contact.estateId,
+        name: name,
+        telephone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+        createdAt: DateTime.now(),
+      ));
+      ref.invalidate(contactsListProvider);
+      widget.onCommitted?.call();
+      return;
+    }
+
     await repo.update(widget.contact.copyWith(
       name: name,
       telephone: _phoneController.text.trim(),
@@ -255,6 +305,12 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
   }
 
   Future<void> _confirmDelete() async {
+    // A draft was never saved, so there is nothing to confirm or delete.
+    if (widget.isDraft) {
+      widget.onCommitted?.call();
+      return;
+    }
+
     final label = widget.contact.name.trim().isEmpty
         ? 'this contact'
         : '"${widget.contact.name.trim()}"';
