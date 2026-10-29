@@ -220,6 +220,23 @@ Estate Owner''';
     );
   }
 
+  /// Opens a support or legal page in the device browser.
+  Future<void> _openExternal(String url) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (opened || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not open the page in your browser')),
+    );
+  }
+
   /// Revoking keeps the row but ends any access it granted. Unused invites are
   /// worded as a cancellation because that is what the owner is actually doing.
   Future<void> _confirmRevoke(EstateInvite invite) async {
@@ -835,10 +852,45 @@ Estate Owner''';
 
             const SizedBox(height: 16),
 
+            // Both app stores expect the support and privacy pages to be
+            // reachable from inside the app, so they live here rather than
+            // only on the website.
+            _SectionCard(
+              title: 'Support & legal',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openExternal(
+                        'https://crabkingslair.com/support',
+                      ),
+                      icon: const Icon(Icons.help_outline, size: 18),
+                      label: const Text('Support'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openExternal(
+                        'https://crabkingslair.com/privacy',
+                      ),
+                      icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                      label: const Text('Privacy policy'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Required by both app stores: a signed-in user must be able to
             // delete their own account and data from inside the app.
             _SectionCard(
-              title: 'Delete account',
+              title: 'Delete my account',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
