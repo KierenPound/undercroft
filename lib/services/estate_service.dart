@@ -326,3 +326,62 @@ Future<String> inviteOwner({
 
   return code;
 }
+
+/// Deletes the signed-in user's account and everything held against it.
+///
+/// The database side is a single delete of the auth user: every public table
+/// cascades from it, so an estate owner's estate and all of its content go with
+/// it, while an executor merely loses their access.
+///
+/// If the caller owns an estate, its storage folder is emptied first, through
+/// the Storage API. That order matters: the delete policy authorises via
+/// `get_allowed_estate_ids()`, which stops matching once the estate rows are
+/// gone. Anything missed here would be billed for and permanently unreachable.
+Future<void> deleteMyAccount() async {
+  final client = Supabase.instance.client;
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) {
+    throw StateError('deleteMyAccount: not signed in');
+  }
+
+  final owned = await client.from('estates').select('id').eq('owner_id', userId);
+  for (final row in owned) {
+    await _deleteEstateFiles(row['id'] as String);
+  }
+
+  await client.rpc('delete_my_account');
+
+  // The auth user no longer exists, so clear the dead session locally and let
+  // the router send the user back to sign-in.
+  try {
+    await client.auth.signOut();
+  } catch (_) {}
+}
+
+/// Empties `estate-documents/<estateId>/`, including nested utility folders.
+Future<void> _deleteEstateFiles(String estateId) async {
+  final storage = Supabase.instance.client.storage.from('estate-documents');
+
+  // A Storage "folder" is just a path prefix with no object behind it, so the
+  // tree has to be walked by hand to find the real files.
+  Future<List<String>> walk(String prefix) async {
+    final entries = await storage.list(path: prefix);
+    final paths = <String>[];
+    for (final entry in entries) {
+      final child = '$prefix/${entry.name}';
+      if (entry.id == null) {
+        paths.addAll(await walk(child));
+      } else {
+        paths.add(child);
+      }
+    }
+    return paths;
+  }
+
+  final paths = await walk(estateId);
+  const chunkSize = 100;
+  for (var i = 0; i < paths.length; i += chunkSize) {
+    final end = i + chunkSize > paths.length ? paths.length : i + chunkSize;
+    await storage.remove(paths.sublist(i, end));
+  }
+}

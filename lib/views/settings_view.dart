@@ -24,6 +24,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _lockLoading = true;
   bool _lockSupported = false;
   bool _lockEnabled = false;
+  bool _deletingAccount = false;
 
   /// Read once and reused, so the footer doesn't refetch on every rebuild.
   late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
@@ -267,7 +268,64 @@ Estate Owner''';
     }
   }
 
-  Widget _buildInvites(AsyncValue<List<EstateInvite>> asyncInvites) {
+  /// Irreversible, so it is confirmed before anything is touched. What the
+  /// user is told depends on whether they own the estate: an owner's deletion
+  /// takes the whole estate and everyone's access with it.
+  Future<void> _confirmDeleteAccount({required bool ownsEstate}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your account?'),
+        content: Text(
+          ownsEstate
+              ? 'This permanently deletes your estate and everything in it — '
+                  'sections, documents, photos, contacts, tradespeople and '
+                  'meter readings.\n\nAnyone you have invited will lose access '
+                  'as well.\n\nThis cannot be undone.'
+              : 'This permanently deletes your account and removes your access '
+                  'to this estate. The estate itself is not affected, and '
+                  'nothing you can see now will be lost.\n\n'
+                  'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep my account'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      await deleteMyAccount();
+      // The session is now dead, so the router's redirect takes over and
+      // returns to sign-in without any navigation from here.
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not delete your account. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Widget _buildInvites(
+    AsyncValue<List<EstateInvite>> asyncInvites,
+    String currentUserEmail,
+  ) {
     return asyncInvites.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
@@ -295,6 +353,7 @@ Estate Owner''';
               if (i > 0) const Divider(height: 24),
               _InviteRow(
                 invite: invites[i],
+                currentUserEmail: currentUserEmail,
                 onRevoke: () => _confirmRevoke(invites[i]),
               ),
             ],
@@ -316,6 +375,10 @@ Estate Owner''';
     final effectiveRole = simulatedRole ?? actualRole;
     final isOwner = effectiveRole == 'owner';
     final isSimulating = simulatedRole != null;
+
+    // Deliberately the real role, not the simulated one: deletes must reflect
+    // what would actually be destroyed, never the previewed role.
+    final isActualOwner = actualRole == 'owner';
     final userEmail = asyncUser.valueOrNull?.email ?? 'Not signed in';
     final estateName = asyncEstateName.valueOrNull ?? '';
 
@@ -763,9 +826,66 @@ Estate Owner''';
               // Who has been invited, and whether they accepted.
               _SectionCard(
                 title: 'Invitations',
-                child: _buildInvites(ref.watch(estateInvitesProvider)),
+                child: _buildInvites(
+                  ref.watch(estateInvitesProvider),
+                  userEmail,
+                ),
               ),
             ],
+
+            const SizedBox(height: 16),
+
+            // Required by both app stores: a signed-in user must be able to
+            // delete their own account and data from inside the app.
+            _SectionCard(
+              title: 'Delete account',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isActualOwner
+                        ? 'Deletes your estate and everything in it, and ends '
+                            'any access you have granted to others.'
+                        : 'Deletes your account and removes your access to this '
+                            'estate.',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _deletingAccount
+                          ? null
+                          : () => _confirmDeleteAccount(
+                                ownsEstate: isActualOwner,
+                              ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .error
+                              .withValues(alpha: 0.5),
+                        ),
+                      ),
+                      icon: _deletingAccount
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_forever_outlined, size: 18),
+                      label: Text(
+                        _deletingAccount ? 'Deleting…' : 'Delete my account',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             // Version, so a problem can be reported against a known build.
             const SizedBox(height: 24),
@@ -796,13 +916,20 @@ Estate Owner''';
 /// accepted, and an action to revoke it.
 class _InviteRow extends StatelessWidget {
   final EstateInvite invite;
+  final String currentUserEmail;
   final VoidCallback onRevoke;
 
-  const _InviteRow({required this.invite, required this.onRevoke});
+  const _InviteRow({
+    required this.invite,
+    required this.currentUserEmail,
+    required this.onRevoke,
+  });
 
   @override
   Widget build(BuildContext context) {
     final canRevoke = !invite.isRevoked && !invite.isSelf;
+    final displayEmail = invite.invitedEmail ??
+        (invite.isSelf ? currentUserEmail : 'No email recorded');
     final subtitle = [
       invite.roleLabel,
       if (invite.formattedDate.isNotEmpty) invite.formattedDate,
@@ -816,7 +943,7 @@ class _InviteRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                invite.invitedEmail ?? 'No email recorded',
+                displayEmail,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
