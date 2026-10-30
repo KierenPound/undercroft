@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/biometric_lock_service.dart';
@@ -18,7 +19,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _ownerEmailController = TextEditingController();
   String? _generatedCode;
+  String _generatedEmail = '';
   String? _ownerGeneratedCode;
+  String _ownerGeneratedEmail = '';
   bool _inviting = false;
   bool _invitingOwner = false;
   bool _lockLoading = true;
@@ -119,16 +122,19 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   Future<void> _generateInvite(String estateId) async {
     setState(() => _inviting = true);
     try {
+      final email = _emailController.text.trim();
       final code = await inviteExecutor(
         estateId: estateId,
-        invitedEmail: _emailController.text.trim(),
+        invitedEmail: email,
       );
-      setState(() => _generatedCode = code);
-      _launchInviteEmail(
-        to: _emailController.text.trim(),
-        roleLabel: 'Executor',
-        pinCode: code,
-      );
+      if (!mounted) return;
+      // The code is revealed with Copy / Email / Share rather than emailed
+      // automatically, so the owner picks how to hand it over. The email is
+      // snapshotted here so later edits to the field can't misdirect it.
+      setState(() {
+        _generatedCode = code;
+        _generatedEmail = email;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,16 +149,16 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   Future<void> _generateOwnerInvite(String estateId) async {
     setState(() => _invitingOwner = true);
     try {
+      final email = _ownerEmailController.text.trim();
       final code = await inviteOwner(
         estateId: estateId,
-        invitedEmail: _ownerEmailController.text.trim(),
+        invitedEmail: email,
       );
-      setState(() => _ownerGeneratedCode = code);
-      _launchInviteEmail(
-        to: _ownerEmailController.text.trim(),
-        roleLabel: 'Estate Owner',
-        pinCode: code,
-      );
+      if (!mounted) return;
+      setState(() {
+        _ownerGeneratedCode = code;
+        _ownerGeneratedEmail = email;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,62 +168,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     } finally {
       if (mounted) setState(() => _invitingOwner = false);
     }
-  }
-
-  /// Opens the device email client with a pre-filled invitation email for the
-  /// given role and PIN code. The [to] address may be empty; in that case the
-  /// user fills in the recipient manually.
-  Future<void> _launchInviteEmail({
-    required String to,
-    required String roleLabel,
-    required String pinCode,
-  }) async {
-    final subject = 'You have been appointed as an $roleLabel';
-    final body = '''Hello,
-
-You have been designated as an $roleLabel in my Family Estate plan.
-
-To accept this invitation and connect to my estate records:
-1. Download the UnderCroft App from the App/Play Store.
-2. Select "Sign Up" with your email and what password you want.
-3. Select $roleLabel and use this PIN code: $pinCode
-
-Best regards,
-Estate Owner''';
-
-    final params = <String, String>{
-      if (subject.isNotEmpty) 'subject': subject,
-      if (body.isNotEmpty) 'body': body,
-    };
-    final mailto = Uri(
-      scheme: 'mailto',
-      path: to,
-      query: params.entries
-          .map((e) =>
-              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-          .join('&'),
-    );
-
-    try {
-      await launchUrl(mailto);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Could not open your email app. The invite code has been generated — copy it and send it manually.'),
-          ),
-        );
-      }
-    }
-  }
-
-  void _copyCode(String? code) {
-    if (code == null) return;
-    Clipboard.setData(ClipboardData(text: code));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invite code copied to clipboard')),
-    );
   }
 
   /// Opens a support or legal page in the device browser.
@@ -260,6 +210,10 @@ Estate Owner''';
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
             child: Text(cancelling ? 'Cancel invite' : 'Remove access'),
           ),
         ],
@@ -709,17 +663,11 @@ Estate Owner''';
                               ),
                             ),
                             const SizedBox(height: 10),
-                            TextButton.icon(
-                              onPressed: () => _copyCode(_generatedCode),
-                              icon: const Icon(
-                                Icons.copy,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              label: const Text(
-                                'Copy code',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            _CodeActions(
+                              code: _generatedCode!,
+                              roleLabel: 'Executor',
+                              email: _generatedEmail,
+                              foreground: Colors.white,
                             ),
                           ],
                         ),
@@ -818,17 +766,11 @@ Estate Owner''';
                               ),
                             ),
                             const SizedBox(height: 10),
-                            TextButton.icon(
-                              onPressed: () => _copyCode(_ownerGeneratedCode),
-                              icon: const Icon(
-                                Icons.copy,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                              label: const Text(
-                                'Copy code',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            _CodeActions(
+                              code: _ownerGeneratedCode!,
+                              roleLabel: 'Estate Owner',
+                              email: _ownerGeneratedEmail,
+                              foreground: Colors.white,
                             ),
                           ],
                         ),
@@ -980,6 +922,7 @@ class _InviteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canRevoke = !invite.isRevoked && !invite.isSelf;
+    final code = invite.inviteCode;
     final displayEmail = invite.invitedEmail ??
         (invite.isSelf ? currentUserEmail : 'No email recorded');
     final subtitle = [
@@ -1019,6 +962,35 @@ class _InviteRow extends StatelessWidget {
                   ),
                 ],
               ),
+              // Pending codes are re-readable here, so an invite generated and
+              // then forgotten can still be sent without making a new one.
+              if (code != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Text(
+                      'Code',
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(width: 8),
+                    SelectableText(
+                      code,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+                _CodeActions(
+                  code: code,
+                  roleLabel: invite.roleLabel,
+                  email: invite.invitedEmail ?? '',
+                  foreground: Theme.of(context).colorScheme.primary,
+                ),
+              ],
             ],
           ),
         ),
@@ -1118,5 +1090,167 @@ class _SectionCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Copy / Email / Share for a generated invite code.
+///
+/// Used under the code in the generation panels and again on pending invites
+/// in the list, so a code stays sendable after its panel has been left.
+class _CodeActions extends StatelessWidget {
+  final String code;
+  final String roleLabel;
+  final String email;
+  final Color foreground;
+
+  const _CodeActions({
+    required this.code,
+    required this.roleLabel,
+    required this.foreground,
+    this.email = '',
+  });
+
+  static final ButtonStyle _style = TextButton.styleFrom(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    minimumSize: const Size(0, 32),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 4,
+      children: [
+        TextButton.icon(
+          onPressed: () => _copyInviteCode(context, code),
+          style: _style,
+          icon: Icon(Icons.copy, size: 16, color: foreground),
+          label: Text('Copy', style: TextStyle(color: foreground)),
+        ),
+        TextButton.icon(
+          onPressed: () => _emailInviteCode(
+            context: context,
+            to: email,
+            roleLabel: roleLabel,
+            pinCode: code,
+          ),
+          style: _style,
+          icon: Icon(Icons.mail_outline, size: 16, color: foreground),
+          label: Text('Email', style: TextStyle(color: foreground)),
+        ),
+        // iPad presents the share sheet as a popover anchored to the control
+        // that triggered it, so the button's own rect is handed to share_plus.
+        Builder(
+          builder: (buttonContext) => TextButton.icon(
+            onPressed: () {
+              final box = buttonContext.findRenderObject() as RenderBox?;
+              _shareInviteCode(
+                code: code,
+                roleLabel: roleLabel,
+                origin: box == null
+                    ? null
+                    : box.localToGlobal(Offset.zero) & box.size,
+              );
+            },
+            style: _style,
+            icon: Icon(Icons.ios_share, size: 16, color: foreground),
+            label: Text('Share', style: TextStyle(color: foreground)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void _copyInviteCode(BuildContext context, String code) {
+  Clipboard.setData(ClipboardData(text: code));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Invite code copied to clipboard')),
+  );
+}
+
+String _inviteEmailBody({
+  required String roleLabel,
+  required String pinCode,
+}) {
+  return '''Hello,
+
+You have been designated as an $roleLabel in my Family Estate plan.
+
+To accept this invitation and connect to my estate records:
+1. Download the UnderCroft App from the App/Play Store.
+2. Select "Sign Up" with your email and what password you want.
+3. Select $roleLabel and use this PIN code: $pinCode
+
+Best regards,
+Estate Owner''';
+}
+
+String _inviteShareText({
+  required String roleLabel,
+  required String pinCode,
+}) {
+  return '''You have been designated as an $roleLabel in my Family Estate plan.
+
+To accept this invitation and connect to my estate records:
+1. Download the UnderCroft app.
+2. Select "Sign Up" with your email and a password of your choice.
+3. Select $roleLabel and use this invite code: $pinCode''';
+}
+
+/// Opens the device email client with a pre-filled invitation. The [to]
+/// address may be empty; in that case the sender fills in the recipient.
+Future<void> _emailInviteCode({
+  required BuildContext context,
+  required String to,
+  required String roleLabel,
+  required String pinCode,
+}) async {
+  final subject = 'You have been appointed as an $roleLabel';
+  final body = _inviteEmailBody(roleLabel: roleLabel, pinCode: pinCode);
+
+  final params = <String, String>{
+    if (subject.isNotEmpty) 'subject': subject,
+    if (body.isNotEmpty) 'body': body,
+  };
+  final mailto = Uri(
+    scheme: 'mailto',
+    path: to,
+    query: params.entries
+        .map((e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&'),
+  );
+
+  try {
+    await launchUrl(mailto);
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+            'Could not open your email app. Copy the code and send it manually.'),
+      ),
+    );
+  }
+}
+
+/// Hands the invite to the platform share sheet, so the owner can send it by
+/// Messages, WhatsApp or anything else installed.
+Future<void> _shareInviteCode({
+  required String code,
+  required String roleLabel,
+  Rect? origin,
+}) async {
+  try {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: _inviteShareText(roleLabel: roleLabel, pinCode: code),
+        subject: 'You have been appointed as an $roleLabel',
+        sharePositionOrigin: origin,
+      ),
+    );
+  } catch (_) {
+    // Nothing to recover from: the code is still on screen to copy or email.
   }
 }

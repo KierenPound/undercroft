@@ -195,6 +195,10 @@ class EstateInvite {
   final String status;
   final DateTime? createdAt;
 
+  /// The 6-character code for a pending invite, so it can be re-read and
+  /// re-sent after the generation screen has been left. Null once claimed.
+  final String? inviteCode;
+
   /// True when this row belongs to the signed-in user, so the UI can avoid
   /// offering them the means to remove their own access.
   final bool isSelf;
@@ -206,6 +210,7 @@ class EstateInvite {
     required this.status,
     required this.createdAt,
     required this.isSelf,
+    this.inviteCode,
   });
 
   bool get isPending => status == 'pending';
@@ -245,19 +250,25 @@ Future<List<EstateInvite>> fetchEstateInvites({
   final client = Supabase.instance.client;
   final rows = await client
       .from('estate_access')
-      .select('id, invited_email, role, status, created_at, user_id')
+      .select(
+        'id, invited_email, role, status, created_at, user_id, invite_code',
+      )
       .eq('estate_id', estateId)
       .order('created_at', ascending: false);
 
   return rows.map((row) {
     final userId = row['user_id'] as String?;
+    final status = row['status'] as String? ?? 'pending';
     return EstateInvite(
       id: row['id'] as String,
       invitedEmail: row['invited_email'] as String?,
       role: row['role'] as String? ?? 'executor',
-      status: row['status'] as String? ?? 'pending',
+      status: status,
       createdAt: DateTime.tryParse(row['created_at'] as String? ?? ''),
       isSelf: userId != null && userId == currentUserId,
+      // Only a pending code is worth showing: once claimed or revoked it can
+      // no longer be redeemed.
+      inviteCode: status == 'pending' ? row['invite_code'] as String? : null,
     );
   }).toList();
 }

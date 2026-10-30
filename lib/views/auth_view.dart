@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthView extends StatefulWidget {
@@ -10,10 +12,24 @@ class AuthView extends StatefulWidget {
 }
 
 class _AuthViewState extends State<AuthView> {
+  /// Key recording that the app has been opened at least once.
+  ///
+  /// This lives in shared preferences, which iOS clears when an app is
+  /// deleted, so a deleted and reinstalled app correctly counts as a fresh
+  /// install.
+  static const String _hasOpenedAppKey = 'has_opened_app';
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isSignUp = false;
+
+  /// Null until the first-run check has finished.
+  ///
+  /// A fresh install opens on "Create account"; every later launch opens on
+  /// sign in. Reading the preference is asynchronous, so the form is held
+  /// back until it resolves rather than briefly flashing the wrong tab.
+  bool? _isSignUp;
+
   String? _error;
   String? _info;
 
@@ -21,6 +37,20 @@ class _AuthViewState extends State<AuthView> {
   void initState() {
     super.initState();
     debugPrint('[auth_view] mounted key=${widget.key}');
+    _resolveInitialMode();
+  }
+
+  Future<void> _resolveInitialMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasOpenedBefore = prefs.getBool(_hasOpenedAppKey) ?? false;
+
+    if (!hasOpenedBefore) {
+      await prefs.setBool(_hasOpenedAppKey, true);
+    }
+
+    if (mounted) {
+      setState(() => _isSignUp = !hasOpenedBefore);
+    }
   }
 
   @override
@@ -38,12 +68,12 @@ class _AuthViewState extends State<AuthView> {
 
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    debugPrint('[auth_view] submit mode=${_isSignUp ? 'sign_up' : 'sign_in'} '
+    debugPrint('[auth_view] submit mode=${_isSignUp == true ? 'sign_up' : 'sign_in'} '
         'email=$email');
 
     try {
       final client = Supabase.instance.client;
-      if (_isSignUp) {
+      if (_isSignUp == true) {
         final response =
             await client.auth.signUp(email: email, password: password);
         debugPrint('[auth_view] sign_up complete '
@@ -55,11 +85,15 @@ class _AuthViewState extends State<AuthView> {
                 'A confirmation email has been sent to $email. Click the link to activate your account, then sign in.');
           }
         }
+        // Tells iOS the credential flow has finished, which is what prompts
+        // it to offer saving the password to the keychain.
+        if (response.session != null) TextInput.finishAutofillContext();
       } else {
         await client.auth.signInWithPassword(email: email, password: password);
         debugPrint('[auth_view] sign_in complete '
             'currentSessionUser=${client.auth.currentSession?.user.id} '
             'currentUser=${client.auth.currentUser?.id}');
+        TextInput.finishAutofillContext();
       }
     } on AuthException catch (e) {
       debugPrint('[auth_view] auth error=${e.message}');
@@ -78,6 +112,19 @@ class _AuthViewState extends State<AuthView> {
 
   @override
   Widget build(BuildContext context) {
+    final isSignUp = _isSignUp;
+
+    // The first-run check is still in flight. Hold the form back for that
+    // moment so the tab never flashes the wrong way round.
+    if (isSignUp == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F1E8),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF3A8D5A)),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -105,7 +152,9 @@ class _AuthViewState extends State<AuthView> {
                           size: 56, color: Color(0xFF3A8D5A)),
                       const SizedBox(height: 16),
                       Text(
-                        _isSignUp ? 'Create account' : 'Welcome back',
+                        isSignUp
+                            ? 'Welcome to UnderCroft'
+                            : 'Welcome back to UnderCroft',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 22,
@@ -115,33 +164,51 @@ class _AuthViewState extends State<AuthView> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _isSignUp
-                            ? 'Sign up to start organising your estate.'
-                            : 'Sign in to access your estate.',
+                        isSignUp
+                            ? 'Create an account to get started.'
+                            : 'Sign in to your account.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 24),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email_outlined),
+                      // The group is what makes the hints below take effect:
+                      // without it iOS ignores them and never offers to fill or
+                      // save the credentials.
+                      AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autocorrect: false,
+                              autofillHints: const [AutofillHints.email],
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.email_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              // Sign-up asks iOS for its strong password
+                              // generator; signing in asks for the saved one.
+                              autofillHints: isSignUp
+                                  ? const [AutofillHints.newPassword]
+                                  : const [AutofillHints.password],
+                              decoration: const InputDecoration(
+                                labelText: 'Password',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.lock_outline),
+                              ),
+                              onSubmitted: (_) => _isLoading ? null : _submit(),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.lock_outline),
-                        ),
-                        onSubmitted: (_) => _isLoading ? null : _submit(),
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: 12),
@@ -188,7 +255,7 @@ class _AuthViewState extends State<AuthView> {
                             ? const CircularProgressIndicator(
                                 color: Colors.white)
                             : Text(
-                                _isSignUp ? 'Sign up' : 'Sign in',
+                                isSignUp ? 'Sign up' : 'Sign in',
                                 style: const TextStyle(fontSize: 16),
                               ),
                       ),
@@ -204,9 +271,9 @@ class _AuthViewState extends State<AuthView> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                        onPressed: () => setState(() => _isSignUp = !isSignUp),
                         child: Text(
-                          _isSignUp
+                          isSignUp
                               ? 'Already have an account? Sign in'
                               : "Don't have an account? Sign up",
                           style: const TextStyle(color: Color(0xFF3A8D5A)),
