@@ -70,7 +70,6 @@ class _AuthViewState extends State<AuthView> {
     final password = _passwordController.text;
     debugPrint('[auth_view] submit mode=${_isSignUp == true ? 'sign_up' : 'sign_in'} '
         'email=$email');
-
     try {
       final client = Supabase.instance.client;
       if (_isSignUp == true) {
@@ -183,7 +182,10 @@ class _AuthViewState extends State<AuthView> {
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
                               autocorrect: false,
-                              autofillHints: const [AutofillHints.email],
+                              autofillHints: const [
+                                AutofillHints.username,
+                                AutofillHints.email,
+                              ],
                               decoration: const InputDecoration(
                                 labelText: 'Email',
                                 border: OutlineInputBorder(),
