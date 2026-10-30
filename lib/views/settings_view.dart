@@ -890,7 +890,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   final info = snapshot.data;
                   if (info == null) return const SizedBox.shrink();
                   return Text(
-                    'UnderCroft ${info.version}',
+                    'UnderCroft ${info.version} (${info.buildNumber})',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.black38,
