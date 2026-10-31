@@ -238,6 +238,81 @@ class EstateInvite {
   }
 }
 
+/// How well the estate is set up for a handover, judged only by who has
+/// actually been invited and who has accepted.
+///
+/// Deliberately says nothing about payment. A paid invite that was never
+/// sent, or never redeemed, leaves the estate exactly as exposed as a free
+/// one — so the money spent is not a measure of preparedness.
+enum HandoverReadiness {
+  /// Nobody else has been invited. If the owner cannot sign in, nobody can.
+  atRisk,
+
+  /// Invites are out, but nobody has accepted yet.
+  awaitingAcceptance,
+
+  /// Another owner has accepted, but no executor has. Someone can reach the
+  /// estate, though not necessarily the person who will have to act.
+  sharedWithOwner,
+
+  /// At least one executor has accepted. The handover can actually happen.
+  prepared,
+}
+
+/// A snapshot of [HandoverReadiness] plus the counts behind it.
+class EstateReadiness {
+  final HandoverReadiness state;
+  final int pendingCount;
+  final int acceptedOwnerCount;
+  final int acceptedExecutorCount;
+
+  const EstateReadiness({
+    required this.state,
+    required this.pendingCount,
+    required this.acceptedOwnerCount,
+    required this.acceptedExecutorCount,
+  });
+
+  /// Counts only live rows, and never the owner's own row — their access is
+  /// always present and would otherwise read as "another owner".
+  factory EstateReadiness.fromInvites(List<EstateInvite> invites) {
+    var pending = 0;
+    var acceptedOwners = 0;
+    var acceptedExecutors = 0;
+
+    for (final invite in invites) {
+      if (invite.isSelf || invite.isRevoked) continue;
+      if (invite.isPending) {
+        pending++;
+      } else if (invite.status == 'accepted') {
+        if (invite.role == 'owner') {
+          acceptedOwners++;
+        } else {
+          acceptedExecutors++;
+        }
+      }
+    }
+
+    final HandoverReadiness state;
+    if (acceptedExecutors > 0) {
+      state = HandoverReadiness.prepared;
+    } else if (acceptedOwners > 0) {
+      state = HandoverReadiness.sharedWithOwner;
+    } else if (pending > 0) {
+      state = HandoverReadiness.awaitingAcceptance;
+    } else {
+      state = HandoverReadiness.atRisk;
+    }
+
+    return EstateReadiness(
+      state: state,
+      pendingCount: pending,
+      acceptedOwnerCount: acceptedOwners,
+      acceptedExecutorCount: acceptedExecutors,
+    );
+  }
+}
+
 /// Lists everyone who has been invited to, or already shares, [estateId].
 ///
 /// Owners can read every row for their estate (`estate_access_select_linked`).

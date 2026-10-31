@@ -79,5 +79,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/gravestone.jpeg"
+  image_path: "assets/icon/gravestone1.png"
   remove_alpha_ios: true
+  background_color_ios: "#1A1A1A" # Set your preferred solid hex background color
