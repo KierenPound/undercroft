@@ -52,3 +52,8 @@ supabase_config.json
 # Release APK kept in the repo root for ad-hoc sideloading — a build artifact,
 # not source. 64 MB, and rebuildable from any commit.
 /undercroft-release.apk
+
+# JVM heap dumps
+*.hprof
+# Word temp files
+~.docx
