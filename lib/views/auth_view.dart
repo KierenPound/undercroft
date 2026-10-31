@@ -11,6 +11,12 @@ class AuthView extends StatefulWidget {
   State<AuthView> createState() => _AuthViewState();
 }
 
+enum _AuthScreenMode {
+  intro,
+  signUp,
+  signIn,
+}
+
 class _AuthViewState extends State<AuthView> {
   /// Key recording that the app has been opened at least once.
   ///
@@ -23,12 +29,16 @@ class _AuthViewState extends State<AuthView> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  /// Password is hidden by default; the eye icon reveals it so a mistyped
+  /// character can be spotted before submitting.
+  bool _obscurePassword = true;
+
   /// Null until the first-run check has finished.
   ///
-  /// A fresh install opens on "Create account"; every later launch opens on
-  /// sign in. Reading the preference is asynchronous, so the form is held
-  /// back until it resolves rather than briefly flashing the wrong tab.
-  bool? _isSignUp;
+  /// A fresh install opens on a guided first-run screen; every later launch
+  /// opens on sign in. Reading the preference is asynchronous, so the UI is
+  /// held back until it resolves rather than briefly flashing the wrong state.
+  _AuthScreenMode? _screenMode;
 
   String? _error;
   String? _info;
@@ -49,7 +59,10 @@ class _AuthViewState extends State<AuthView> {
     }
 
     if (mounted) {
-      setState(() => _isSignUp = !hasOpenedBefore);
+      setState(
+        () => _screenMode =
+            hasOpenedBefore ? _AuthScreenMode.signIn : _AuthScreenMode.intro,
+      );
     }
   }
 
@@ -61,18 +74,20 @@ class _AuthViewState extends State<AuthView> {
   }
 
   Future<void> _submit() async {
+    final isSignUp = _screenMode == _AuthScreenMode.signUp;
     setState(() {
       _isLoading = true;
       _error = null;
+      _info = null;
     });
 
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    debugPrint('[auth_view] submit mode=${_isSignUp == true ? 'sign_up' : 'sign_in'} '
+    debugPrint('[auth_view] submit mode=${isSignUp ? 'sign_up' : 'sign_in'} '
         'email=$email');
     try {
       final client = Supabase.instance.client;
-      if (_isSignUp == true) {
+      if (isSignUp) {
         final response =
             await client.auth.signUp(email: email, password: password);
         debugPrint('[auth_view] sign_up complete '
@@ -111,11 +126,11 @@ class _AuthViewState extends State<AuthView> {
 
   @override
   Widget build(BuildContext context) {
-    final isSignUp = _isSignUp;
+    final screenMode = _screenMode;
 
     // The first-run check is still in flight. Hold the form back for that
     // moment so the tab never flashes the wrong way round.
-    if (isSignUp == null) {
+    if (screenMode == null) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F1E8),
         body: Center(
@@ -123,6 +138,112 @@ class _AuthViewState extends State<AuthView> {
         ),
       );
     }
+
+    if (screenMode == _AuthScreenMode.intro) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Icon(
+                          Icons.shield_outlined,
+                          size: 56,
+                          color: Color(0xFF3A8D5A),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Welcome to UnderCroft',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2C2C2E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'I see this is your first time using UnderCroft. '
+                          'Let me guide you through getting set up.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: () => setState(() {
+                            _screenMode = _AuthScreenMode.signUp;
+                            _error = null;
+                            _info = null;
+                          }),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF3A8D5A),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Get started',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () => setState(() {
+                            _screenMode = _AuthScreenMode.signIn;
+                            _error = null;
+                            _info = null;
+                          }),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('I already have an account'),
+                        ),
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _screenMode = _AuthScreenMode.signUp;
+                            _error = null;
+                            _info = 'Create your account first. You will enter '
+                                'your invite code on the next step.';
+                          }),
+                          child: const Text(
+                            'I already have an invite code',
+                            style: TextStyle(color: Color(0xFF3A8D5A)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final isSignUp = screenMode == _AuthScreenMode.signUp;
 
     return Scaffold(
       body: Container(
@@ -195,17 +316,30 @@ class _AuthViewState extends State<AuthView> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: _passwordController,
-                              obscureText: true,
+                              obscureText: _obscurePassword,
                               textInputAction: TextInputAction.done,
                               // Sign-up asks iOS for its strong password
                               // generator; signing in asks for the saved one.
                               autofillHints: isSignUp
                                   ? const [AutofillHints.newPassword]
                                   : const [AutofillHints.password],
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Password',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.lock_outline),
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  tooltip: _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
                               ),
                               onSubmitted: (_) => _isLoading ? null : _submit(),
                             ),
@@ -273,7 +407,13 @@ class _AuthViewState extends State<AuthView> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => setState(() => _isSignUp = !isSignUp),
+                        onPressed: () => setState(() {
+                          _screenMode = isSignUp
+                              ? _AuthScreenMode.signIn
+                              : _AuthScreenMode.signUp;
+                          _error = null;
+                          _info = null;
+                        }),
                         child: Text(
                           isSignUp
                               ? 'Already have an account? Sign in'

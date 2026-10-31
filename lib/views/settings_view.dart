@@ -250,9 +250,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         content: Text(
           ownsEstate
               ? 'This permanently deletes your estate and everything in it — '
-                  'sections, documents, photos, contacts, tradespeople and '
-                  'meter readings.\n\nAnyone you have invited will lose access '
-                  'as well.\n\nThis cannot be undone.'
+                  'account numbers, legal documents, photos, contacts, '
+                  'tradespeople and more.\n\nAnyone you have invited will lose '
+                  'access as well.\n\nThis cannot be undone.'
               : 'This permanently deletes your account and removes your access '
                   'to this estate. The estate itself is not affected, and '
                   'nothing you can see now will be lost.\n\n'

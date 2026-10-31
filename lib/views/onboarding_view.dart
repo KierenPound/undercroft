@@ -14,14 +14,19 @@ class OnboardingView extends ConsumerStatefulWidget {
   ConsumerState<OnboardingView> createState() => _OnboardingViewState();
 }
 
+enum _JoiningPath {
+  createEstate,
+  inviteCode,
+}
+
 class _OnboardingViewState extends ConsumerState<OnboardingView> {
-  bool _isOwner = true;
   final _nameController = TextEditingController();
   final _codeController = TextEditingController();
   bool _isLoading = false;
   String? _error;
   bool _hasPendingInvite = false;
   String? _pendingEstateName;
+  _JoiningPath? _joiningPath;
 
   @override
   void initState() {
@@ -61,6 +66,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
         setState(() {
           _hasPendingInvite = true;
           _pendingEstateName = estateName;
+          _joiningPath = _JoiningPath.inviteCode;
           if (estateName.isNotEmpty) {
             _nameController.text = estateName;
           }
@@ -87,18 +93,26 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
     if (user == null) {
-      setState(() => _error = 'No signed-in user.');
+      setState(() {
+        _error = 'No signed-in user.';
+        _isLoading = false;
+      });
       return;
     }
 
     if (user.emailConfirmedAt == null) {
-      setState(() => _error =
-          'Please confirm your email first. Check your inbox for the confirmation link, or disable email confirmation in Supabase → Authentication → Providers → Email.');
+      setState(() {
+        _error =
+            'Please confirm your email first. Check your inbox for the confirmation link, or disable email confirmation in Supabase → Authentication → Providers → Email.';
+        _isLoading = false;
+      });
       return;
     }
 
     try {
       String? completedEstateId;
+      final joiningPath =
+          _joiningPath ?? (_hasPendingInvite ? _JoiningPath.inviteCode : null);
 
       // Helper: claim a pending invite by code. Returns the estate id or
       // null if the code is invalid/expired. Sets _error on failure.
@@ -127,7 +141,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             .maybeSingle();
 
         if (invite == null) {
-          setState(() => _error = 'Invalid or expired invite code.');
+          setState(() => _error = 'Invalid invite code.');
           return null;
         }
 
@@ -139,55 +153,43 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
         return invite['estate_id'] as String?;
       }
 
-      if (_isOwner) {
-        final ownerCode = _codeController.text.trim().toUpperCase();
-
-        // If an owner invite code was provided (or the user was invited —
-        // i.e. they have a pending invite for their email), claim it
-        // (join as co-owner of an existing estate) instead of creating.
-        if (ownerCode.isNotEmpty || _hasPendingInvite) {
-          if (ownerCode.isEmpty) {
-            setState(() =>
-                _error = 'Please enter the invite code you were sent.');
-            return;
-          }
-          completedEstateId = await claimInvite(ownerCode);
-          if (completedEstateId == null) return;
-        } else {
-          final estateName = _nameController.text.trim();
-          if (estateName.isEmpty) {
-            setState(() => _error =
-                'Please enter an estate name to create a new estate, or an invite code to join an existing one.');
-            return;
-          }
-
-          // create_estate is a SECURITY DEFINER function that deletes any
-          // existing estate owned by this user, creates a fresh one, and
-          // guarantees the owner access row — all while bypassing RLS so
-          // the insert never fails on policy checks.
-          final estateId = await client.rpc('create_estate', params: {
-            'estate_name': estateName,
-          });
-
-          completedEstateId = estateId as String?;
-
-          // Seed the new estate with default sections and starter checklist
-          // items. This runs only for owners creating a new estate;
-          // co-owners joining via invite inherit whatever is already set up.
-          if (completedEstateId != null) {
-            final repo = ref.read(sectionsRepositoryProvider);
-            await repo.seedDefaults(completedEstateId);
-          }
-        }
-      } else {
+      if (joiningPath == _JoiningPath.inviteCode) {
         final code = _codeController.text.trim().toUpperCase();
         if (code.isEmpty) {
-          setState(() => _error = 'Please enter the invite code.');
+          setState(() => _error = _hasPendingInvite
+              ? 'Please enter the invite code you were sent.'
+              : 'Please enter the invite code.');
           return;
         }
 
         completedEstateId = await claimInvite(code);
         if (completedEstateId == null) return;
+      } else if (joiningPath == _JoiningPath.createEstate) {
+        final estateName = _nameController.text.trim();
+        if (estateName.isEmpty) {
+          setState(() => _error = 'Please enter an estate name.');
+          return;
+        }
+
+        // create_estate is a SECURITY DEFINER function that deletes any
+        // existing estate owned by this user, creates a fresh one, and
+        // guarantees the owner access row — all while bypassing RLS so
+        // the insert never fails on policy checks.
+        final estateId = await client.rpc('create_estate', params: {
+          'estate_name': estateName,
+        });
+
+        completedEstateId = estateId as String?;
+
+        // Seed the new estate with default sections and starter checklist
+        // items. This runs only when the user is creating their own estate.
+        if (completedEstateId != null) {
+          final repo = ref.read(sectionsRepositoryProvider);
+          await repo.seedDefaults(completedEstateId);
+        }
+      } else {
+        setState(() => _error = 'Choose how you are joining first.');
+        return;
       }
 
       if (mounted) {
@@ -219,6 +221,29 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
 
   @override
   Widget build(BuildContext context) {
+    final joiningPath =
+        _joiningPath ?? (_hasPendingInvite ? _JoiningPath.inviteCode : null);
+    final showChoiceStep = joiningPath == null;
+    final showCreateEstate = joiningPath == _JoiningPath.createEstate;
+    final showInviteCode = joiningPath == _JoiningPath.inviteCode;
+
+    final title = showChoiceStep
+        ? 'How are you joining?'
+        : showCreateEstate
+            ? 'Set up your estate'
+            : 'Enter your invite code';
+    final body = showChoiceStep
+        ? 'Are you setting up your own estate, or joining one that someone '
+            'has already shared with you?'
+        : showCreateEstate
+            ? 'Give your estate a name. You can change this later.'
+            : (_pendingEstateName?.isNotEmpty ?? false)
+                ? 'You were invited to join "${_pendingEstateName!}". Enter '
+                    'the 6-character code you were given. We will use it to '
+                    'join the correct estate and set up your access.'
+                : 'Enter the 6-character code you were given. We will use it '
+                    'to join the correct estate and set up your access.';
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -260,10 +285,10 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                       const Icon(Icons.account_balance_wallet_outlined,
                           size: 56, color: Color(0xFF3A8D5A)),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Welcome to UnderCroft',
+                      Text(
+                        title,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF2C2C2E),
@@ -271,111 +296,106 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tell us your role to get started.',
+                        body,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _RoleCard(
-                              label: 'Estate Owner',
-                              icon: Icons.person,
-                              selected: _isOwner,
-                              onTap: () => setState(() => _isOwner = true),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _RoleCard(
-                              label: 'Executor',
-                              icon: Icons.gavel,
-                              selected: !_isOwner,
-                              onTap: () => setState(() => _isOwner = false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      if (_isOwner) ...[
-                        TextField(
-                          controller: _nameController,
-                          enabled: !_hasPendingInvite,
-                          decoration: InputDecoration(
-                            labelText: 'Estate name',
-                            hintText: _hasPendingInvite
-                                ? 'Loading invited estate...'
-                                : 'e.g. My Estate',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.home_outlined),
-                          ),
+                      if (showChoiceStep) ...[
+                        _OptionCard(
+                          label: 'Set up my own estate',
+                          icon: Icons.home_outlined,
+                          onTap: () => setState(() {
+                            _joiningPath = _JoiningPath.createEstate;
+                            _error = null;
+                          }),
                         ),
                         const SizedBox(height: 12),
+                        _OptionCard(
+                          label: 'I have an invite code',
+                          icon: Icons.vpn_key_outlined,
+                          onTap: () => setState(() {
+                            _joiningPath = _JoiningPath.inviteCode;
+                            _error = null;
+                          }),
+                        ),
+                      ] else ...[
                         if (!_hasPendingInvite)
-                          const Text(
-                            'or',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.black45),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => setState(() {
+                                        _joiningPath = null;
+                                        _error = null;
+                                      }),
+                              icon: const Icon(Icons.arrow_back, size: 18),
+                              label: const Text('Back'),
+                            ),
                           ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _codeController,
-                          textCapitalization: TextCapitalization.characters,
-                          autofocus: _hasPendingInvite,
-                          decoration: InputDecoration(
-                            labelText: _hasPendingInvite
-                                ? 'Invite code'
-                                : 'Owner invite code',
-                            hintText: '6-character code',
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.vpn_key_outlined),
+                        if (showCreateEstate) ...[
+                          TextField(
+                            controller: _nameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Estate name',
+                              hintText: 'e.g. The Pound Estate',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.home_outlined),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _hasPendingInvite
-                              ? (_pendingEstateName?.isNotEmpty ?? false)
-                                  ? 'You were invited to join "${_pendingEstateName!}". Enter your invite code to join.'
-                                  : 'You were invited to an estate. Enter your invite code to join.'
-                              : 'Enter a name to create a new estate, or an invite '
-                                  'code to join an existing estate as a co-owner.',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.black45),
-                        ),
-                      ] else
-                        TextField(
-                          controller: _codeController,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: const InputDecoration(
-                            labelText: 'Invite code',
-                            hintText: '6-character code',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.vpn_key_outlined),
+                        ] else if (showInviteCode) ...[
+                          TextField(
+                            controller: _codeController,
+                            textCapitalization: TextCapitalization.characters,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Invite code',
+                              hintText: '6-character code',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.vpn_key_outlined),
+                            ),
                           ),
+                          if (_hasPendingInvite) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'This account has a pending invite waiting for '
+                              'it, so you can only join with that code.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: _isLoading ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF3A8D5A),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  showCreateEstate
+                                      ? 'Create estate'
+                                      : 'Join estate',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                         ),
+                      ],
                       if (_error != null) ...[
                         const SizedBox(height: 12),
                         Text(_error!,
                             style: const TextStyle(color: Colors.red)),
                       ],
-                      const SizedBox(height: 20),
-                      FilledButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF3A8D5A),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                'Proceed',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                      ),
                     ],
                   ),
                 ),
@@ -388,16 +408,14 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 }
 
-class _RoleCard extends StatelessWidget {
+class _OptionCard extends StatelessWidget {
   final String label;
   final IconData icon;
-  final bool selected;
   final VoidCallback onTap;
 
-  const _RoleCard({
+  const _OptionCard({
     required this.label,
     required this.icon,
-    required this.selected,
     required this.onTap,
   });
 
@@ -409,28 +427,21 @@ class _RoleCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFF3A8D5A).withValues(alpha: 0.1)
-              : Colors.grey.shade100,
+          color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? const Color(0xFF3A8D5A) : Colors.transparent,
-            width: 2,
+            color: const Color(0xFF3A8D5A).withValues(alpha: 0.25),
           ),
         ),
         child: Column(
           children: [
-            Icon(icon,
-                color:
-                    selected ? const Color(0xFF3A8D5A) : Colors.grey.shade600,
-                size: 28),
+            Icon(icon, color: const Color(0xFF3A8D5A), size: 28),
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                color:
-                    selected ? const Color(0xFF3A8D5A) : Colors.grey.shade700,
+                color: Color(0xFF3A8D5A),
               ),
             ),
           ],
