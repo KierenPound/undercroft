@@ -363,6 +363,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
                     ? TextField(
                         controller: _notesController,
                         focusNode: _notesFocusNode,
+                        onTapOutside: (_) => _notesFocusNode.unfocus(),
                         keyboardType: TextInputType.multiline,
                         maxLines: null,
                         expands: true,

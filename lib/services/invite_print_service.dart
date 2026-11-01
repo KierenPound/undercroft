@@ -134,8 +134,8 @@ Future<void> printInviteSheet({
           _heading('What UnderCroft is'),
           pw.Text(
             'UnderCroft keeps a household\'s practical information in one '
-            'place — account numbers, legal documents, photos, contacts, '
-            'tradespeople and instructions — so the right person can step in '
+            'place: account numbers, legal documents, photos, contacts, '
+            'tradespeople and instructions - so the right person can step in '
             'if the owner is unable to.',
             style: _body,
           ),
