@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/biometric_lock_service.dart';
 import '../services/estate_service.dart';
+import '../services/invite_print_service.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({super.key});
@@ -1200,11 +1201,11 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-/// Copy / Email / Share for a generated invite code.
+/// Copy / Email / Share / Print for a generated invite code.
 ///
 /// Used under the code in the generation panels and again on pending invites
 /// in the list, so a code stays sendable after its panel has been left.
-class _CodeActions extends StatelessWidget {
+class _CodeActions extends ConsumerWidget {
   final String code;
   final String roleLabel;
   final String email;
@@ -1224,7 +1225,7 @@ class _CodeActions extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Wrap(
       spacing: 4,
       children: [
@@ -1264,6 +1265,18 @@ class _CodeActions extends StatelessWidget {
             label: Text('Share', style: TextStyle(color: foreground)),
           ),
         ),
+        // For owners who would rather keep the code on paper than send it
+        // digitally — in a drawer, or lodged with a solicitor.
+        TextButton.icon(
+          onPressed: () => printInviteSheet(
+            code: code,
+            roleLabel: roleLabel,
+            estateName: ref.read(estateNameProvider).valueOrNull ?? '',
+          ),
+          style: _style,
+          icon: Icon(Icons.print_outlined, size: 16, color: foreground),
+          label: Text('Print', style: TextStyle(color: foreground)),
+        ),
       ],
     );
   }
@@ -1286,8 +1299,8 @@ You have been designated as an $roleLabel in my Family Estate plan.
 
 To accept this invitation and connect to my estate records:
 1. Download the UnderCroft App from the App/Play Store.
-2. Select "Sign Up" with your email and what password you want.
-3. Select $roleLabel and use this PIN code: $pinCode
+2. Create an account with your own email address and password.
+3. Choose "I have an invite code" and enter this code: $pinCode
 
 Best regards,
 Estate Owner''';
@@ -1301,8 +1314,8 @@ String _inviteShareText({
 
 To accept this invitation and connect to my estate records:
 1. Download the UnderCroft app.
-2. Select "Sign Up" with your email and a password of your choice.
-3. Select $roleLabel and use this invite code: $pinCode''';
+2. Create an account with your own email address and password.
+3. Choose "I have an invite code" and enter this code: $pinCode''';
 }
 
 /// Opens the device email client with a pre-filled invitation. The [to]
