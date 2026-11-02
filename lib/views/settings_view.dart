@@ -840,6 +840,17 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       label: const Text('Privacy policy'),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openExternal(
+                        'https://crabkingslair.com/undercroft_demo',
+                      ),
+                      icon: const Icon(Icons.play_circle_outline, size: 18),
+                      label: const Text('Demo guide'),
+                    ),
+                  ),
                 ],
               ),
             ),

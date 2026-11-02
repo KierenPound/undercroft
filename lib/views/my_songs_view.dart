@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../models/prep_section.dart';
@@ -383,6 +384,85 @@ List<String> _csvFields(String line) {
   return fields;
 }
 
+/// Pulls an 11-character YouTube video ID out of a pasted link, or accepts a
+/// bare ID typed in directly. Returns null when nothing usable is found.
+String? _extractVideoId(String input) {
+  final text = input.trim();
+  if (text.isEmpty) return null;
+
+  final idPattern = RegExp(r'^[A-Za-z0-9_-]{11}$');
+  if (idPattern.hasMatch(text)) return text;
+
+  final uri = Uri.tryParse(text);
+  if (uri == null || uri.host.isEmpty) return null;
+
+  final host = uri.host.replaceFirst('www.', '').replaceFirst('m.', '');
+  if (host == 'youtu.be') return _firstVideoIdIn(uri.pathSegments);
+
+  if (host == 'youtube.com' || host == 'youtube-nocookie.com') {
+    final queryId = uri.queryParameters['v'];
+    if (queryId != null && idPattern.hasMatch(queryId)) return queryId;
+    // Covers /shorts/<id>, /embed/<id>, /live/<id> and /v/<id>.
+    return _firstVideoIdIn(uri.pathSegments);
+  }
+
+  return null;
+}
+
+String? _firstVideoIdIn(List<String> segments) {
+  for (final segment in segments) {
+    if (RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(segment)) return segment;
+  }
+  return null;
+}
+
+/// Looks up the title and channel for a video using YouTube's public oEmbed
+/// endpoint, which needs no API key. Returns null when the lookup cannot be
+/// completed, so the caller can fall back to manual entry.
+Future<MySongTrack?> _fetchSongDetails(String videoId) async {
+  try {
+    final uri = Uri.https('www.youtube.com', '/oembed', {
+      'url': 'https://www.youtube.com/watch?v=$videoId',
+      'format': 'json',
+    });
+    final response = await http.get(uri).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) return null;
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) return null;
+
+    final title = (decoded['title'] as String?)?.trim() ?? '';
+    if (title.isEmpty) return null;
+
+    return MySongTrack(
+      id: videoId,
+      title: title,
+      artist: (decoded['author_name'] as String?)?.trim() ?? '',
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Serialises a playlist back to the CSV the player reads. The header is
+/// always written, so a later parse still recognises the columns.
+String _tracksToCsv(List<MySongTrack> tracks) {
+  final buffer = StringBuffer('You Tube video id, Song Title, Artist\n');
+  for (final track in tracks) {
+    buffer.writeln(
+      '${track.id},${_csvEscape(track.title)},${_csvEscape(track.artist)}',
+    );
+  }
+  return buffer.toString();
+}
+
+String _csvEscape(String value) {
+  final escaped = value.replaceAll('"', '""');
+  return escaped.contains(',') || escaped.contains('"')
+      ? '"$escaped"'
+      : escaped;
+}
+
 class MySongsView extends ConsumerWidget {
   const MySongsView({super.key});
 
@@ -481,7 +561,7 @@ class _ReadOnlyBadge extends StatelessWidget {
         Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade600),
         const SizedBox(width: 6),
         Text(
-          'Read-only — only the estate owner can replace this playlist.',
+          'Read-only — only the estate owner can edit this playlist.',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
       ],
@@ -676,6 +756,286 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     }
   }
 
+  /// Saves an edited playlist, then re-cues it. Mirrors [_pickCsv] so a
+  /// hand-edited playlist behaves exactly like an uploaded one.
+  Future<void> _persistTracks(
+    PrepSection section,
+    List<MySongTrack> tracks,
+    String message,
+  ) async {
+    final csv = _tracksToCsv(tracks);
+    final repo = ref.read(sectionsRepositoryProvider);
+
+    try {
+      await repo.updateSection(section.copyWith(songsCsv: csv));
+      ref.invalidate(sectionProvider(widget.sectionId));
+      await _syncTracksFromCsv(csv, requireHeader: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save the playlist.')),
+        );
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// Adds a song by pasting a YouTube link. The title and artist are looked up
+  /// automatically, but stay editable in case the lookup cannot reach YouTube.
+  Future<void> _addSong(PrepSection section) async {
+    final linkController = TextEditingController();
+    final titleController = TextEditingController();
+    final artistController = TextEditingController();
+    var lookingUp = false;
+    String? lookupError;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> lookUp() async {
+            final id = _extractVideoId(linkController.text);
+            if (id == null) {
+              setDialogState(
+                () => lookupError = 'That does not look like a YouTube link.',
+              );
+              return;
+            }
+
+            setDialogState(() {
+              lookingUp = true;
+              lookupError = null;
+            });
+
+            final details = await _fetchSongDetails(id);
+            if (!dialogContext.mounted) return;
+
+            setDialogState(() {
+              lookingUp = false;
+              if (details == null) {
+                lookupError =
+                    'Could not fetch the details. Enter them below instead.';
+              } else {
+                titleController.text = details.title;
+                artistController.text = details.artist;
+              }
+            });
+          }
+
+          return AlertDialog(
+            title: const Text('Add a song'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: linkController,
+                    autofocus: true,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'YouTube link',
+                      hintText: 'Paste a link or video ID',
+                    ),
+                    onSubmitted: (_) => lookUp(),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: lookingUp ? null : lookUp,
+                      icon: lookingUp
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.search, size: 18),
+                      label: Text(
+                        lookingUp ? 'Looking up...' : 'Look up details',
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Song title'),
+                  ),
+                  TextField(
+                    controller: artistController,
+                    decoration: const InputDecoration(labelText: 'Artist'),
+                  ),
+                  if (lookupError != null) ...[
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        lookupError!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  // Let the lookup fill in the title if it hasn't been yet,
+                  // so pasting a link and pressing Add just works.
+                  if (_extractVideoId(linkController.text) != null &&
+                      titleController.text.trim().isEmpty) {
+                    await lookUp();
+                    if (titleController.text.trim().isEmpty) return;
+                  }
+                  if (!dialogContext.mounted) return;
+                  Navigator.of(dialogContext).pop(true);
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final id = _extractVideoId(linkController.text);
+    final title = titleController.text.trim();
+    final artist = artistController.text.trim();
+    linkController.dispose();
+    titleController.dispose();
+    artistController.dispose();
+
+    if (confirmed != true) return;
+    if (id == null || title.isEmpty) {
+      _showMessage('A YouTube link and a song title are required.');
+      return;
+    }
+    if (_tracks.any((track) => track.id == id)) {
+      _showMessage('That song is already in the playlist.');
+      return;
+    }
+
+    await _persistTracks(
+      section,
+      [..._tracks, MySongTrack(id: id, title: title, artist: artist)],
+      'Added "$title".',
+    );
+  }
+
+  /// Renames a song. The artist is editable too, since the automatic lookup
+  /// returns the YouTube channel, which is not always what you want shown.
+  Future<void> _editSong(PrepSection section, MySongTrack track) async {
+    final titleController = TextEditingController(text: track.title);
+    final artistController = TextEditingController(text: track.artist);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit song'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Song title'),
+            ),
+            TextField(
+              controller: artistController,
+              decoration: const InputDecoration(labelText: 'Artist'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    final title = titleController.text.trim();
+    final artist = artistController.text.trim();
+    titleController.dispose();
+    artistController.dispose();
+
+    if (confirmed != true) return;
+    if (title.isEmpty) {
+      _showMessage('A song title is required.');
+      return;
+    }
+    if (title == track.title && artist == track.artist) return;
+
+    final next = _tracks
+        .map(
+          (entry) => entry.id == track.id
+              ? MySongTrack(id: entry.id, title: title, artist: artist)
+              : entry,
+        )
+        .toList();
+
+    await _persistTracks(section, next, 'Saved "$title".');
+  }
+
+  Future<void> _deleteSong(PrepSection section, MySongTrack track) async {
+    // An empty playlist is not a state the player can render, and a CSV
+    // upload is likewise rejected when it parses to nothing.
+    if (_tracks.length <= 1) {
+      _showMessage('Keep at least one song in the playlist.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete song?'),
+        content: Text(
+          '"${track.title}" will be removed from the playlist.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final next = _tracks.where((entry) => entry.id != track.id).toList();
+    await _persistTracks(section, next, 'Removed "${track.title}".');
+  }
+
   /// Saves the bundled example playlist CSV so the owner can edit and re-upload it.
   Future<void> _downloadExampleCsv() async {
     try {
@@ -808,7 +1168,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
             const SizedBox(height: 24),
             _buildUploadCard(accent, section),
             const SizedBox(height: 24),
-            _buildPlaylist(accent),
+            _buildPlaylist(accent, section),
             const SizedBox(height: 32),
           ],
         );
@@ -1069,7 +1429,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                 Expanded(
                   child: Text(
                     section.songsCsv.trim().isNotEmpty
-                        ? 'Using uploaded CSV'
+                        ? 'Using your saved playlist'
                         : 'Using built-in starter playlist',
                     style: TextStyle(
                       fontSize: 13,
@@ -1107,7 +1467,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     );
   }
 
-  Widget _buildPlaylist(Color accent) {
+  Widget _buildPlaylist(Color accent, PrepSection section) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1131,6 +1491,26 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                 color: Color(0xFF2C2C2E),
               ),
             ),
+            const Spacer(),
+            if (widget.isOwner)
+              TextButton.icon(
+                onPressed: () => _addSong(section),
+                icon: Icon(Icons.add, size: 18, color: accent),
+                label: Text(
+                  'Add a new song',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 14),
@@ -1197,6 +1577,19 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                 tileColor: isCurrent
                     ? accent.withValues(alpha: 0.06)
                     : Colors.transparent,
+                trailing: widget.isOwner
+                    ? PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        onSelected: (value) {
+                          if (value == 'edit') _editSong(section, track);
+                          if (value == 'delete') _deleteSong(section, track);
+                        },
+                        itemBuilder: (ctx) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      )
+                    : null,
               );
             },
           ),

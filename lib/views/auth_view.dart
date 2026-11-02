@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthView extends StatefulWidget {
   const AuthView({super.key});
@@ -71,6 +72,24 @@ class _AuthViewState extends State<AuthView> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Opens the page-by-page demo guide in the device browser, so someone can
+  /// see what the app does before committing to an account.
+  Future<void> _openDemoGuide() async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse('https://crabkingslair.com/undercroft_demo'),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (opened || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not open the demo guide')),
+    );
   }
 
   Future<void> _submit() async {
@@ -230,6 +249,14 @@ class _AuthViewState extends State<AuthView> {
                           child: const Text(
                             'I already have an invite code',
                             style: TextStyle(color: Color(0xFF3A8D5A)),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _openDemoGuide,
+                          icon: const Icon(Icons.play_circle_outline, size: 18),
+                          label: const Text('See how UnderCroft works'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF3A8D5A),
                           ),
                         ),
                       ],
@@ -419,6 +446,14 @@ class _AuthViewState extends State<AuthView> {
                               ? 'Already have an account? Sign in'
                               : "Don't have an account? Sign up",
                           style: const TextStyle(color: Color(0xFF3A8D5A)),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _openDemoGuide,
+                        icon: const Icon(Icons.play_circle_outline, size: 18),
+                        label: const Text('See how UnderCroft works'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF3A8D5A),
                         ),
                       ),
                     ],
