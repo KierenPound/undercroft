@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS public.sections (
     registrar_phone text NOT NULL DEFAULT '',
     registrar_email text NOT NULL DEFAULT '',
     certified_copies_url text NOT NULL DEFAULT '',
+    solicitor_intro text NOT NULL DEFAULT '',
     solicitor_phone text NOT NULL DEFAULT '',
     solicitor_email text NOT NULL DEFAULT '',
     solicitor_url   text NOT NULL DEFAULT '',

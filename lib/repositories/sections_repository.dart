@@ -77,6 +77,8 @@ class SectionsRepository {
           'order_index': orderIndex,
           'is_standard': isStandard,
           'youtube_url': youtubeUrl,
+          if (title == 'Legal Documents')
+            'solicitor_intro': PrepSection.defaultSolicitorIntro,
         })
         .select()
         .single();

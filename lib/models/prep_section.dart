@@ -2,6 +2,9 @@ import 'attachment.dart';
 import 'checklist_item.dart';
 
 class PrepSection {
+  static const String defaultSolicitorIntro =
+      'The solicitors hold the master documents.';
+
   final String id;
   final String estateId;
   final String title;
@@ -14,6 +17,7 @@ class PrepSection {
   final String registrarPhone;
   final String registrarEmail;
   final String certifiedCopiesUrl;
+  final String solicitorIntro;
   final String solicitorPhone;
   final String solicitorEmail;
   final String solicitorUrl;
@@ -44,6 +48,7 @@ class PrepSection {
     required this.registrarPhone,
     required this.registrarEmail,
     required this.certifiedCopiesUrl,
+    required this.solicitorIntro,
     required this.solicitorPhone,
     required this.solicitorEmail,
     required this.solicitorUrl,
@@ -76,6 +81,7 @@ class PrepSection {
       registrarPhone: json['registrar_phone'] as String? ?? '',
       registrarEmail: json['registrar_email'] as String? ?? '',
       certifiedCopiesUrl: json['certified_copies_url'] as String? ?? '',
+      solicitorIntro: json['solicitor_intro'] as String? ?? '',
       solicitorPhone: json['solicitor_phone'] as String? ?? '',
       solicitorEmail: json['solicitor_email'] as String? ?? '',
       solicitorUrl: json['solicitor_url'] as String? ?? '',
@@ -106,6 +112,7 @@ class PrepSection {
       'registrar_phone': registrarPhone,
       'registrar_email': registrarEmail,
       'certified_copies_url': certifiedCopiesUrl,
+      'solicitor_intro': solicitorIntro,
       'solicitor_phone': solicitorPhone,
       'solicitor_email': solicitorEmail,
       'solicitor_url': solicitorUrl,
@@ -133,6 +140,7 @@ class PrepSection {
       'registrar_phone': registrarPhone,
       'registrar_email': registrarEmail,
       'certified_copies_url': certifiedCopiesUrl,
+      'solicitor_intro': solicitorIntro,
       'solicitor_phone': solicitorPhone,
       'solicitor_email': solicitorEmail,
       'solicitor_url': solicitorUrl,
@@ -157,6 +165,7 @@ class PrepSection {
     String? registrarPhone,
     String? registrarEmail,
     String? certifiedCopiesUrl,
+    String? solicitorIntro,
     String? solicitorPhone,
     String? solicitorEmail,
     String? solicitorUrl,
@@ -185,6 +194,7 @@ class PrepSection {
       registrarPhone: registrarPhone ?? this.registrarPhone,
       registrarEmail: registrarEmail ?? this.registrarEmail,
       certifiedCopiesUrl: certifiedCopiesUrl ?? this.certifiedCopiesUrl,
+      solicitorIntro: solicitorIntro ?? this.solicitorIntro,
       solicitorPhone: solicitorPhone ?? this.solicitorPhone,
       solicitorEmail: solicitorEmail ?? this.solicitorEmail,
       solicitorUrl: solicitorUrl ?? this.solicitorUrl,

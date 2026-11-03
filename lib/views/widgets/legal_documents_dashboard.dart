@@ -10,6 +10,7 @@ import 'package:pdfx/pdfx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/attachment.dart';
+import '../../models/prep_section.dart';
 import '../../repositories/sections_repository.dart';
 import 'attachments_section.dart';
 import 'song_for_the_page_section.dart';
@@ -44,11 +45,14 @@ class _LegalDocumentsDashboardState
     extends ConsumerState<LegalDocumentsDashboard> {
   bool _uploading = false;
 
+  final _introController = TextEditingController();
+  final _introFocusNode = FocusNode();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _urlController = TextEditingController();
   bool _initialized = false;
   Timer? _saveTimer;
+  String _lastSavedIntro = '';
   String _lastSavedPhone = '';
   String _lastSavedEmail = '';
   String _lastSavedUrl = '';
@@ -60,11 +64,15 @@ class _LegalDocumentsDashboardState
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _introFocusNode.dispose();
+    _introController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _urlController.dispose();
     super.dispose();
   }
+
+  String get _effectiveIntro => _introController.text;
 
   String get _effectivePhone => _phoneController.text.trim();
 
@@ -78,10 +86,12 @@ class _LegalDocumentsDashboardState
   }
 
   Future<void> _saveContact() async {
+    final intro = _introController.text;
     final phone = _phoneController.text.trim();
     final email = _emailController.text.trim();
     final url = _urlController.text.trim();
-    if (phone == _lastSavedPhone &&
+    if (intro == _lastSavedIntro &&
+        phone == _lastSavedPhone &&
         email == _lastSavedEmail &&
         url == _lastSavedUrl) {
       return;
@@ -93,11 +103,13 @@ class _LegalDocumentsDashboardState
       if (section != null) {
         await repo.updateSection(
           section.copyWith(
+            solicitorIntro: intro,
             solicitorPhone: phone,
             solicitorEmail: email,
             solicitorUrl: url,
           ),
         );
+        _lastSavedIntro = intro;
         _lastSavedPhone = phone;
         _lastSavedEmail = email;
         _lastSavedUrl = url;
@@ -106,7 +118,8 @@ class _LegalDocumentsDashboardState
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save contact details')),
+          const SnackBar(
+              content: Text('Failed to save Legal Documents details')),
         );
       }
     }
@@ -231,6 +244,10 @@ class _LegalDocumentsDashboardState
     asyncSection.maybeWhen(
       data: (section) {
         if (!_initialized) {
+          _introController.text = section.solicitorIntro.isNotEmpty
+              ? section.solicitorIntro
+              : PrepSection.defaultSolicitorIntro;
+          _lastSavedIntro = _introController.text;
           _phoneController.text = section.solicitorPhone;
           _emailController.text = section.solicitorEmail;
           _urlController.text = section.solicitorUrl;
@@ -413,10 +430,28 @@ class _LegalDocumentsDashboardState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'The solicitors hold the master documents.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
-                ),
+                widget.isOwner
+                    ? TextField(
+                        controller: _introController,
+                        focusNode: _introFocusNode,
+                        maxLines: null,
+                        minLines: 1,
+                        onChanged: (_) => _scheduleSave(),
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Add a short note about where these papers are kept...',
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(
+                            fontSize: 15, color: Color(0xFF2C2C2E)),
+                      )
+                    : Text(
+                        _effectiveIntro,
+                        style: const TextStyle(
+                            fontSize: 15, color: Color(0xFF2C2C2E)),
+                      ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
                 const SizedBox(height: 14),
