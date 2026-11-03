@@ -67,6 +67,37 @@ so it can be changed without shipping a new build.
 The existing developer toggle in Settings ("Act as Executor") plus the invite code
 generation let the gated flow be exercised before any billing code exists.
 
+## Beta Testers Get It Free
+
+Decided: testers who set up an estate and complete their handover during the beta
+keep it, and are not charged when the gate ships.
+
+This is fair rather than generous. They did the work of testing, and reaching the
+end of the setup flow is the clearest signal we could ask for. Two consequences to
+hold in mind:
+
+- The gate is checked when an invite is created. Invites already `accepted`
+  during the beta stay accepted, so those handovers cannot be re-gated later.
+- Sandbox purchases do **not** carry into production. A tester who buys the
+  unlock in TestFlight would have to buy it again on the live app, so nobody
+  should be asked to purchase during the beta.
+
+If that ever needs revisiting, the honest lever is a free unlock for a named list
+of beta estates, not a change to the price.
+
+## Launch Constraints
+
+Two things must not change between the beta and the App Store release, or beta
+testers lose their accounts and estates:
+
+- **One Supabase project throughout.** The dart-defines are baked into the
+  archive from `supabase_config.json`. Standing up a separate "production"
+  project at launch would orphan every account, estate and invite created during
+  the beta. Keep pointing at the same project.
+- **No database wipes once external testers are on it.** Rebuilding the schema
+  and re-seeding is fine during solo testing, but it deletes real testers'
+  accounts and estates, with no way for them to recover.
+
 ## Signal To Watch
 
 Testers evaluating it for setting up their own estates — family friends included —
