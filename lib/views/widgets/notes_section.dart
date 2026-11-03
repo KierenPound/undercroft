@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/prep_section.dart';
 import '../../repositories/sections_repository.dart';
 
 class NotesSection extends ConsumerStatefulWidget {
@@ -22,13 +21,15 @@ class NotesSection extends ConsumerStatefulWidget {
 
 class _NotesSectionState extends ConsumerState<NotesSection> {
   final _notesController = TextEditingController();
-  bool _initialized = false;
+  final _notesFocusNode = FocusNode();
   Timer? _saveTimer;
   String _lastSavedNotes = '';
+  String? _lastAppliedStoredNotes;
 
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _notesFocusNode.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -62,6 +63,17 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
   @override
   Widget build(BuildContext context) {
     final asyncSection = ref.watch(sectionProvider(widget.sectionId));
+
+    // Adopt whatever is stored the first time it arrives, and again whenever it
+    // changes underneath us, without stomping on an in-flight edit. While the
+    // field has focus the controller is the source of truth, so re-syncing here
+    // would overwrite in-progress typing and jump the cursor.
+    final storedNotes = asyncSection.valueOrNull?.notes ?? '';
+    if (_lastAppliedStoredNotes != storedNotes && !_notesFocusNode.hasFocus) {
+      _notesController.text = storedNotes;
+      _lastSavedNotes = storedNotes;
+      _lastAppliedStoredNotes = storedNotes;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,28 +116,23 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
           ],
         ),
         const SizedBox(height: 12),
-        asyncSection.when(
-          loading: () => const Center(
-              child: Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
-          )),
-          error: (error, _) =>
-              Text('Error: $error', style: const TextStyle(color: Colors.red)),
-          data: (section) {
-            if (!_initialized || _lastSavedNotes != section.notes) {
-              _notesController.text = section.notes;
-              _lastSavedNotes = section.notes;
-              _initialized = true;
-            }
-            return _buildNotesEditor(section);
-          },
-        ),
+        if (asyncSection.isLoading && !asyncSection.hasValue)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (asyncSection.hasError && !asyncSection.hasValue)
+          Text('Error: ${asyncSection.error}',
+              style: const TextStyle(color: Colors.red))
+        else
+          _buildNotesEditor(),
       ],
     );
   }
 
-  Widget _buildNotesEditor(PrepSection section) {
+  Widget _buildNotesEditor() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -134,6 +141,7 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
       ),
       child: TextField(
         controller: _notesController,
+        focusNode: _notesFocusNode,
         maxLines: null,
         minLines: 6,
         enabled: widget.isOwner,

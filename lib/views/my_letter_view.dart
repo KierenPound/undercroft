@@ -23,6 +23,24 @@ class MyLetterView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncIsOwner = ref.watch(isOwnerProvider);
     final isOwner = asyncIsOwner.valueOrNull ?? true;
+    final asyncSection = ref.watch(sectionByTitleProvider(config));
+    final section = asyncSection.valueOrNull;
+
+    // Keep the editor mounted across background refreshes so an in-progress
+    // letter is never torn down underneath the caret.
+    final Widget letterBody;
+    if (section != null) {
+      letterBody = _LetterEditor(sectionId: section.id, isOwner: isOwner);
+    } else if (asyncSection.hasError) {
+      letterBody = Center(
+        child: Text(
+          'Error: ${asyncSection.error}',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    } else {
+      letterBody = const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -71,22 +89,7 @@ class MyLetterView extends ConsumerWidget {
                   const _ReadOnlyBadge(),
                   const SizedBox(height: 12),
                 ],
-                Expanded(
-                  child: ref.watch(sectionByTitleProvider(config)).when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (error, _) => Center(
-                          child: Text(
-                            'Error: $error',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                        data: (section) => _LetterEditor(
-                          sectionId: section.id,
-                          isOwner: isOwner,
-                        ),
-                      ),
-                ),
+                Expanded(child: letterBody),
               ],
             ),
           ),
@@ -126,14 +129,16 @@ class _LetterEditor extends ConsumerStatefulWidget {
 
 class _LetterEditorState extends ConsumerState<_LetterEditor> {
   final _letterController = TextEditingController();
+  final _letterFocusNode = FocusNode();
   final _scrollController = ScrollController();
   Timer? _saveTimer;
-  bool _initialized = false;
   String _lastSavedLetter = '';
+  String? _lastAppliedStoredLetter;
 
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _letterFocusNode.dispose();
     _letterController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -168,23 +173,29 @@ class _LetterEditorState extends ConsumerState<_LetterEditor> {
   Widget build(BuildContext context) {
     final asyncSection = ref.watch(sectionProvider(widget.sectionId));
 
-    return asyncSection.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
+    // Adopt whatever is stored the first time it arrives, and again whenever it
+    // changes underneath us, without stomping on an in-flight edit. While the
+    // field has focus the controller is the source of truth, so re-syncing here
+    // would overwrite in-progress typing and jump the cursor.
+    final storedLetter = asyncSection.valueOrNull?.letterText ?? '';
+    if (_lastAppliedStoredLetter != storedLetter && !_letterFocusNode.hasFocus) {
+      _letterController.text = storedLetter;
+      _lastSavedLetter = storedLetter;
+      _lastAppliedStoredLetter = storedLetter;
+    }
+
+    if (asyncSection.isLoading && !asyncSection.hasValue) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (asyncSection.hasError && !asyncSection.hasValue) {
+      return Center(
         child: Text(
-          'Error: $error',
+          'Error: ${asyncSection.error}',
           style: const TextStyle(color: Colors.red),
         ),
-      ),
-      data: (section) {
-        if (!_initialized || _lastSavedLetter != section.letterText) {
-          _letterController.text = section.letterText;
-          _lastSavedLetter = section.letterText;
-          _initialized = true;
-        }
-        return _buildLetterBox();
-      },
-    );
+      );
+    }
+    return _buildLetterBox();
   }
 
   Widget _buildLetterBox() {
@@ -207,6 +218,7 @@ class _LetterEditorState extends ConsumerState<_LetterEditor> {
         thumbVisibility: true,
         child: TextField(
           controller: _letterController,
+          focusNode: _letterFocusNode,
           scrollController: _scrollController,
           readOnly: !widget.isOwner,
           maxLines: null,

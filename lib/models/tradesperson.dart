@@ -1,7 +1,7 @@
 /// A trade the estate relies on — a gas engineer, electrician, drain
 /// specialist and so on.
 ///
-/// Listed on the Running the Houses page. Each entry carries a [name],
+/// Listed on the Running the House page. Each entry carries a [name],
 /// [email], [telephone], [url] and free-text [notes].
 class Tradesperson {
   final String tradespersonId;

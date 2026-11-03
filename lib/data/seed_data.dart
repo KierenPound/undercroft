@@ -49,7 +49,7 @@ const List<DefaultSection> defaultSections = [
     checklistItems: [
       'Locate the last will and testament documents',
       'Contact the lawyer to inform them, as they can help you when you need advice',
-      'Collect title deeds and mortgage documents',
+      'Collect title deeds and mortgage documents if required',
     ],
   ),
   DefaultSection(
@@ -64,7 +64,7 @@ const List<DefaultSection> defaultSections = [
     ],
   ),
   DefaultSection(
-    title: 'Running the Houses',
+    title: 'Running the House',
     orderIndex: 4,
     youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
     checklistItems: [
