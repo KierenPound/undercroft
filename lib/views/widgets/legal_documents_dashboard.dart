@@ -18,8 +18,8 @@ import 'song_for_the_page_section.dart';
 ///
 /// Cloned from the FamilyPrep (iOS) `LegalDocumentsDashboardView`. Contains
 /// (from the Wills section up to just before "Song for the page"):
-/// 1. Wills — Solicitor contact (editable phone/email/URL) + Will documents
-///    gallery (up to 2 PDFs).
+/// 1. Wills & Codicils — Solicitor contact (editable phone/email/URL) + a Wills
+///    gallery (up to 2 PDFs) and a Codicils gallery (up to 2 PDFs).
 /// 2. Title Deeds (House Deeds) — gallery of up to 5 PDFs.
 class LegalDocumentsDashboard extends ConsumerStatefulWidget {
   final String sectionId;
@@ -54,6 +54,7 @@ class _LegalDocumentsDashboardState
   String _lastSavedUrl = '';
 
   static const int _maxWills = 2;
+  static const int _maxCodicils = 2;
   static const int _maxDeeds = 5;
 
   @override
@@ -246,12 +247,13 @@ class _LegalDocumentsDashboardState
         ref.watch(attachmentsProvider(widget.sectionId)).valueOrNull ??
             <Attachment>[];
     final wills = _filterAttachments(attachments, 'will_');
+    final codicils = _filterAttachments(attachments, 'codicil_');
     final deeds = _filterAttachments(attachments, 'deed_');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildWillsSection(wills),
+        _buildWillsSection(wills, codicils),
         const SizedBox(height: 28),
         _buildTitleDeedsSection(deeds),
         const SizedBox(height: 28),
@@ -392,12 +394,15 @@ class _LegalDocumentsDashboardState
 
   // MARK: - Wills
 
-  Widget _buildWillsSection(List<Attachment> wills) {
+  Widget _buildWillsSection(
+    List<Attachment> wills,
+    List<Attachment> codicils,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'Wills',
+          title: 'Wills & Codicils',
           icon: Icons.draw,
           tint: Colors.purple,
         ),
@@ -409,8 +414,7 @@ class _LegalDocumentsDashboardState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'The solicitors hold the master document. There will be paper '
-                  'copies in the bureau, in the sitting room.',
+                  'The solicitors hold the master documents.',
                   style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
                 ),
                 const SizedBox(height: 14),
@@ -488,7 +492,7 @@ class _LegalDocumentsDashboardState
                 const SizedBox(height: 14),
                 _buildSubHeading(
                   icon: Icons.description,
-                  title: 'Will documents',
+                  title: 'Wills',
                   tint: Colors.purple,
                 ),
                 const SizedBox(height: 8),
@@ -505,6 +509,29 @@ class _LegalDocumentsDashboardState
                   emptyViewerText: 'No Will PDFs uploaded yet.',
                   addLabel: 'Add Will PDFs',
                   prefix: 'will_',
+                ),
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                _buildSubHeading(
+                  icon: Icons.article_rounded,
+                  title: 'Codicils',
+                  tint: Colors.purple,
+                ),
+                const SizedBox(height: 8),
+                _tipRow(
+                  'Tap any card below to open and read the full Codicil PDF.',
+                  Colors.purple,
+                ),
+                const SizedBox(height: 12),
+                _buildPdfGrid(
+                  attachments: codicils,
+                  maxCount: _maxCodicils,
+                  tint: Colors.purple,
+                  emptyOwnerText: 'Upload up to $_maxCodicils Codicil PDFs.',
+                  emptyViewerText: 'No Codicil PDFs uploaded yet.',
+                  addLabel: 'Add Codicil PDFs',
+                  prefix: 'codicil_',
                 ),
               ],
             ),
@@ -704,8 +731,8 @@ class _LegalDocumentsDashboardState
 
   Widget _pdfTile(Attachment attachment, Color tint) {
     // Strip the numeric prefix (e.g. "will_1_") for display.
-    final displayName =
-        attachment.fileName.replaceFirst(RegExp(r'^(will|deed)_\d+_'), '');
+    final displayName = attachment.fileName
+        .replaceFirst(RegExp(r'^(will|codicil|deed)_\d+_'), '');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -840,7 +867,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.attachment.fileName
-              .replaceFirst(RegExp(r'^(will|deed)_\d+_'), ''),
+              .replaceFirst(RegExp(r'^(will|codicil|deed)_\d+_'), ''),
           style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
