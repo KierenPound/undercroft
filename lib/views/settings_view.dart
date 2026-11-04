@@ -679,6 +679,18 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                                 letterSpacing: 6,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Prefer not to share digitally just yet? Print '
+                              'the invite code now to keep with your papers '
+                              'until your executor needs it.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                height: 1.35,
+                              ),
+                            ),
                             const SizedBox(height: 10),
                             _CodeActions(
                               code: _generatedCode!,
@@ -780,6 +792,18 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 6,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Prefer not to share digitally just yet? Print '
+                              'the invite code now to keep with your papers '
+                              'until your co-owner needs it.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                height: 1.35,
                               ),
                             ),
                             const SizedBox(height: 10),
