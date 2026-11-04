@@ -25,6 +25,11 @@ class SectionDetailView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncIsOwner = ref.watch(isOwnerProvider);
+    final processRegion = ref.watch(estateProcessRegionProvider).valueOrNull ??
+        EstateProcessRegion.scotland;
+    final isProbatePage = config.title == 'Confirmation' &&
+        processRegion == EstateProcessRegion.ewni;
+    final displayTitle = isProbatePage ? 'Probate' : config.title;
 
     return asyncEstateId.when(
       loading: () => const Scaffold(
@@ -52,7 +57,7 @@ class SectionDetailView extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(config.title),
+            title: Text(displayTitle),
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             actions: [
@@ -63,7 +68,7 @@ class SectionDetailView extends ConsumerWidget {
                   onPressed: () => showDialog<void>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: Text(config.title),
+                      title: Text(displayTitle),
                       content: Text(
                         config.infoText,
                         style: const TextStyle(fontSize: 15, height: 1.4),
@@ -124,7 +129,7 @@ class SectionDetailView extends ConsumerWidget {
                         isOwner: isOwner,
                         defaultAsset:
                             'assets/images/defaults/default_confirmation.jpeg',
-                        sectionTitle: section.title,
+                        sectionTitle: displayTitle,
                       ),
                       const SizedBox(height: 28),
                       const ConfirmationDashboard(),

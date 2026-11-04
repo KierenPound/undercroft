@@ -28,6 +28,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _lockLoading = true;
   bool _lockSupported = false;
   bool _lockEnabled = false;
+  bool _updatingProcessRegion = false;
   bool _deletingAccount = false;
 
   /// Read once and reused, so the footer doesn't refetch on every rebuild.
@@ -57,6 +58,33 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     await BiometricLockService.setEnabled(value);
     if (!mounted) return;
     setState(() => _lockEnabled = value);
+  }
+
+  Future<void> _changeProcessRegion(EstateProcessRegion region) async {
+    final estateId = ref.read(estateIdProvider).valueOrNull ?? '';
+    if (estateId.isEmpty) return;
+
+    setState(() => _updatingProcessRegion = true);
+    try {
+      await updateEstateProcessRegion(
+        estateId: estateId,
+        processRegion: region,
+      );
+      ref.invalidate(estateProcessRegionProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Legal process set to ${region.label}')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update the legal process')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingProcessRegion = false);
+      }
+    }
   }
 
   /// Renames the estate. Owner-only: the caller hides the control for
@@ -342,6 +370,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncUser = ref.watch(currentUserProvider);
     final asyncEstateName = ref.watch(estateNameProvider);
+    final asyncProcessRegion = ref.watch(estateProcessRegionProvider);
 
     final actualRole = asyncRole.valueOrNull ?? '';
     final effectiveRole = simulatedRole ?? actualRole;
@@ -451,6 +480,90 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           tooltip: 'Rename estate',
                         ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            _SectionCard(
+              title: 'Legal process',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Choose whether this estate should follow the Scotland '
+                    'process or the England, Wales and Northern Ireland '
+                    'process. This is saved to the estate and shared with '
+                    'everyone who has access.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  asyncProcessRegion.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (_, __) => const Text(
+                      'Could not load the legal process setting.',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    data: (processRegion) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<EstateProcessRegion>(
+                          initialValue: processRegion,
+                          decoration: const InputDecoration(
+                            labelText: 'Process region',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: EstateProcessRegion.values
+                              .map(
+                                (region) =>
+                                    DropdownMenuItem<EstateProcessRegion>(
+                                  value: region,
+                                  child: Text(region.label),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: !isOwner || _updatingProcessRegion
+                              ? null
+                              : (value) {
+                                  if (value == null || value == processRegion) {
+                                    return;
+                                  }
+                                  _changeProcessRegion(value);
+                                },
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          processRegion == EstateProcessRegion.scotland
+                              ? 'Using the Scotland-specific wording and steps.'
+                              : 'Using the England, Wales and Northern Ireland process.',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        if (!isOwner)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Only an owner can change this setting.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),

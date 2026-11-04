@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomeDashboardView extends StatelessWidget {
+import '../services/estate_service.dart';
+
+class HomeDashboardView extends ConsumerWidget {
   const HomeDashboardView({super.key});
 
   static const List<_SectionItem> _sections = [
@@ -62,7 +65,10 @@ class HomeDashboardView extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final processRegion = ref.watch(estateProcessRegionProvider).valueOrNull ??
+        EstateProcessRegion.scotland;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('UnderCroft'),
@@ -100,7 +106,11 @@ class HomeDashboardView extends StatelessWidget {
           itemCount: _sections.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
-            final section = _sections[index];
+            final baseSection = _sections[index];
+            final section = baseSection.title == 'Confirmation' &&
+                    processRegion == EstateProcessRegion.ewni
+                ? baseSection.copyWith(displayTitle: 'Probate')
+                : baseSection;
             return _SectionRow(section: section);
           },
         ),
@@ -111,16 +121,34 @@ class HomeDashboardView extends StatelessWidget {
 
 class _SectionItem {
   final String title;
+  final String displayTitle;
   final IconData icon;
   final Color color;
   final String? route;
 
   const _SectionItem({
     required this.title,
+    String? displayTitle,
     required this.icon,
     required this.color,
     this.route,
-  });
+  }) : displayTitle = displayTitle ?? title;
+
+  _SectionItem copyWith({
+    String? title,
+    String? displayTitle,
+    IconData? icon,
+    Color? color,
+    String? route,
+  }) {
+    return _SectionItem(
+      title: title ?? this.title,
+      displayTitle: displayTitle ?? this.displayTitle,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      route: route ?? this.route,
+    );
+  }
 }
 
 class _SectionRow extends StatelessWidget {
@@ -160,7 +188,7 @@ class _SectionRow extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  section.title,
+                  section.displayTitle,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

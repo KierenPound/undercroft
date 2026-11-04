@@ -13,6 +13,39 @@ class EstateContext {
   });
 }
 
+enum EstateProcessRegion {
+  scotland,
+  ewni;
+
+  String get dbValue {
+    switch (this) {
+      case EstateProcessRegion.scotland:
+        return 'scotland';
+      case EstateProcessRegion.ewni:
+        return 'ewni';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case EstateProcessRegion.scotland:
+        return 'Scotland';
+      case EstateProcessRegion.ewni:
+        return 'England, Wales & Northern Ireland';
+    }
+  }
+
+  static EstateProcessRegion fromDbValue(String? value) {
+    switch (value) {
+      case 'ewni':
+        return EstateProcessRegion.ewni;
+      case 'scotland':
+      default:
+        return EstateProcessRegion.scotland;
+    }
+  }
+}
+
 Future<EstateContext?> fetchCurrentEstateContext() async {
   final client = Supabase.instance.client;
   final result = await client.rpc('get_or_create_current_estate_context');
@@ -107,15 +140,38 @@ final estateNameProvider = FutureProvider<String>((ref) async {
 
   final client = Supabase.instance.client;
   try {
-    final rows = await client
-        .from('estates')
-        .select('name')
-        .eq('id', estateId)
-        .limit(1);
+    final rows =
+        await client.from('estates').select('name').eq('id', estateId).limit(1);
     if (rows.isEmpty) return '';
     return rows.first['name'] as String? ?? '';
   } catch (_) {
     return '';
+  }
+});
+
+/// The legal process variant the estate follows.
+///
+/// Stored on the estate itself so owners and executors see the same
+/// jurisdiction-specific guidance after signing back in on any device.
+final estateProcessRegionProvider = FutureProvider<EstateProcessRegion>((
+  ref,
+) async {
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) return EstateProcessRegion.scotland;
+
+  final client = Supabase.instance.client;
+  try {
+    final rows = await client
+        .from('estates')
+        .select('process_region')
+        .eq('id', estateId)
+        .limit(1);
+    if (rows.isEmpty) return EstateProcessRegion.scotland;
+    return EstateProcessRegion.fromDbValue(
+      rows.first['process_region'] as String?,
+    );
+  } catch (_) {
+    return EstateProcessRegion.scotland;
   }
 });
 
@@ -130,6 +186,20 @@ Future<void> updateEstateName({
 }) async {
   final client = Supabase.instance.client;
   await client.from('estates').update({'name': name}).eq('id', estateId);
+}
+
+/// Updates the estate-wide process region used for jurisdiction-specific copy.
+///
+/// Owners can change this in Settings. Because it lives on `estates`, the
+/// choice survives sign-out and is shared by everyone with access.
+Future<void> updateEstateProcessRegion({
+  required String estateId,
+  required EstateProcessRegion processRegion,
+}) async {
+  final client = Supabase.instance.client;
+  await client.from('estates').update({
+    'process_region': processRegion.dbValue,
+  }).eq('id', estateId);
 }
 
 /// Characters used when generating invite codes. Ambiguous glyphs
@@ -430,7 +500,8 @@ Future<void> deleteMyAccount() async {
     throw StateError('deleteMyAccount: not signed in');
   }
 
-  final owned = await client.from('estates').select('id').eq('owner_id', userId);
+  final owned =
+      await client.from('estates').select('id').eq('owner_id', userId);
   for (final row in owned) {
     await _deleteEstateFiles(row['id'] as String);
   }

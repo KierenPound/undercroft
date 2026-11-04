@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS public.estates (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name        text NOT NULL DEFAULT 'My Estate',
+    process_region text NOT NULL DEFAULT 'scotland'
+        CHECK (process_region IN ('scotland', 'ewni')),
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 
@@ -611,8 +613,9 @@ CREATE POLICY estates_owner_delete ON public.estates
     TO authenticated
     USING ( auth.uid() = owner_id );
 
--- Guard: an estate update may only change the name. Deliberately NOT SECURITY
--- DEFINER — the function reads only OLD/NEW and touches no tables.
+-- Guard: an estate update may not change its identity fields. Deliberately
+-- NOT SECURITY DEFINER — the function reads only OLD/NEW and touches no
+-- tables.
 CREATE OR REPLACE FUNCTION public.estates_guard_update()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -623,7 +626,7 @@ BEGIN
     OR NEW.owner_id IS DISTINCT FROM OLD.owner_id
     THEN
         RAISE EXCEPTION
-            'An estate update may only change its name'
+            'An estate update may not change id or owner_id'
             USING ERRCODE = 'check_violation';
     END IF;
 

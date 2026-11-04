@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../services/estate_service.dart';
 
 /// Confirmation rich-content dashboard.
 ///
@@ -7,29 +10,33 @@ import 'package:flutter/material.dart';
 /// Confirmation & Unlock the Cash" — i.e. everything between the Memory photo
 /// (handled by [PhotoSection]) and the Song for the page
 /// (handled by [SongForThePageSection]).
-class ConfirmationDashboard extends StatelessWidget {
+class ConfirmationDashboard extends ConsumerWidget {
   const ConfirmationDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final processRegion = ref.watch(estateProcessRegionProvider).valueOrNull ??
+        EstateProcessRegion.scotland;
+    final isEwni = processRegion == EstateProcessRegion.ewni;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIntroAlmostDoneSection(),
         const SizedBox(height: 28),
-        _buildLocateWillSection(),
+        _buildLocateWillSection(isEwni: isEwni),
         const SizedBox(height: 28),
         _buildDateOfDeathValuationsSection(),
         const SizedBox(height: 28),
         _buildHmrcReferenceSection(),
         const SizedBox(height: 28),
-        _buildTaxFormsSection(),
+        _buildTaxFormsSection(isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildPayTaxSection(),
+        _buildPayTaxSection(isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildIht421AndCourtSection(),
+        _buildIht421AndCourtSection(isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildGrantConfirmationSection(),
+        _buildGrantConfirmationSection(isEwni: isEwni),
       ],
     );
   }
@@ -346,7 +353,7 @@ class ConfirmationDashboard extends StatelessWidget {
 
   // MARK: - Locate the Will
 
-  Widget _buildLocateWillSection() {
+  Widget _buildLocateWillSection({required bool isEwni}) {
     const tint = Colors.purple;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,11 +379,12 @@ class ConfirmationDashboard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Why it matters:  The Will explicitly names the Executors.  '
                   'These are the only people legally allowed to sign the '
-                  'upcoming HMRC tax returns and court inventories.',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  'upcoming HMRC tax returns and '
+                  '${isEwni ? 'probate application' : 'court inventories'}.',
+                  style: const TextStyle(fontSize: 15, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -678,7 +686,7 @@ class ConfirmationDashboard extends StatelessWidget {
 
   // MARK: - HMRC Tax Forms
 
-  Widget _buildTaxFormsSection() {
+  Widget _buildTaxFormsSection({required bool isEwni}) {
     const tint = Colors.blue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -713,16 +721,35 @@ class ConfirmationDashboard extends StatelessWidget {
                       'valuations, bank cash, and any major gifts given away '
                       'in the last 7 years.',
                 ),
+                if (isEwni) ...[
+                  const SizedBox(height: 12),
+                  _infoCallout(
+                    tint: Colors.blue,
+                    icon: Icons.info_outline,
+                    title: 'Note for smaller estates',
+                    body: 'In England, Wales and Northern Ireland, if the '
+                        'estate is non-taxable (an "Excepted Estate"), you '
+                        'often do not need to fill in IHT400 or get an IHT '
+                        'reference number upfront. Instead, the values are '
+                        'often reported directly inside the probate application.',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _formCard(
-                  title: 'Form C1 (The Confirmation Inventory)',
-                  icon: Icons.account_balance,
-                  tint: Colors.purple,
-                  body: 'This is the Scottish court form where you list the '
-                      'exact same assets line-by-line.  You must fill this in '
-                      'alongside your tax return.',
+                  title: isEwni
+                      ? 'Apply for Probate Online (GOV.UK) / Form PA1P'
+                      : 'Form C1 (The Confirmation Inventory)',
+                  icon: isEwni ? Icons.language : Icons.account_balance,
+                  tint: isEwni ? Colors.teal : Colors.purple,
+                  body: isEwni
+                      ? 'The executors apply for probate either through the '
+                          'GOV.UK online service or by using Form PA1P for a '
+                          'paper application.'
+                      : 'This is the Scottish court form where you list the '
+                          'exact same assets line-by-line.  You must fill this '
+                          'in alongside your tax return.',
                 ),
               ],
             ),
@@ -734,7 +761,7 @@ class ConfirmationDashboard extends StatelessWidget {
 
   // MARK: - Pay the Tax
 
-  Widget _buildPayTaxSection() {
+  Widget _buildPayTaxSection({required bool isEwni}) {
     const tint = Colors.green;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,11 +778,12 @@ class ConfirmationDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'HMRC expects you to pay the tax bill before the court will '
-                  'grant Confirmation.  To clear this hurdle without spending '
-                  'your own personal money, use these tools:',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  'grant ${isEwni ? 'Probate' : 'Confirmation'}.  To clear '
+                  'this hurdle without spending your own personal money, use '
+                  'these tools:',
+                  style: const TextStyle(fontSize: 15, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -791,10 +819,16 @@ class ConfirmationDashboard extends StatelessWidget {
 
   // MARK: - IHT421 Stamped Cert + Sheriff Court
 
-  Widget _buildIht421AndCourtSection() {
+  Widget _buildIht421AndCourtSection({required bool isEwni}) {
     const tint = Colors.red;
     const courtPackageItems = [
       'Your completed Form C1 (Asset Inventory)',
+      'The Original physical paper Will',
+      'A certified copy of the Death Certificate',
+      'The required Court Submission Fee',
+    ];
+    const ewniCourtPackageItems = [
+      'Your GOV.UK Online Application Cover Sheet (or PA1P form)',
       'The Original physical paper Will',
       'A certified copy of the Death Certificate',
       'The required Court Submission Fee',
@@ -804,7 +838,9 @@ class ConfirmationDashboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'IHT421 Stamped Certificate & local Sheriff Court',
+          title: isEwni
+              ? 'IHT400 Share / Code & HMCTS Probate Registry'
+              : 'IHT421 Stamped Certificate & local Sheriff Court',
           icon: Icons.mail,
           tint: tint,
         ),
@@ -837,14 +873,21 @@ class ConfirmationDashboard extends StatelessWidget {
                   icon: Icons.verified_user,
                   tint: Colors.orange,
                   stepNumber: 2,
-                  title: 'Wait for the stamped IHT421 certificate',
-                  body: 'Once HMRC receives your paperwork and checks that the '
-                      'tax payment from Step 5 has cleared, they will not send '
-                      'you a physical receipt.  Instead, they will generate a '
-                      'secure, stamped digital certificate called an IHT421 '
-                      '(or an online clearance code).  They will send this '
-                      'code directly to the court as proof that the tax hurdle '
-                      'is cleared.',
+                  title: 'Wait for Tax Clearance',
+                  body: isEwni
+                      ? 'Once HMRC receives your paperwork and checks that the '
+                          'tax payment from Step 5 has cleared, they will send '
+                          'you a unique 12-character IHT code (or confirmation '
+                          'share link) by post or email.  You then enter that '
+                          'code directly into your GOV.UK online probate '
+                          'application as proof that the tax hurdle is cleared.'
+                      : 'Once HMRC receives your paperwork and checks that the '
+                          'tax payment from Step 5 has cleared, they will not '
+                          'send you a physical receipt.  Instead, they will '
+                          'generate a secure, stamped digital certificate '
+                          'called an IHT421 (or an online clearance code).  '
+                          'They will send this code directly to the court as '
+                          'proof that the tax hurdle is cleared.',
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -853,42 +896,63 @@ class ConfirmationDashboard extends StatelessWidget {
                   icon: Icons.account_balance,
                   tint: Colors.purple,
                   stepNumber: 3,
-                  title: 'Submit to the local Sheriff Court',
-                  body: 'Once HMRC issues your tax clearance code, mail your '
-                      'final court package to the local Sheriff Court:',
+                  title: isEwni
+                      ? 'Submit to HMCTS Probate Registry'
+                      : 'Submit to the local Sheriff Court',
+                  body: isEwni
+                      ? 'Once HMRC issues your tax clearance code, send your '
+                          'final application package to HMCTS Probate Registry:'
+                      : 'Once HMRC issues your tax clearance code, mail your '
+                          'final court package to the local Sheriff Court:',
                 ),
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.only(left: 48),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: courtPackageItems
-                        .map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 7),
-                                  child: Icon(Icons.circle,
-                                      size: 6, color: Colors.purple),
+                    children:
+                        (isEwni ? ewniCourtPackageItems : courtPackageItems)
+                            .map(
+                              (item) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 7),
+                                      child: Icon(Icons.circle,
+                                          size: 6, color: Colors.purple),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        item,
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            color: Color(0xFF2C2C2E)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    item,
-                                    style: const TextStyle(
-                                        fontSize: 15, color: Color(0xFF2C2C2E)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
+                              ),
+                            )
+                            .toList(),
                   ),
                 ),
+                if (isEwni) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 48),
+                    child: _infoCallout(
+                      tint: Colors.purple,
+                      icon: Icons.info_outline,
+                      title: 'Note on the Will',
+                      body: 'HMCTS expects the original paper Will to be sent '
+                          'together with the generated GOV.UK cover sheet once '
+                          'the online probate application has been completed.',
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -899,13 +963,15 @@ class ConfirmationDashboard extends StatelessWidget {
 
   // MARK: - Receive Grant of Confirmation
 
-  Widget _buildGrantConfirmationSection() {
+  Widget _buildGrantConfirmationSection({required bool isEwni}) {
     const tint = Colors.teal;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'Receive the Grant of Confirmation & Unlock the Cash',
+          title: isEwni
+              ? 'Receive the Grant of Probate & Unlock the Cash'
+              : 'Receive the Grant of Confirmation & Unlock the Cash',
           icon: Icons.verified,
           tint: tint,
         ),
@@ -916,11 +982,18 @@ class ConfirmationDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'The Sheriff Court will review the Will and inventory.  '
-                  'Within 2 to 4 weeks, they will issue the formal Grant of '
-                  'Confirmation.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                Text(
+                  isEwni
+                      ? 'The Probate Registry will review the application.  '
+                          'Within 2 to 4 weeks, they will issue the formal '
+                          'Grant of Probate.'
+                      : 'The Sheriff Court will review the Will and inventory.  '
+                          'Within 2 to 4 weeks, they will issue the formal '
+                          'Grant of Confirmation.',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF2C2C2E),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
@@ -954,9 +1027,12 @@ class ConfirmationDashboard extends StatelessWidget {
                           SizedBox(height: 6),
                           Text(
                             'If you have reached here, well done! '
-                            'I know it has been a lot of paperwork, but it  '
+                            'I know it has been a lot of paperwork, but it '
                             'only has to be done once ',
-                            style: TextStyle(fontSize: 15, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -969,15 +1045,24 @@ class ConfirmationDashboard extends StatelessWidget {
                 _infoCallout(
                   tint: Colors.teal,
                   icon: Icons.menu_book,
-                  title: '🏡 Note on the properties',
-                  body: 'You cannot update the house deeds yourself.  In '
-                      'Scotland, property records are held by Registers of '
-                      'Scotland (RoS).  Once you receive the Grant of '
-                      'Confirmation from the court, you must hand it to a '
-                      'Scottish solicitor (see Legal Documents). '
-                      'They will draft a legal document called a '
-                      'Disposition to either transfer the titles to '
-                      'the family or manage the sale of the properties.',
+                  title: isEwni
+                      ? '🏡 Note on Property (HM Land Registry)'
+                      : '🏡 Note on the properties',
+                  body: isEwni
+                      ? 'Property in England & Wales is registered with HM '
+                          'Land Registry (HMLR).  Once you have the Grant of '
+                          'Probate, executors can directly assent (transfer) '
+                          'the property to beneficiaries using Form AS1, or '
+                          'sell the property using standard land transfer '
+                          'forms (Form TR1).'
+                      : 'You cannot update the house deeds yourself.  In '
+                          'Scotland, property records are held by Registers of '
+                          'Scotland (RoS).  Once you receive the Grant of '
+                          'Confirmation from the court, you must hand it to a '
+                          'Scottish solicitor (see Legal Documents). '
+                          'They will draft a legal document called a '
+                          'Disposition to either transfer the titles to '
+                          'the family or manage the sale of the properties.',
                 ),
               ],
             ),
