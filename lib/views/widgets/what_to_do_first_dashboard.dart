@@ -66,13 +66,19 @@ class _WhatToDoFirstDashboardState
   String _lastSavedWifiPassword = '';
   final Set<String> _revealedCredentialKeys = <String>{};
 
-  // Pets — photo + notes + vet contact details.
+  // Pets — photo + notes + insurer/microchip details + vet contact details.
   final _petNotesController = TextEditingController();
+  final _petInsuranceCompanyController = TextEditingController();
+  final _petPolicyNumberController = TextEditingController();
+  final _petMicrochipNumberController = TextEditingController();
   final _vetNameController = TextEditingController();
   final _vetPhoneController = TextEditingController();
   final _vetUrlController = TextEditingController();
   Timer? _petSaveTimer;
   String _lastSavedPetNotes = '';
+  String _lastSavedPetInsuranceCompany = '';
+  String _lastSavedPetPolicyNumber = '';
+  String _lastSavedPetMicrochipNumber = '';
   String _lastSavedVetName = '';
   String _lastSavedVetPhone = '';
   String _lastSavedVetUrl = '';
@@ -91,6 +97,9 @@ class _WhatToDoFirstDashboardState
     _computerPassword2Controller.dispose();
     _wifiPasswordController.dispose();
     _petNotesController.dispose();
+    _petInsuranceCompanyController.dispose();
+    _petPolicyNumberController.dispose();
+    _petMicrochipNumberController.dispose();
     _vetNameController.dispose();
     _vetPhoneController.dispose();
     _vetUrlController.dispose();
@@ -108,10 +117,16 @@ class _WhatToDoFirstDashboardState
 
   Future<void> _savePetFields() async {
     final notes = _petNotesController.text;
+    final insuranceCompany = _petInsuranceCompanyController.text.trim();
+    final policyNumber = _petPolicyNumberController.text.trim();
+    final microchipNumber = _petMicrochipNumberController.text.trim();
     final vetName = _vetNameController.text.trim();
     final vetPhone = _vetPhoneController.text.trim();
     final vetUrl = _vetUrlController.text.trim();
     if (notes == _lastSavedPetNotes &&
+        insuranceCompany == _lastSavedPetInsuranceCompany &&
+        policyNumber == _lastSavedPetPolicyNumber &&
+        microchipNumber == _lastSavedPetMicrochipNumber &&
         vetName == _lastSavedVetName &&
         vetPhone == _lastSavedVetPhone &&
         vetUrl == _lastSavedVetUrl) {
@@ -125,12 +140,18 @@ class _WhatToDoFirstDashboardState
         await repo.updateSection(
           section.copyWith(
             petNotes: notes,
+            petInsuranceCompany: insuranceCompany,
+            petPolicyNumber: policyNumber,
+            petMicrochipNumber: microchipNumber,
             vetName: vetName,
             vetPhone: vetPhone,
             vetUrl: vetUrl,
           ),
         );
         _lastSavedPetNotes = notes;
+        _lastSavedPetInsuranceCompany = insuranceCompany;
+        _lastSavedPetPolicyNumber = policyNumber;
+        _lastSavedPetMicrochipNumber = microchipNumber;
         _lastSavedVetName = vetName;
         _lastSavedVetPhone = vetPhone;
         _lastSavedVetUrl = vetUrl;
@@ -440,10 +461,16 @@ class _WhatToDoFirstDashboardState
           _lastSavedWifiPassword = section.wifiPassword;
 
           _petNotesController.text = section.petNotes;
+          _petInsuranceCompanyController.text = section.petInsuranceCompany;
+          _petPolicyNumberController.text = section.petPolicyNumber;
+          _petMicrochipNumberController.text = section.petMicrochipNumber;
           _vetNameController.text = section.vetName;
           _vetPhoneController.text = section.vetPhone;
           _vetUrlController.text = section.vetUrl;
           _lastSavedPetNotes = section.petNotes;
+          _lastSavedPetInsuranceCompany = section.petInsuranceCompany;
+          _lastSavedPetPolicyNumber = section.petPolicyNumber;
+          _lastSavedPetMicrochipNumber = section.petMicrochipNumber;
           _lastSavedVetName = section.vetName;
           _lastSavedVetPhone = section.vetPhone;
           _lastSavedVetUrl = section.vetUrl;
@@ -675,33 +702,72 @@ class _WhatToDoFirstDashboardState
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: widget.isOwner
-                          ? (_uploading ? null : _pickPetImage)
-                          : null,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(11),
-                        child: SizedBox(
-                          width: 150,
-                          height: 150,
-                          child: petAttachment != null &&
-                                  petAttachment.downloadUrl.isNotEmpty
-                              ? Image.network(
-                                  petAttachment.downloadUrl,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  gaplessPlayback: true,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return _defaultPetImage();
-                                  },
-                                  errorBuilder: (_, __, ___) =>
-                                      _defaultPetImage(),
-                                )
-                              : _defaultPetImage(),
-                        ),
+                    SizedBox(
+                      width: 150,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: widget.isOwner
+                                ? (_uploading ? null : _pickPetImage)
+                                : null,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(11),
+                              child: SizedBox(
+                                width: 150,
+                                height: 150,
+                                child: petAttachment != null &&
+                                        petAttachment.downloadUrl.isNotEmpty
+                                    ? Image.network(
+                                        petAttachment.downloadUrl,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        gaplessPlayback: true,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
+                                          }
+                                          return _defaultPetImage();
+                                        },
+                                        errorBuilder: (_, __, ___) =>
+                                            _defaultPetImage(),
+                                      )
+                                    : _defaultPetImage(),
+                              ),
+                            ),
+                          ),
+                          if (widget.isOwner) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: 150,
+                              child: ElevatedButton.icon(
+                                onPressed: _uploading ? null : _pickPetImage,
+                                icon: _uploading
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.edit, size: 16),
+                                label: Text(
+                                  _uploading ? 'Uploading...' : 'Replace photo',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE08A2C),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -753,34 +819,27 @@ class _WhatToDoFirstDashboardState
                     ),
                   ],
                 ),
-                if (widget.isOwner) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: 150,
-                    child: ElevatedButton.icon(
-                      onPressed: _uploading ? null : _pickPetImage,
-                      icon: _uploading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.edit, size: 16),
-                      label: Text(
-                        _uploading ? 'Uploading...' : 'Replace photo',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE08A2C),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
-                ],
+                const SizedBox(height: 16),
+                _petEditableField(
+                  controller: _petInsuranceCompanyController,
+                  icon: Icons.shield_outlined,
+                  tint: const Color(0xFFE08A2C),
+                  label: 'Insurance company',
+                ),
+                const SizedBox(height: 10),
+                _petEditableField(
+                  controller: _petPolicyNumberController,
+                  icon: Icons.numbers,
+                  tint: const Color(0xFFE08A2C),
+                  label: 'Policy number',
+                ),
+                const SizedBox(height: 10),
+                _petEditableField(
+                  controller: _petMicrochipNumberController,
+                  icon: Icons.memory,
+                  tint: const Color(0xFFE08A2C),
+                  label: 'Microchip number',
+                ),
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 16),
@@ -804,7 +863,7 @@ class _WhatToDoFirstDashboardState
                   controller: _vetNameController,
                   icon: Icons.store,
                   tint: Colors.teal,
-                  hint: 'Vet name',
+                  label: 'Vet name',
                 ),
                 const SizedBox(height: 10),
                 _petEditableContactField(
@@ -850,7 +909,7 @@ class _WhatToDoFirstDashboardState
     required TextEditingController controller,
     required IconData icon,
     required Color tint,
-    required String hint,
+    required String label,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -858,32 +917,45 @@ class _WhatToDoFirstDashboardState
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: tint.withValues(alpha: 0.25)),
       ),
-      child: Row(
-        children: [
-          const SizedBox(width: 12),
-          Icon(icon, size: 18, color: tint),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              enabled: widget.isOwner,
-              onChanged: (_) => _schedulePetSave(),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                border: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
-                isDense: true,
-              ),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: tint,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: tint),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 120,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tint.withValues(alpha: 0.9),
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                enabled: widget.isOwner,
+                onChanged: (_) => _schedulePetSave(),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+                  isDense: true,
+                ),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2C2C2E),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1282,6 +1354,8 @@ class _WhatToDoFirstDashboardState
                 _buildBulletRow('The DVLA (Driving Licences)', Colors.green),
                 const SizedBox(height: 10),
                 _buildBulletRow('Local Council Tax Teams', Colors.green),
+                const SizedBox(height: 10),
+                _buildBulletRow('Blue Badge (Parking Permits)', Colors.green),
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 16),

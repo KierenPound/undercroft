@@ -122,8 +122,29 @@ CREATE TABLE IF NOT EXISTS public.funeral_arrangements (
     estate_id              uuid NOT NULL REFERENCES public.estates(id) ON DELETE CASCADE,
     name                   text NOT NULL,
     notes                  text NOT NULL DEFAULT '',
+    prepaid_details        text NOT NULL DEFAULT '',
     url                    text NOT NULL DEFAULT '',
     created_at             timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- About You: one identity record per estate owner (full name, NI and CHI
+-- numbers, plus a scanned passport and driving licence). Mirrors the
+-- funeral_arrangements table pattern.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.about_you (
+    about_you_id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    estate_id             uuid NOT NULL REFERENCES public.estates(id) ON DELETE CASCADE,
+    full_name             text NOT NULL DEFAULT '',
+    ni_number             text NOT NULL DEFAULT '',
+    chi_number            text NOT NULL DEFAULT '',
+    passport_storage_path text NOT NULL DEFAULT '',
+    passport_download_url text NOT NULL DEFAULT '',
+    passport_file_size    bigint NOT NULL DEFAULT 0,
+    licence_storage_path  text NOT NULL DEFAULT '',
+    licence_download_url  text NOT NULL DEFAULT '',
+    licence_file_size     bigint NOT NULL DEFAULT 0,
+    created_at            timestamptz NOT NULL DEFAULT now()
 );
 
 -- ---------------------------------------------------------------------------
@@ -227,6 +248,9 @@ CREATE TABLE IF NOT EXISTS public.sections (
     vet_name             text NOT NULL DEFAULT '',
     vet_phone            text NOT NULL DEFAULT '',
     vet_url              text NOT NULL DEFAULT '',
+    pet_insurance_company text NOT NULL DEFAULT '',
+    pet_policy_number    text NOT NULL DEFAULT '',
+    pet_microchip_number text NOT NULL DEFAULT '',
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -289,6 +313,7 @@ TRUNCATE TABLE
     public.checklist_items,
     public.sections,
     public.funeral_arrangements,
+    public.about_you,
     public.ad_hoc_data,
     public.contacts,
     public.tradespeople,
@@ -308,6 +333,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_category ON public.documents(category);
 CREATE INDEX IF NOT EXISTS idx_who_to_notify_estate_id ON public.who_to_notify(estate_id);
 CREATE INDEX IF NOT EXISTS idx_notify_account_details_who_to_notify_id ON public.notify_account_details(who_to_notify_id);
 CREATE INDEX IF NOT EXISTS idx_funeral_arrangements_estate_id ON public.funeral_arrangements(estate_id);
+CREATE INDEX IF NOT EXISTS idx_about_you_estate_id ON public.about_you(estate_id);
 CREATE INDEX IF NOT EXISTS idx_ad_hoc_data_estate_id ON public.ad_hoc_data(estate_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_estate_id ON public.contacts(estate_id);
 CREATE INDEX IF NOT EXISTS idx_tradespeople_estate_id ON public.tradespeople(estate_id);
@@ -337,6 +363,7 @@ GRANT ALL ON public.documents TO authenticated;
 GRANT ALL ON public.who_to_notify TO authenticated;
 GRANT ALL ON public.notify_account_details TO authenticated;
 GRANT ALL ON public.funeral_arrangements TO authenticated;
+GRANT ALL ON public.about_you TO authenticated;
 GRANT ALL ON public.ad_hoc_data TO authenticated;
 GRANT ALL ON public.contacts TO authenticated;
 GRANT ALL ON public.tradespeople TO authenticated;
@@ -351,6 +378,7 @@ GRANT SELECT ON public.documents TO anon;
 GRANT SELECT ON public.who_to_notify TO anon;
 GRANT SELECT ON public.notify_account_details TO anon;
 GRANT SELECT ON public.funeral_arrangements TO anon;
+GRANT SELECT ON public.about_you TO anon;
 GRANT SELECT ON public.ad_hoc_data TO anon;
 GRANT SELECT ON public.contacts TO anon;
 GRANT SELECT ON public.tradespeople TO anon;
@@ -370,6 +398,7 @@ ALTER TABLE public.documents       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.who_to_notify   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notify_account_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.funeral_arrangements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.about_you ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_hoc_data   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contacts      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tradespeople  ENABLE ROW LEVEL SECURITY;
@@ -389,7 +418,7 @@ BEGIN
         SELECT policyname, tablename
         FROM pg_policies
         WHERE schemaname = 'public'
-          AND tablename IN ('estate_access', 'estates', 'documents', 'who_to_notify', 'notify_account_details', 'funeral_arrangements', 'ad_hoc_data', 'contacts', 'tradespeople', 'utility_details', 'sections', 'checklist_items', 'attachments')
+          AND tablename IN ('estate_access', 'estates', 'documents', 'who_to_notify', 'notify_account_details', 'funeral_arrangements', 'about_you', 'ad_hoc_data', 'contacts', 'tradespeople', 'utility_details', 'sections', 'checklist_items', 'attachments')
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol.policyname, pol.tablename);
     END LOOP;
@@ -868,6 +897,30 @@ CREATE POLICY funeral_arrangements_owner_update ON public.funeral_arrangements
     WITH CHECK ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) );
 
 CREATE POLICY funeral_arrangements_owner_delete ON public.funeral_arrangements
+    FOR DELETE
+    TO authenticated
+    USING ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) );
+
+-- ---------------------------------------------------------------------------
+-- 13a. POLICIES: public.about_you
+-- ---------------------------------------------------------------------------
+CREATE POLICY about_you_select_any_linked ON public.about_you
+    FOR SELECT
+    TO anon, authenticated
+    USING ( estate_id IN (SELECT public.get_allowed_estate_ids()) );
+
+CREATE POLICY about_you_owner_insert ON public.about_you
+    FOR INSERT
+    TO authenticated
+    WITH CHECK ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) );
+
+CREATE POLICY about_you_owner_update ON public.about_you
+    FOR UPDATE
+    TO authenticated
+    USING ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) )
+    WITH CHECK ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) );
+
+CREATE POLICY about_you_owner_delete ON public.about_you
     FOR DELETE
     TO authenticated
     USING ( estate_id IN (SELECT public.get_allowed_estate_ids('owner')) );

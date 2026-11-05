@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/biometric_lock_service.dart';
 import '../services/estate_service.dart';
 import '../services/invite_print_service.dart';
+import 'widgets/about_you_section.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({super.key});
@@ -382,6 +383,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final isActualOwner = actualRole == 'owner';
     final userEmail = asyncUser.valueOrNull?.email ?? 'Not signed in';
     final estateName = asyncEstateName.valueOrNull ?? '';
+    final estateId = asyncEstateId.valueOrNull ?? '';
 
     // Shared by the readiness card and the invitations list.
     final asyncInvites = ref.watch(estateInvitesProvider);
@@ -482,6 +484,17 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     ],
                   ),
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // About You — one identity record per estate owner
+            _SectionCard(
+              title: 'About You',
+              child: AboutYouSection(
+                estateId: estateId,
+                isOwner: isOwner,
               ),
             ),
 

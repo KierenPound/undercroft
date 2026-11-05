@@ -30,6 +30,9 @@ class PrepSection {
   final String vetName;
   final String vetPhone;
   final String vetUrl;
+  final String petInsuranceCompany;
+  final String petPolicyNumber;
+  final String petMicrochipNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<ChecklistItem> checklistItems;
@@ -61,6 +64,9 @@ class PrepSection {
     required this.vetName,
     required this.vetPhone,
     required this.vetUrl,
+    this.petInsuranceCompany = '',
+    this.petPolicyNumber = '',
+    this.petMicrochipNumber = '',
     required this.createdAt,
     required this.updatedAt,
     this.checklistItems = const [],
@@ -94,6 +100,9 @@ class PrepSection {
       vetName: json['vet_name'] as String? ?? '',
       vetPhone: json['vet_phone'] as String? ?? '',
       vetUrl: json['vet_url'] as String? ?? '',
+      petInsuranceCompany: json['pet_insurance_company'] as String? ?? '',
+      petPolicyNumber: json['pet_policy_number'] as String? ?? '',
+      petMicrochipNumber: json['pet_microchip_number'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -125,6 +134,9 @@ class PrepSection {
       'vet_name': vetName,
       'vet_phone': vetPhone,
       'vet_url': vetUrl,
+      'pet_insurance_company': petInsuranceCompany,
+      'pet_policy_number': petPolicyNumber,
+      'pet_microchip_number': petMicrochipNumber,
     };
   }
 
@@ -153,6 +165,9 @@ class PrepSection {
       'vet_name': vetName,
       'vet_phone': vetPhone,
       'vet_url': vetUrl,
+      'pet_insurance_company': petInsuranceCompany,
+      'pet_policy_number': petPolicyNumber,
+      'pet_microchip_number': petMicrochipNumber,
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
@@ -178,6 +193,9 @@ class PrepSection {
     String? vetName,
     String? vetPhone,
     String? vetUrl,
+    String? petInsuranceCompany,
+    String? petPolicyNumber,
+    String? petMicrochipNumber,
     List<ChecklistItem>? checklistItems,
     List<Attachment>? attachments,
   }) {
@@ -207,6 +225,10 @@ class PrepSection {
       vetName: vetName ?? this.vetName,
       vetPhone: vetPhone ?? this.vetPhone,
       vetUrl: vetUrl ?? this.vetUrl,
+      petInsuranceCompany:
+          petInsuranceCompany ?? this.petInsuranceCompany,
+      petPolicyNumber: petPolicyNumber ?? this.petPolicyNumber,
+      petMicrochipNumber: petMicrochipNumber ?? this.petMicrochipNumber,
       createdAt: createdAt,
       updatedAt: updatedAt,
       checklistItems: checklistItems ?? this.checklistItems,

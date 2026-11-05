@@ -21,6 +21,19 @@ class SectionDetailView extends ConsumerWidget {
 
   const SectionDetailView({super.key, required this.config});
 
+  Widget _jurisdictionNotice(EstateProcessRegion processRegion) {
+    final text = processRegion == EstateProcessRegion.ewni
+        ? 'You are currently viewing England, Wales & NI jurisdiction. You can switch to Scotland in Settings.'
+        : 'You are currently viewing Scotland jurisdiction. You can switch to England, Wales & NI in Settings.';
+
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFF3A8D5A),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncEstateId = ref.watch(estateIdProvider);
@@ -123,6 +136,8 @@ class SectionDetailView extends ConsumerWidget {
                         youtubeUrl: section.youtubeUrl,
                       ),
                     ] else if (section.title == 'Confirmation') ...[
+                      _jurisdictionNotice(processRegion),
+                      const SizedBox(height: 12),
                       PhotoSection(
                         sectionId: section.id,
                         estateId: estateId,

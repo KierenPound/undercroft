@@ -791,6 +791,11 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     );
   }
 
+  void _closeDialog<T>(BuildContext dialogContext, [T? result]) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(dialogContext).pop(result);
+  }
+
   /// Adds a song by pasting a YouTube link. The title and artist are looked up
   /// automatically, but stay editable in case the lookup cannot reach YouTube.
   Future<void> _addSong(PrepSection section) async {
@@ -798,6 +803,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     final titleController = TextEditingController();
     final artistController = TextEditingController();
     var lookingUp = false;
+    var closing = false;
     String? lookupError;
 
     final confirmed = await showDialog<bool>(
@@ -805,21 +811,24 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           Future<void> lookUp() async {
+            if (closing) return;
             final id = _extractVideoId(linkController.text);
             if (id == null) {
+              if (!dialogContext.mounted) return;
               setDialogState(
                 () => lookupError = 'That does not look like a YouTube link.',
               );
               return;
             }
 
+            if (!dialogContext.mounted) return;
             setDialogState(() {
               lookingUp = true;
               lookupError = null;
             });
 
             final details = await _fetchSongDetails(id);
-            if (!dialogContext.mounted) return;
+            if (closing || !dialogContext.mounted) return;
 
             setDialogState(() {
               lookingUp = false;
@@ -891,7 +900,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
+                onPressed: () {
+                  closing = true;
+                  _closeDialog(dialogContext, false);
+                },
                 child: const Text('Cancel'),
               ),
               FilledButton(
@@ -903,8 +915,9 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                     await lookUp();
                     if (titleController.text.trim().isEmpty) return;
                   }
-                  if (!dialogContext.mounted) return;
-                  Navigator.of(dialogContext).pop(true);
+                  if (closing || !dialogContext.mounted) return;
+                  closing = true;
+                  _closeDialog(dialogContext, true);
                 },
                 child: const Text('Add'),
               ),
@@ -948,27 +961,29 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Edit song'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Song title'),
-            ),
-            TextField(
-              controller: artistController,
-              decoration: const InputDecoration(labelText: 'Artist'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Song title'),
+              ),
+              TextField(
+                controller: artistController,
+                decoration: const InputDecoration(labelText: 'Artist'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => _closeDialog(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => _closeDialog(dialogContext, true),
             child: const Text('Save'),
           ),
         ],
@@ -1015,11 +1030,11 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => _closeDialog(dialogContext, false),
             child: const Text('Keep'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => _closeDialog(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Colors.white,
@@ -1581,8 +1596,11 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                     ? PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert, size: 20),
                         onSelected: (value) {
-                          if (value == 'edit') _editSong(section, track);
-                          if (value == 'delete') _deleteSong(section, track);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            if (value == 'edit') _editSong(section, track);
+                            if (value == 'delete') _deleteSong(section, track);
+                          });
                         },
                         itemBuilder: (ctx) => const [
                           PopupMenuItem(value: 'edit', child: Text('Edit')),

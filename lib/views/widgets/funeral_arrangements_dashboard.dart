@@ -236,6 +236,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
 
   late TextEditingController _nameController;
   late TextEditingController _notesController;
+  late TextEditingController _prepaidController;
   late TextEditingController _urlController;
   Timer? _debounce;
   bool _initialized = false;
@@ -245,6 +246,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
     super.initState();
     _nameController = TextEditingController(text: widget.entry.name);
     _notesController = TextEditingController(text: widget.entry.notes);
+    _prepaidController =
+        TextEditingController(text: widget.entry.prepaidDetails);
     _urlController = TextEditingController(text: widget.entry.url);
     _initialized = true;
   }
@@ -259,6 +262,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
         (_initialized && _nameController.text != widget.entry.name)) {
       _nameController.text = widget.entry.name;
       _notesController.text = widget.entry.notes;
+      _prepaidController.text = widget.entry.prepaidDetails;
       _urlController.text = widget.entry.url;
     }
   }
@@ -268,6 +272,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
     _debounce?.cancel();
     _nameController.dispose();
     _notesController.dispose();
+    _prepaidController.dispose();
     _urlController.dispose();
     super.dispose();
   }
@@ -284,6 +289,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
     final updated = widget.entry.copyWith(
       name: name,
       notes: _notesController.text,
+      prepaidDetails: _prepaidController.text,
       url: _urlController.text.trim(),
     );
     await repo.update(updated);
@@ -391,7 +397,17 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
                   controller: _notesController,
                   hint: 'Funeral wishes, instructions, etc.',
                   maxLines: null,
-                  minLines: 4,
+                  minLines: 2,
+                  enabled: widget.isOwner,
+                ),
+                const SizedBox(height: 12),
+                // Prepaid details
+                _buildField(
+                  label: 'Prepaid details',
+                  controller: _prepaidController,
+                  hint: 'Prepaid plan, provider, policy number, etc.',
+                  maxLines: null,
+                  minLines: 2,
                   enabled: widget.isOwner,
                 ),
                 const SizedBox(height: 12),

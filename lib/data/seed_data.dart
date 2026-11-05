@@ -100,7 +100,7 @@ const List<DefaultSection> defaultSections = [
     orderIndex: 7,
     youtubeUrl: 'https://www.youtube.com/watch?v=lHzhH_tJ7ak',
     checklistItems: [
-      'Arrange a formal written valuation for the house(s) from a chartererd surveyor',
+      'Arrange a formal written valuation for the house(s) from a chartered surveyor',
       'Confirm final balances across all financial accounts (see Organisations in Who To Notify)',
       'Confirm HMRC to get an Inheritance Tax Refernce Number',
       'Fill in HMRC Tax Forms',
