@@ -274,7 +274,11 @@ class _LegalDocumentsDashboardState
         const SizedBox(height: 28),
         _buildTitleDeedsSection(deeds),
         const SizedBox(height: 28),
-        SongForThePageSection(youtubeUrl: widget.youtubeUrl),
+        SongForThePageSection(
+          youtubeUrl: widget.youtubeUrl,
+          sectionId: widget.sectionId,
+          isOwner: widget.isOwner,
+        ),
       ],
     );
   }

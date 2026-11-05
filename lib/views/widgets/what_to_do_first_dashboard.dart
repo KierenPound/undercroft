@@ -500,7 +500,11 @@ class _WhatToDoFirstDashboardState
         const SizedBox(height: 28),
         _buildPhonesComputersSection(),
         const SizedBox(height: 28),
-        SongForThePageSection(youtubeUrl: widget.youtubeUrl),
+        SongForThePageSection(
+          youtubeUrl: widget.youtubeUrl,
+          sectionId: widget.sectionId,
+          isOwner: widget.isOwner,
+        ),
       ],
     );
   }

@@ -159,7 +159,11 @@ class WhoToNotifyListView extends ConsumerWidget {
                     const SizedBox(height: 24),
                     const _AppleAccountInstructions(),
                     const SizedBox(height: 24),
-                    SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                    SongForThePageSection(
+                      youtubeUrl: section.youtubeUrl,
+                      sectionId: section.id,
+                      isOwner: isOwner,
+                    ),
                     const SizedBox(height: 24),
                     ChecklistSection(
                       sectionId: section.id,

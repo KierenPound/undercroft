@@ -149,7 +149,11 @@ class SectionDetailView extends ConsumerWidget {
                       const SizedBox(height: 28),
                       const ConfirmationDashboard(),
                       const SizedBox(height: 28),
-                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
                     ] else if (section.title == 'Cars') ...[
                       PhotoSection(
                         sectionId: section.id,
@@ -162,7 +166,11 @@ class SectionDetailView extends ConsumerWidget {
                       const SizedBox(height: 28),
                       const CarsDashboard(),
                       const SizedBox(height: 28),
-                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
                     ] else if (section.title == 'Funeral Arrangements') ...[
                       PhotoSection(
                         sectionId: section.id,
@@ -178,7 +186,11 @@ class SectionDetailView extends ConsumerWidget {
                         isOwner: isOwner,
                       ),
                       const SizedBox(height: 28),
-                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
                     ] else if (section.title == 'Running the Houses') ...[
                       PhotoSection(
                         sectionId: section.id,
@@ -194,7 +206,11 @@ class SectionDetailView extends ConsumerWidget {
                         isOwner: isOwner,
                       ),
                       const SizedBox(height: 28),
-                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
                     ] else ...[
                       PhotoSection(
                         sectionId: section.id,
@@ -204,7 +220,11 @@ class SectionDetailView extends ConsumerWidget {
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 24),
-                      SongForThePageSection(youtubeUrl: section.youtubeUrl),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
                     ],
                     const SizedBox(height: 24),
                     ChecklistSection(

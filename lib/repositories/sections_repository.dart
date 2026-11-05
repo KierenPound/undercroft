@@ -46,7 +46,12 @@ class SectionsRepository {
     if (existing != null) {
       final currentYoutube = existing['youtube_url'] as String? ?? '';
       final currentOrder = existing['order_index'] as int? ?? 0;
-      if (currentYoutube != youtubeUrl || currentOrder != orderIndex) {
+      // Only fall back to the seed URL while the section has none. Once a URL
+      // is stored (including one the owner set via "Song for the page"), it is
+      // treated as the source of truth and never overwritten by the defaults.
+      final resolvedYoutube =
+          currentYoutube.isNotEmpty ? currentYoutube : youtubeUrl;
+      if (resolvedYoutube != currentYoutube || currentOrder != orderIndex) {
         // Executors can read sections but not write them (RLS:
         // sections_owner_update), so for them this update matches no rows.
         // Read the result back locally instead of asking PostgREST to coerce
@@ -55,14 +60,14 @@ class SectionsRepository {
         await _client
             .from('sections')
             .update({
-              'youtube_url': youtubeUrl,
+              'youtube_url': resolvedYoutube,
               'order_index': orderIndex,
             })
             .eq('id', existing['id']);
 
         return PrepSection.fromJson({
           ...existing,
-          'youtube_url': youtubeUrl,
+          'youtube_url': resolvedYoutube,
           'order_index': orderIndex,
         });
       }
@@ -94,6 +99,18 @@ class SectionsRepository {
         .select()
         .single();
     return PrepSection.fromJson(data);
+  }
+
+  /// Updates only the section's YouTube URL. Used by "Song for the page" so a
+  /// single field can be replaced without touching the rest of the row.
+  Future<void> updateYoutubeUrl({
+    required String sectionId,
+    required String youtubeUrl,
+  }) async {
+    await _client
+        .from('sections')
+        .update({'youtube_url': youtubeUrl})
+        .eq('id', sectionId);
   }
 
   Future<PrepSection> fetchSection(String sectionId) async {
