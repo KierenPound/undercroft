@@ -876,10 +876,12 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                   ),
                   TextField(
                     controller: titleController,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(labelText: 'Song title'),
                   ),
                   TextField(
                     controller: artistController,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(labelText: 'Artist'),
                   ),
                   if (lookupError != null) ...[
@@ -968,10 +970,12 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               TextField(
                 controller: titleController,
                 autofocus: true,
+                textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(labelText: 'Song title'),
               ),
               TextField(
                 controller: artistController,
+                textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(labelText: 'Artist'),
               ),
             ],

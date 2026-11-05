@@ -430,6 +430,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
             if (widget.isOwner)
               TextField(
                 controller: _titleController,
+                textCapitalization: TextCapitalization.sentences,
                 style:
                     const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 decoration: const InputDecoration(
@@ -596,6 +597,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
                   controller: _notesController,
                   maxLines: null,
                   minLines: 3,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     hintText: 'Notes',
                     border: OutlineInputBorder(),

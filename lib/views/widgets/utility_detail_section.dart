@@ -365,6 +365,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
                         focusNode: _notesFocusNode,
                         onTapOutside: (_) => _notesFocusNode.unfocus(),
                         keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
                         maxLines: null,
                         expands: true,
                         textAlignVertical: TextAlignVertical.top,

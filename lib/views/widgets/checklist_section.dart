@@ -89,6 +89,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(labelText: 'Item text'),
         ),
         actions: [
@@ -297,6 +298,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
           Expanded(
             child: TextField(
               controller: _newItemController,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'Add a new item...',
                 border: InputBorder.none,

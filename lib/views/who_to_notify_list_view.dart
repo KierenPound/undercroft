@@ -208,6 +208,7 @@ class WhoToNotifyListView extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Company name'),
           onSubmitted: (value) => Navigator.of(ctx).pop(value),
         ),

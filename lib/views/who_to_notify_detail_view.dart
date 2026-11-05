@@ -211,6 +211,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                   child: isOwner
                       ? TextField(
                           controller: _companyNameController,
+                          textCapitalization: TextCapitalization.words,
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w700),
                           decoration: const InputDecoration(
@@ -375,6 +376,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
               ? TextField(
                   controller: _notesController,
                   maxLines: 3,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Supplementary notes',
                     border: OutlineInputBorder(),

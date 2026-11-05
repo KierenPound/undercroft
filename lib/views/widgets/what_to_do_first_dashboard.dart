@@ -793,6 +793,7 @@ class _WhatToDoFirstDashboardState
                             maxLines: 6,
                             minLines: 4,
                             enabled: widget.isOwner,
+                            textCapitalization: TextCapitalization.sentences,
                             onChanged: (_) => _schedulePetSave(),
                             decoration: InputDecoration(
                               hintText: 'Notes about the pets...',
@@ -829,6 +830,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.shield_outlined,
                   tint: const Color(0xFFE08A2C),
                   label: 'Insurance company',
+                  textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 10),
                 _petEditableField(
@@ -868,6 +870,7 @@ class _WhatToDoFirstDashboardState
                   icon: Icons.store,
                   tint: Colors.teal,
                   label: 'Vet name',
+                  textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 10),
                 _petEditableContactField(
@@ -914,6 +917,7 @@ class _WhatToDoFirstDashboardState
     required IconData icon,
     required Color tint,
     required String label,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -944,6 +948,7 @@ class _WhatToDoFirstDashboardState
               child: TextField(
                 controller: controller,
                 enabled: widget.isOwner,
+                textCapitalization: textCapitalization,
                 onChanged: (_) => _schedulePetSave(),
                 decoration: const InputDecoration(
                   border: InputBorder.none,

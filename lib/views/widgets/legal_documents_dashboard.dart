@@ -440,6 +440,7 @@ class _LegalDocumentsDashboardState
                         focusNode: _introFocusNode,
                         maxLines: null,
                         minLines: 1,
+                        textCapitalization: TextCapitalization.sentences,
                         onChanged: (_) => _scheduleSave(),
                         decoration: const InputDecoration(
                           hintText:

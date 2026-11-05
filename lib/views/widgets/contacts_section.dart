@@ -394,6 +394,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
           value: widget.contact.name,
           controller: _nameController,
           keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 10),
         _fieldRow(
@@ -499,6 +500,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
     Color? rowTint,
     IconData? actionIcon,
     VoidCallback? onAction,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     final color = rowTint ?? tint;
     final text = widget.isOwner ? controller.text : value;
@@ -520,6 +522,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
                 ? TextField(
                     controller: controller,
                     keyboardType: keyboardType,
+                    textCapitalization: textCapitalization,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: hint,

@@ -99,6 +99,7 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Name (e.g. Kieren, Bren)',
             hintText: 'The section will show "Funeral (name)"',
@@ -389,6 +390,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
                   controller: _nameController,
                   hint: 'Name',
                   enabled: widget.isOwner,
+                  textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 12),
                 // Notes
@@ -503,6 +505,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
     int? maxLines = 1,
     int? minLines,
     required bool enabled,
+    TextCapitalization textCapitalization = TextCapitalization.sentences,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,6 +524,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
           enabled: enabled,
           maxLines: maxLines,
           minLines: minLines,
+          textCapitalization: textCapitalization,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400),

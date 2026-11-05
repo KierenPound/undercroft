@@ -371,6 +371,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
           value: widget.tradesperson.name,
           controller: _nameController,
           keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 10),
         _fieldRow(
@@ -519,6 +520,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
     Color? rowTint,
     IconData? actionIcon,
     VoidCallback? onAction,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     final color = rowTint ?? tint;
     final text = widget.isOwner ? controller.text : value;
@@ -540,6 +542,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                 ? TextField(
                     controller: controller,
                     keyboardType: keyboardType,
+                    textCapitalization: textCapitalization,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: hint,
@@ -608,6 +611,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                 ? TextField(
                     controller: _notesController,
                     keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
                     maxLines: null,
                     minLines: 3,
                     decoration: InputDecoration(

@@ -145,6 +145,7 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
         maxLines: null,
         minLines: 6,
         enabled: widget.isOwner,
+        textCapitalization: TextCapitalization.sentences,
         onChanged: widget.isOwner ? (_) => _scheduleSave() : null,
         decoration: InputDecoration(
           hintText: widget.isOwner
