@@ -199,6 +199,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
   String _lastSavedNi = '';
   String _lastSavedChi = '';
   bool _busy = false;
+  bool _expanded = false;
 
   @override
   void initState() {
@@ -406,14 +407,27 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2E),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C2C2E),
+                    ),
                   ),
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 22,
+                  color: Colors.grey.shade600,
+                ),
+                onPressed: () => setState(() => _expanded = !_expanded),
+                tooltip: _expanded ? 'Hide details' : 'Show details',
               ),
               if (widget.isOwner)
                 IconButton(
@@ -431,45 +445,47 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
             hint: 'Full name',
             textCapitalization: TextCapitalization.words,
           ),
-          const SizedBox(height: 12),
-          _buildField(
-            label: 'NI number',
-            controller: _niController,
-            hint: 'QQ 12 34 56 C',
-            monospace: true,
-            inputFormatters: [_UpperCaseFormatter()],
-          ),
-          const SizedBox(height: 12),
-          _buildField(
-            label: 'CHI number',
-            controller: _chiController,
-            hint: '10 digits',
-            monospace: true,
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _documentSlot(
-                  doc: AboutYouDocument.passport,
-                  label: 'Passport',
-                  icon: Icons.menu_book_outlined,
+          if (_expanded) ...[
+            const SizedBox(height: 12),
+            _buildField(
+              label: 'NI number',
+              controller: _niController,
+              hint: 'QQ 12 34 56 C',
+              monospace: true,
+              inputFormatters: [_UpperCaseFormatter()],
+            ),
+            const SizedBox(height: 12),
+            _buildField(
+              label: 'CHI number',
+              controller: _chiController,
+              hint: '10 digits',
+              monospace: true,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _documentSlot(
+                    doc: AboutYouDocument.passport,
+                    label: 'Passport',
+                    icon: Icons.menu_book_outlined,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _documentSlot(
-                  doc: AboutYouDocument.licence,
-                  label: 'Driving licence',
-                  icon: Icons.directions_car_outlined,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _documentSlot(
+                    doc: AboutYouDocument.licence,
+                    label: 'Driving licence',
+                    icon: Icons.directions_car_outlined,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );
