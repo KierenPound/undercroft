@@ -438,14 +438,14 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildField(
-            label: 'Full name',
-            controller: _nameController,
-            hint: 'Full name',
-            textCapitalization: TextCapitalization.words,
-          ),
           if (_expanded) ...[
+            const SizedBox(height: 12),
+            _buildField(
+              label: 'Full name',
+              controller: _nameController,
+              hint: 'Full name',
+              textCapitalization: TextCapitalization.words,
+            ),
             const SizedBox(height: 12),
             _buildField(
               label: 'NI number',
