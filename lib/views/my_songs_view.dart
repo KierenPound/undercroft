@@ -970,12 +970,17 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               TextField(
                 controller: titleController,
                 autofocus: true,
+                maxLines: 2,
+                textAlign: TextAlign.start,
                 textCapitalization: TextCapitalization.words,
+                style: const TextStyle(fontSize: 16),
                 decoration: const InputDecoration(labelText: 'Song title'),
               ),
               TextField(
                 controller: artistController,
+                textAlign: TextAlign.start,
                 textCapitalization: TextCapitalization.words,
+                style: const TextStyle(fontSize: 16),
                 decoration: const InputDecoration(labelText: 'Artist'),
               ),
             ],
