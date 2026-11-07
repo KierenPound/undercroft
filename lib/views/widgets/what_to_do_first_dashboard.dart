@@ -68,14 +68,28 @@ class _WhatToDoFirstDashboardState
 
   // Pets — photo + notes + insurer/microchip details + vet contact details.
   final _petNotesController = TextEditingController();
+  final _petNotesFocusNode = FocusNode();
   final _petInsuranceCompanyController = TextEditingController();
+  final _petInsuranceCompanyFocusNode = FocusNode();
   final _petPolicyNumberController = TextEditingController();
+  final _petPolicyNumberFocusNode = FocusNode();
   final _petMicrochipNumberController = TextEditingController();
+  final _petMicrochipNumberFocusNode = FocusNode();
   final _vetNameController = TextEditingController();
+  final _vetNameFocusNode = FocusNode();
   final _vetPhoneController = TextEditingController();
+  final _vetPhoneFocusNode = FocusNode();
   final _vetUrlController = TextEditingController();
+  final _vetUrlFocusNode = FocusNode();
   Timer? _petSaveTimer;
   String _lastSavedPetNotes = '';
+  String? _lastAppliedStoredPetNotes;
+  String? _lastAppliedStoredPetInsuranceCompany;
+  String? _lastAppliedStoredPetPolicyNumber;
+  String? _lastAppliedStoredPetMicrochipNumber;
+  String? _lastAppliedStoredVetName;
+  String? _lastAppliedStoredVetPhone;
+  String? _lastAppliedStoredVetUrl;
   String _lastSavedPetInsuranceCompany = '';
   String _lastSavedPetPolicyNumber = '';
   String _lastSavedPetMicrochipNumber = '';
@@ -97,12 +111,19 @@ class _WhatToDoFirstDashboardState
     _computerPassword2Controller.dispose();
     _wifiPasswordController.dispose();
     _petNotesController.dispose();
+    _petNotesFocusNode.dispose();
     _petInsuranceCompanyController.dispose();
+    _petInsuranceCompanyFocusNode.dispose();
     _petPolicyNumberController.dispose();
+    _petPolicyNumberFocusNode.dispose();
     _petMicrochipNumberController.dispose();
+    _petMicrochipNumberFocusNode.dispose();
     _vetNameController.dispose();
+    _vetNameFocusNode.dispose();
     _vetPhoneController.dispose();
+    _vetPhoneFocusNode.dispose();
     _vetUrlController.dispose();
+    _vetUrlFocusNode.dispose();
     super.dispose();
   }
 
@@ -434,6 +455,70 @@ class _WhatToDoFirstDashboardState
         asyncAttachments.isLoading && !asyncAttachments.hasValue;
 
     final asyncSection = ref.watch(sectionProvider(widget.sectionId));
+
+    // Adopt whatever is stored the first time it arrives, and again whenever it
+    // changes underneath us, without stomping on an in-flight edit. While the
+    // field has focus the controller is the source of truth, so re-syncing here
+    // would overwrite in-progress typing and jump the cursor.
+    final storedPetNotes = asyncSection.valueOrNull?.petNotes ?? '';
+    if (_lastAppliedStoredPetNotes != storedPetNotes &&
+        !_petNotesFocusNode.hasFocus) {
+      _petNotesController.text = storedPetNotes;
+      _lastSavedPetNotes = storedPetNotes;
+      _lastAppliedStoredPetNotes = storedPetNotes;
+    }
+
+    final storedPetInsuranceCompany =
+        asyncSection.valueOrNull?.petInsuranceCompany ?? '';
+    if (_lastAppliedStoredPetInsuranceCompany != storedPetInsuranceCompany &&
+        !_petInsuranceCompanyFocusNode.hasFocus) {
+      _petInsuranceCompanyController.text = storedPetInsuranceCompany;
+      _lastSavedPetInsuranceCompany = storedPetInsuranceCompany;
+      _lastAppliedStoredPetInsuranceCompany = storedPetInsuranceCompany;
+    }
+
+    final storedPetPolicyNumber =
+        asyncSection.valueOrNull?.petPolicyNumber ?? '';
+    if (_lastAppliedStoredPetPolicyNumber != storedPetPolicyNumber &&
+        !_petPolicyNumberFocusNode.hasFocus) {
+      _petPolicyNumberController.text = storedPetPolicyNumber;
+      _lastSavedPetPolicyNumber = storedPetPolicyNumber;
+      _lastAppliedStoredPetPolicyNumber = storedPetPolicyNumber;
+    }
+
+    final storedPetMicrochipNumber =
+        asyncSection.valueOrNull?.petMicrochipNumber ?? '';
+    if (_lastAppliedStoredPetMicrochipNumber != storedPetMicrochipNumber &&
+        !_petMicrochipNumberFocusNode.hasFocus) {
+      _petMicrochipNumberController.text = storedPetMicrochipNumber;
+      _lastSavedPetMicrochipNumber = storedPetMicrochipNumber;
+      _lastAppliedStoredPetMicrochipNumber = storedPetMicrochipNumber;
+    }
+
+    final storedVetName = asyncSection.valueOrNull?.vetName ?? '';
+    if (_lastAppliedStoredVetName != storedVetName &&
+        !_vetNameFocusNode.hasFocus) {
+      _vetNameController.text = storedVetName;
+      _lastSavedVetName = storedVetName;
+      _lastAppliedStoredVetName = storedVetName;
+    }
+
+    final storedVetPhone = asyncSection.valueOrNull?.vetPhone ?? '';
+    if (_lastAppliedStoredVetPhone != storedVetPhone &&
+        !_vetPhoneFocusNode.hasFocus) {
+      _vetPhoneController.text = storedVetPhone;
+      _lastSavedVetPhone = storedVetPhone;
+      _lastAppliedStoredVetPhone = storedVetPhone;
+    }
+
+    final storedVetUrl = asyncSection.valueOrNull?.vetUrl ?? '';
+    if (_lastAppliedStoredVetUrl != storedVetUrl &&
+        !_vetUrlFocusNode.hasFocus) {
+      _vetUrlController.text = storedVetUrl;
+      _lastSavedVetUrl = storedVetUrl;
+      _lastAppliedStoredVetUrl = storedVetUrl;
+    }
+
     asyncSection.maybeWhen(
       data: (section) {
         // Only initialize the controllers once from the stored section data.
@@ -459,21 +544,6 @@ class _WhatToDoFirstDashboardState
           _lastSavedPhonePin2 = section.phonePin2;
           _lastSavedComputerPassword2 = section.computerPassword2;
           _lastSavedWifiPassword = section.wifiPassword;
-
-          _petNotesController.text = section.petNotes;
-          _petInsuranceCompanyController.text = section.petInsuranceCompany;
-          _petPolicyNumberController.text = section.petPolicyNumber;
-          _petMicrochipNumberController.text = section.petMicrochipNumber;
-          _vetNameController.text = section.vetName;
-          _vetPhoneController.text = section.vetPhone;
-          _vetUrlController.text = section.vetUrl;
-          _lastSavedPetNotes = section.petNotes;
-          _lastSavedPetInsuranceCompany = section.petInsuranceCompany;
-          _lastSavedPetPolicyNumber = section.petPolicyNumber;
-          _lastSavedPetMicrochipNumber = section.petMicrochipNumber;
-          _lastSavedVetName = section.vetName;
-          _lastSavedVetPhone = section.vetPhone;
-          _lastSavedVetUrl = section.vetUrl;
 
           _registrarInitialized = true;
         }
@@ -790,6 +860,7 @@ class _WhatToDoFirstDashboardState
                           const SizedBox(height: 6),
                           TextField(
                             controller: _petNotesController,
+                            focusNode: _petNotesFocusNode,
                             maxLines: 6,
                             minLines: 4,
                             enabled: widget.isOwner,
@@ -827,6 +898,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 16),
                 _petEditableField(
                   controller: _petInsuranceCompanyController,
+                  focusNode: _petInsuranceCompanyFocusNode,
                   icon: Icons.shield_outlined,
                   tint: const Color(0xFFE08A2C),
                   label: 'Insurance company',
@@ -835,6 +907,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 10),
                 _petEditableField(
                   controller: _petPolicyNumberController,
+                  focusNode: _petPolicyNumberFocusNode,
                   icon: Icons.numbers,
                   tint: const Color(0xFFE08A2C),
                   label: 'Policy number',
@@ -842,6 +915,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 10),
                 _petEditableField(
                   controller: _petMicrochipNumberController,
+                  focusNode: _petMicrochipNumberFocusNode,
                   icon: Icons.memory,
                   tint: const Color(0xFFE08A2C),
                   label: 'Microchip number',
@@ -867,6 +941,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 12),
                 _petEditableField(
                   controller: _vetNameController,
+                  focusNode: _vetNameFocusNode,
                   icon: Icons.store,
                   tint: Colors.teal,
                   label: 'Vet name',
@@ -875,6 +950,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 10),
                 _petEditableContactField(
                   controller: _vetPhoneController,
+                  focusNode: _vetPhoneFocusNode,
                   icon: Icons.phone,
                   tint: Colors.green,
                   hint: 'Phone',
@@ -886,6 +962,7 @@ class _WhatToDoFirstDashboardState
                 const SizedBox(height: 10),
                 _petEditableContactField(
                   controller: _vetUrlController,
+                  focusNode: _vetUrlFocusNode,
                   icon: Icons.public_rounded,
                   tint: Colors.blue,
                   hint: 'Website',
@@ -918,6 +995,7 @@ class _WhatToDoFirstDashboardState
     required Color tint,
     required String label,
     TextCapitalization textCapitalization = TextCapitalization.none,
+    FocusNode? focusNode,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -947,6 +1025,7 @@ class _WhatToDoFirstDashboardState
             Expanded(
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 enabled: widget.isOwner,
                 textCapitalization: textCapitalization,
                 onChanged: (_) => _schedulePetSave(),
@@ -977,6 +1056,7 @@ class _WhatToDoFirstDashboardState
     required TextInputType keyboardType,
     required IconData actionIcon,
     required VoidCallback onAction,
+    FocusNode? focusNode,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -992,6 +1072,7 @@ class _WhatToDoFirstDashboardState
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               keyboardType: keyboardType,
               enabled: widget.isOwner,
               onChanged: (_) => _schedulePetSave(),

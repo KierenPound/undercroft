@@ -242,6 +242,11 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
   late TextEditingController _emailController;
   bool _tileIsOpen = false;
 
+  /// Set once the owner has typed something that has not been saved yet. While
+  /// it is set the controllers are left alone, so collapsing and re-opening a
+  /// tile does not discard in-progress edits.
+  bool _hasUnsavedEdits = false;
+
   @override
   void initState() {
     super.initState();
@@ -265,6 +270,9 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
   bool get _startsOpen => widget.isOwner && widget.contact.name.trim().isEmpty;
 
   void _syncControllers() {
+    // Leave in-progress edits alone; they would otherwise be wiped out when the
+    // tile is collapsed and re-opened.
+    if (_hasUnsavedEdits) return;
     _nameController.text = widget.contact.name;
     _phoneController.text = widget.contact.telephone;
     _emailController.text = widget.contact.email;
@@ -289,6 +297,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
         email: _emailController.text.trim(),
         createdAt: DateTime.now(),
       ));
+      _hasUnsavedEdits = false;
       ref.invalidate(contactsListProvider);
       widget.onCommitted?.call();
       return;
@@ -299,6 +308,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
       telephone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
     ));
+    _hasUnsavedEdits = false;
     ref.invalidate(contactsListProvider);
     if (!mounted) return;
     if (_tileIsOpen) _tileController.collapse();
@@ -523,7 +533,10 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
                     controller: controller,
                     keyboardType: keyboardType,
                     textCapitalization: textCapitalization,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) {
+                      _hasUnsavedEdits = true;
+                      setState(() {});
+                    },
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: TextStyle(
