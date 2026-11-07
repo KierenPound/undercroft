@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import '../services/photo_cache_service.dart';
 
 class OnboardingView extends ConsumerStatefulWidget {
   final ValueChanged<String> onComplete;
@@ -274,6 +275,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                             onPressed: _isLoading
                                 ? null
                                 : () async {
+                                    await clearEstatePhotoCache();
                                     await Supabase.instance.client.auth
                                         .signOut();
                                   },

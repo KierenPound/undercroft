@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../services/photo_cache_service.dart';
+
 /// Password reset screen.
 ///
 /// Two modes:
@@ -128,6 +130,7 @@ class _PasswordResetViewState extends State<PasswordResetView> {
           .updateUser(UserAttributes(password: password));
       // Sign out so the user signs in fresh with their new password. This also
       // clears the recovery-session flag via the signedOut auth event.
+      await clearEstatePhotoCache();
       await Supabase.instance.client.auth.signOut();
       if (mounted) {
         setState(() => _info =

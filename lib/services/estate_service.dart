@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'photo_cache_service.dart';
+
 class EstateContext {
   final String estateId;
   final String role;
@@ -511,6 +513,7 @@ Future<void> deleteMyAccount() async {
   // The auth user no longer exists, so clear the dead session locally and let
   // the router send the user back to sign-in.
   try {
+    await clearEstatePhotoCache();
     await client.auth.signOut();
   } catch (_) {}
 }

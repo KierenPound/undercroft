@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+import '../../services/photo_cache_service.dart';
 import 'attachments_section.dart';
 
 /// A reusable photo section that can be added to any section.
@@ -76,6 +78,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
       for (final a in existing) {
         if (a.fileName.toLowerCase().startsWith('photo_')) {
           await repo.deleteAttachment(a);
+          await evictEstatePhotoFromCache(a);
         }
       }
 
@@ -227,16 +230,15 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
     if (photoAttachment == null || photoAttachment.downloadUrl.isEmpty) {
       return _defaultImage();
     }
-    return Image.network(
-      photoAttachment.downloadUrl,
+    return CachedNetworkImage(
+      imageUrl: photoAttachment.downloadUrl,
+      cacheKey: estatePhotoCacheKey(photoAttachment),
+      cacheManager: EstatePhotoCacheManager(),
       fit: BoxFit.cover,
       width: double.infinity,
-      gaplessPlayback: true,
-      // Hold the placeholder until the stored photo has pixels: returning the
-      // default asset here paints a second image that then fades out.
-      loadingBuilder: (context, child, loadingProgress) =>
-          loadingProgress == null ? child : const MemoryPhotoPlaceholder(),
-      errorBuilder: (_, __, ___) => _defaultImage(),
+      memCacheWidth: 800,
+      placeholder: (_, __) => const MemoryPhotoPlaceholder(),
+      errorWidget: (_, __, ___) => _defaultImage(),
     );
   }
 
@@ -245,6 +247,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
       widget.defaultAsset,
       fit: BoxFit.cover,
       width: double.infinity,
+      cacheWidth: 600,
       errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
     );
   }
@@ -327,6 +330,7 @@ class _FullscreenPhotoViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final attachment = photoAttachment;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -340,19 +344,16 @@ class _FullscreenPhotoViewer extends StatelessWidget {
       ),
       body: Center(
         child: InteractiveViewer(
-          child: photoAttachment != null &&
-                  photoAttachment!.downloadUrl.isNotEmpty
-              ? Image.network(
-                  photoAttachment!.downloadUrl,
+          child: attachment != null && attachment.downloadUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: attachment.downloadUrl,
+                  cacheKey: estatePhotoCacheKey(attachment),
+                  cacheManager: EstatePhotoCacheManager(),
                   fit: BoxFit.contain,
-                  gaplessPlayback: true,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white54),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Image.asset(
+                  placeholder: (_, __) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white54),
+                  ),
+                  errorWidget: (_, __, ___) => Image.asset(
                     defaultAsset,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const SizedBox.shrink(),

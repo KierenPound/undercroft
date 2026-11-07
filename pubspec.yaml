@@ -1,7 +1,7 @@
 name: undercroft
 description: Multi-platform (iOS + Android) estate preparation companion app.
 publish_to: 'none'
-version: 1.0.0+13
+version: 1.0.0+14
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -49,6 +49,8 @@ dependencies:
   share_plus: ^12.0.2
   printing: ^5.15.1
   pdf: ^3.13.1
+  cached_network_image: ^4.0.6
+  flutter_cache_manager: ^3.5.0
 
 dev_dependencies:
   flutter_test:

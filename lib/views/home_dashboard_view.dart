@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/estate_service.dart';
+import '../services/photo_cache_service.dart';
 
 class HomeDashboardView extends ConsumerWidget {
   const HomeDashboardView({super.key});
@@ -84,6 +85,7 @@ class HomeDashboardView extends ConsumerWidget {
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
             onPressed: () async {
+              await clearEstatePhotoCache();
               await Supabase.instance.client.auth.signOut();
               if (context.mounted) context.go('/login');
             },
