@@ -415,6 +415,24 @@ class CarsDashboard extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.phonelink_erase, color: Colors.red, size: 16),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Remember to erase your personal data, like phones or '
+                        'sat nav destinations.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF2C2C2E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

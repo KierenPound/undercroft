@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/attachment.dart';
 import '../../models/prep_section.dart';
 import '../../repositories/sections_repository.dart';
+import '../../services/estate_service.dart';
 import 'attachments_section.dart';
 import 'song_for_the_page_section.dart';
 
@@ -263,6 +264,9 @@ class _LegalDocumentsDashboardState
     final attachments =
         ref.watch(attachmentsProvider(widget.sectionId)).valueOrNull ??
             <Attachment>[];
+    final processRegion =
+        ref.watch(estateProcessRegionProvider).valueOrNull ??
+            EstateProcessRegion.scotland;
     final wills = _filterAttachments(attachments, 'will_');
     final codicils = _filterAttachments(attachments, 'codicil_');
     final deeds = _filterAttachments(attachments, 'deed_');
@@ -272,7 +276,7 @@ class _LegalDocumentsDashboardState
       children: [
         _buildWillsSection(wills, codicils),
         const SizedBox(height: 28),
-        _buildTitleDeedsSection(deeds),
+        _buildTitleDeedsSection(deeds, processRegion),
         const SizedBox(height: 28),
         SongForThePageSection(
           youtubeUrl: widget.youtubeUrl,
@@ -583,7 +587,15 @@ class _LegalDocumentsDashboardState
 
   // MARK: - Title Deeds
 
-  Widget _buildTitleDeedsSection(List<Attachment> deeds) {
+  Widget _buildTitleDeedsSection(
+    List<Attachment> deeds,
+    EstateProcessRegion processRegion,
+  ) {
+    final introText = processRegion == EstateProcessRegion.ewni
+        ? 'Below are the official title registers and plans from '
+            'HM Land Registry.'
+        : 'Below are the official title sheets and plans from '
+            'Scotland Land Information Service.';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -599,10 +611,10 @@ class _LegalDocumentsDashboardState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Below are the official title sheets and plans from '
-                  'Scotland Land Information Service.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                Text(
+                  introText,
+                  style: const TextStyle(
+                      fontSize: 15, color: Color(0xFF2C2C2E)),
                 ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
