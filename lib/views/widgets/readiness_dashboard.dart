@@ -36,9 +36,24 @@ class ReadinessDashboard extends ConsumerWidget {
       data: (invites) {
         final readiness = EstateReadiness.fromInvites(invites);
 
-        final otherInvited = readiness.pendingCount > 0 ||
-            readiness.acceptedOwnerCount > 0 ||
-            readiness.acceptedExecutorCount > 0;
+        // Estate-level, so it reads the same for an owner and a co-owner.
+        // The estate has invited someone else once more than one person has
+        // access, or an invite is still outstanding. Counted across the whole
+        // estate rather than relative to the viewer (unlike the isSelf-based
+        // steps below), so a co-owner never sees a personal version of it.
+        var acceptedMembers = 0;
+        var pendingInvites = 0;
+        for (final invite in invites) {
+          if (invite.isRevoked) continue;
+          if (invite.isPending) {
+            pendingInvites++;
+          } else if (invite.status == 'accepted') {
+            acceptedMembers++;
+          }
+        }
+        final estateInvitedSomeone =
+            acceptedMembers >= 2 || pendingInvites > 0;
+
         final anyAccepted =
             readiness.acceptedOwnerCount > 0 || readiness.acceptedExecutorCount > 0;
 
@@ -46,8 +61,9 @@ class ReadinessDashboard extends ConsumerWidget {
         // have to act — sits at the bottom as the goal.
         final steps = <({String label, bool met})>[
           (
-            label: 'You have invited someone else to access your estate',
-            met: otherInvited,
+            label:
+                'The estate owner has invited someone else to access this estate',
+            met: estateInvitedSomeone,
           ),
           (label: 'An invite has been accepted', met: anyAccepted),
           (
