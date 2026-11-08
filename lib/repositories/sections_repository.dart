@@ -36,12 +36,26 @@ class SectionsRepository {
     bool isStandard = false,
     String youtubeUrl = '',
   }) async {
-    final existing = await _client
-        .from('sections')
-        .select()
-        .eq('estate_id', estateId)
-        .eq('title', title)
-        .maybeSingle();
+    // Older app versions created this section under the plural title. Keep
+    // using that row if it exists so its checklist and attached data remain
+    // available after the displayed title changes.
+    final legacyTitle =
+        title == 'Running the House' ? 'Running the Houses' : null;
+    final legacyExisting = legacyTitle == null
+        ? null
+        : await _client
+            .from('sections')
+            .select()
+            .eq('estate_id', estateId)
+            .eq('title', legacyTitle)
+            .maybeSingle();
+    final existing = legacyExisting ??
+        await _client
+            .from('sections')
+            .select()
+            .eq('estate_id', estateId)
+            .eq('title', title)
+            .maybeSingle();
 
     if (existing != null) {
       final currentYoutube = existing['youtube_url'] as String? ?? '';
@@ -375,7 +389,7 @@ const List<SectionConfig> allSectionConfigs = [
         'place so nobody has to search around at an already difficult time.',
   ),
   SectionConfig(
-    title: 'Running the Houses',
+    title: 'Running the House',
     orderIndex: 4,
     youtubeUrl: 'https://www.youtube.com/watch?v=jqpAgMxhx30',
     infoText: 'This page is about the practical day to day running of the '

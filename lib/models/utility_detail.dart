@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// The three utilities shown on the Running the Houses page.
+/// The three utilities shown on the Running the House page.
 enum UtilityKind {
   gasMeter(
     'gas_meter',

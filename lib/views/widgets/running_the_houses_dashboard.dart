@@ -4,7 +4,7 @@ import '../../models/utility_detail.dart';
 import 'tradespeople_section.dart';
 import 'utility_detail_section.dart';
 
-/// Running the Houses rich-content dashboard.
+/// Running the House rich-content dashboard.
 ///
 /// Cloned from the FamilyPrep (iOS) `RunningTheHousesDashboardView`, containing
 /// everything between the Memory photo (handled by [PhotoSection]) and the

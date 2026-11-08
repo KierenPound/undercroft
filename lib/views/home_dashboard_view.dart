@@ -40,7 +40,7 @@ class HomeDashboardView extends ConsumerWidget {
       route: '/who-to-notify',
     ),
     _SectionItem(
-      title: 'Running the Houses',
+      title: 'Running the House',
       icon: Icons.home,
       color: Color(0xFFE08A2C),
     ),

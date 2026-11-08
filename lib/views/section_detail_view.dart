@@ -223,14 +223,14 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         isOwner: isOwner,
                       ),
-                    ] else if (section.title == 'Running the Houses') ...[
+                    ] else if (config.title == 'Running the House') ...[
                       PhotoSection(
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
                         defaultAsset:
                             'assets/images/defaults/default_running_house.jpeg',
-                        sectionTitle: section.title,
+                        sectionTitle: config.title,
                       ),
                       const SizedBox(height: 28),
                       RunningTheHousesDashboard(

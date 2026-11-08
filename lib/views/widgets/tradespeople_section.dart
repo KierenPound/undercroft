@@ -6,7 +6,7 @@ import '../../models/tradesperson.dart';
 import '../../repositories/tradespeople_repository.dart';
 
 /// Tradespeople: the trades the estate relies on — gas, electric, drains and
-/// so on — listed on the Running the Houses page.
+/// so on — listed on the Running the House page.
 ///
 /// Each entry collapses to a row showing the name and a number or address,
 /// and expands to reveal name / email / telephone / web link / notes. Owners

@@ -58,11 +58,15 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
       showControls: true,
       mute: false,
       playsInline: true,
-      // Use youtube-nocookie.com as the embed host on all platforms.
-      // VEVO/music videos restrict embedding on the standard youtube.com
-      // host for non-partner domains (e.g. localhost), but play fine via
-      // the nocookie host. On Android this also bypasses error 152.
-      origin: 'https://www.youtube-nocookie.com',
+      // Identify the app to YouTube. Since mid-2025 YouTube refuses embeds
+      // that it cannot attribute to a real origin: the iOS WKWebView sends
+      // no Referer, so without this the player shows "Video unavailable"
+      // (errors 152/153) on iOS while still working on Chrome/web. The
+      // bundle id as an https URL is the identity YouTube documents.
+      origin: 'https://com.kierenpound.undercroft',
+      // Keep the no-cookie host: VEVO/music videos refuse the standard
+      // youtube.com host for non-partner origins but play via nocookie.
+      privacyEnhancedMode: true,
       // Spoof a desktop Chrome user-agent on Android WebView. YouTube's
       // iframe player refuses playback (error 152) when it detects the
       // default WebView UA (which contains "; wv").

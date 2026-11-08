@@ -1,7 +1,7 @@
 name: undercroft
 description: Multi-platform (iOS + Android) estate preparation companion app.
 publish_to: 'none'
-version: 1.0.0+15
+version: 1.0.0+16
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -25,7 +25,7 @@ dependencies:
   pdfx: ^2.8.0
 
   # YouTube player (replaces WKWebView + WKScriptMessageHandler bridge)
-  youtube_player_iframe: ^5.2.0
+  youtube_player_iframe: ^6.0.2
 
   # Local storage (replaces UserDefaults / FileManager)
   shared_preferences: ^2.3.3

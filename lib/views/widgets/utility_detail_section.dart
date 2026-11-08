@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/utility_detail.dart';
 import '../../repositories/utility_details_repository.dart';
 
-/// One utility card on the Running the Houses page — Gas meter, Electric meter
+/// One utility card on the Running the House page — Gas meter, Electric meter
 /// or Stopcock.
 ///
 /// A photo of the meter (or stopcock) sits on the left with the description
