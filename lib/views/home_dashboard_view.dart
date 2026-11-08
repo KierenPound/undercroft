@@ -9,6 +9,14 @@ import '../services/photo_cache_service.dart';
 class HomeDashboardView extends ConsumerWidget {
   const HomeDashboardView({super.key});
 
+  /// Shown above the rest, and only to owners — the readiness summary is
+  /// owner-facing.
+  static const _SectionItem _readinessSection = _SectionItem(
+    title: 'Readiness',
+    icon: Icons.fact_check_outlined,
+    color: Color(0xFF5B7C6A),
+  );
+
   static const List<_SectionItem> _sections = [
     _SectionItem(
       title: 'My Letter to You',
@@ -69,6 +77,12 @@ class HomeDashboardView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final processRegion = ref.watch(estateProcessRegionProvider).valueOrNull ??
         EstateProcessRegion.scotland;
+    final isOwner = ref.watch(isOwnerProvider).valueOrNull ?? false;
+
+    final sections = [
+      if (isOwner) _readinessSection,
+      ..._sections,
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -105,10 +119,10 @@ class HomeDashboardView extends ConsumerWidget {
         ),
         child: ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: _sections.length,
+          itemCount: sections.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
-            final baseSection = _sections[index];
+            final baseSection = sections[index];
             final section = baseSection.title == 'Confirmation' &&
                     processRegion == EstateProcessRegion.ewni
                 ? baseSection.copyWith(displayTitle: 'Probate')

@@ -340,7 +340,13 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         'Could not load invitations.',
         style: TextStyle(fontSize: 13, color: Colors.black54),
       ),
-      data: (invites) {
+      data: (allInvites) {
+        // A revoked row with no recorded email says nothing and offers no
+        // action, so it only adds clutter to the list.
+        final invites = allInvites
+            .where((invite) => !(invite.isRevoked && invite.invitedEmail == null))
+            .toList();
+
         if (invites.isEmpty) {
           return const Text(
             'Nobody has been invited yet.',
@@ -385,9 +391,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final estateName = asyncEstateName.valueOrNull ?? '';
     final estateId = asyncEstateId.valueOrNull ?? '';
 
-    // Shared by the readiness card and the invitations list.
+    // Used by the invitations list.
     final asyncInvites = ref.watch(estateInvitesProvider);
-    final invites = asyncInvites.valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -708,18 +713,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
 
             // Invite executor (owners only)
             if (actualRole == 'owner') ...[
-              // Shown only once the invite list has loaded: an "only you can
-              // access this" that turned out to be premature would be both
-              // alarming and wrong.
-              if (invites != null) ...[
-                const SizedBox(height: 16),
-                _SectionCard(
-                  title: 'Handover readiness',
-                  child: _ReadinessCard(
-                    readiness: EstateReadiness.fromInvites(invites),
-                  ),
-                ),
-              ],
               const SizedBox(height: 16),
               _SectionCard(
                 title: 'Invite an executor',
@@ -1183,97 +1176,6 @@ class _InviteRow extends StatelessWidget {
             child: Text(invite.isPending ? 'Cancel' : 'Remove'),
           ),
       ],
-    );
-  }
-}
-
-/// Owner-facing summary of how ready the estate is for a handover, driven
-/// entirely by who has been invited and who has accepted.
-///
-/// Never consults payment state: an unredeemed paid invite is exactly as
-/// unprepared as an unsent one, and the copy should say so rather than
-/// implying that money alone has bought readiness.
-class _ReadinessCard extends StatelessWidget {
-  final EstateReadiness readiness;
-
-  const _ReadinessCard({required this.readiness});
-
-  @override
-  Widget build(BuildContext context) {
-    final style = switch (readiness.state) {
-      HandoverReadiness.atRisk => (
-          icon: Icons.error_outline,
-          headline: 'Only you can access this estate',
-          body: 'If you were unable to sign in, nobody else could reach '
-              'these records. Invite an executor, or another owner, so '
-              'someone you trust can step in.',
-          background: const Color(0xFFF7E7D8),
-          foreground: const Color(0xFF8B5E3C),
-        ),
-      HandoverReadiness.awaitingAcceptance => (
-          icon: Icons.schedule,
-          headline: 'Invited, not yet accepted',
-          body: 'Nothing is in place until the person you invited accepts '
-              'and signs in for the first time.',
-          background: const Color(0xFFFFE9B0),
-          foreground: const Color(0xFF7A5A00),
-        ),
-      HandoverReadiness.sharedWithOwner => (
-          icon: Icons.people_outline,
-          headline: 'Shared with another owner',
-          body: 'Another owner can reach this estate. An executor is the '
-              'person who will actually have to act, so inviting one makes '
-              'the handover easier.',
-          background: const Color(0xFFE4EDE7),
-          foreground: const Color(0xFF3D5C4A),
-        ),
-      HandoverReadiness.prepared => (
-          icon: Icons.verified_outlined,
-          headline: 'Prepared',
-          body: 'An executor has accepted access. If you are no longer able '
-              'to sign in, they can.',
-          background: const Color(0xFF5B7C6A),
-          foreground: Colors.white,
-        ),
-    };
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: style.background,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(style.icon, size: 18, color: style.foreground),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  style.headline,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: style.foreground,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            style.body,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.35,
-              color: style.foreground,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

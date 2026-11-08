@@ -12,6 +12,7 @@ import 'widgets/funeral_arrangements_dashboard.dart';
 import 'widgets/legal_documents_dashboard.dart';
 import 'widgets/notes_section.dart';
 import 'widgets/photo_section.dart';
+import 'widgets/readiness_dashboard.dart';
 import 'widgets/running_the_houses_dashboard.dart';
 import 'widgets/song_for_the_page_section.dart';
 import 'widgets/what_to_do_first_dashboard.dart';
@@ -109,6 +110,37 @@ class SectionDetailView extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(child: Text('Error: $error')),
               data: (section) {
+                // Readiness is its own focused page: the status banner plus a
+                // song, with none of the checklist/notes/attachment sections
+                // that a normal content page carries. Owners only.
+                if (section.title == 'Readiness') {
+                  if (!isOwner) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'This page is for the estate owner.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 15, color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const ReadinessDashboard(),
+                      const SizedBox(height: 28),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  );
+                }
+
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [

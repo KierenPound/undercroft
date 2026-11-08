@@ -628,6 +628,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
               _otherDescriptionController,
               'e.g. Kieren current account',
               editing,
+              textCapitalization: TextCapitalization.sentences,
             ),
             if (widget.isOwner) ...[
               const SizedBox(height: 14),
@@ -672,6 +673,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
     bool editing, {
     List<TextInputFormatter>? inputFormatters,
     bool showHintWhenEmpty = true,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -689,6 +691,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
               ? TextField(
                   controller: controller,
                   inputFormatters: inputFormatters,
+                  textCapitalization: textCapitalization,
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                   decoration: InputDecoration(
                     hintText: hint,

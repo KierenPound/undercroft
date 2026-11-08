@@ -335,6 +335,14 @@ class SectionConfig {
 /// by title (survives browser refreshes, unlike `go_router`'s `extra`).
 const List<SectionConfig> allSectionConfigs = [
   SectionConfig(
+    title: 'Readiness',
+    orderIndex: -1,
+    youtubeUrl: 'https://www.youtube.com/watch?v=2EsOpBYC3-M',
+    infoText: 'This page shows how ready your estate is for someone else to '
+        'step in, based on who you have invited and who has accepted. It is '
+        'only visible to owners.',
+  ),
+  SectionConfig(
     title: 'My Letter to You',
     orderIndex: 0,
     infoText: 'This page is for your personal letter to the people you leave '
