@@ -30,6 +30,10 @@ class PhotoSection extends ConsumerStatefulWidget {
   final String defaultAsset;
   final String sectionTitle;
 
+  /// Optional widget shown at the right of the section header row, level with
+  /// the "Memory" title. Used for page-specific links such as a disclaimer.
+  final Widget? headerTrailing;
+
   const PhotoSection({
     super.key,
     required this.sectionId,
@@ -37,6 +41,7 @@ class PhotoSection extends ConsumerStatefulWidget {
     required this.isOwner,
     required this.defaultAsset,
     required this.sectionTitle,
+    this.headerTrailing,
   });
 
   @override
@@ -279,6 +284,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
             ),
           ),
         ),
+        if (widget.headerTrailing != null) widget.headerTrailing!,
       ],
     );
   }

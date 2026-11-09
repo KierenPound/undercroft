@@ -35,6 +35,47 @@ class SectionDetailView extends ConsumerWidget {
     );
   }
 
+  static const String _disclaimerText =
+      'UnderCroft helps you organise information and provides general '
+      'guidance for your executors. It does not replace a legally valid '
+      'will or professional legal, tax or financial advice.';
+
+  /// A small underlined link that reads as tappable, rather than a button that
+  /// competes with the page content.
+  Widget _disclaimerLink(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Disclaimer'),
+          content: const Text(
+            _disclaimerText,
+            textAlign: TextAlign.justify,
+            style: TextStyle(fontSize: 14, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+      icon: const Icon(Icons.info_outline, size: 18),
+      label: const Text('Disclaimer'),
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF5A5A60),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: const TextStyle(
+          fontSize: 15,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncEstateId = ref.watch(estateIdProvider);
@@ -177,6 +218,7 @@ class SectionDetailView extends ConsumerWidget {
                         defaultAsset:
                             'assets/images/defaults/default_confirmation.jpeg',
                         sectionTitle: displayTitle,
+                        headerTrailing: _disclaimerLink(context),
                       ),
                       const SizedBox(height: 28),
                       ConfirmationDashboard(isOwner: isOwner),

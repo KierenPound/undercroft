@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/estate_service.dart';
 import '../services/photo_cache_service.dart';
+import 'print_view.dart';
 
 class HomeDashboardView extends ConsumerWidget {
   const HomeDashboardView({super.key});
@@ -90,6 +91,13 @@ class HomeDashboardView extends ConsumerWidget {
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.print_outlined),
+            tooltip: 'Print',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PrintView()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
