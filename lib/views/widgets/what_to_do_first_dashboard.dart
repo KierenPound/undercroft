@@ -7,9 +7,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
+import '../../services/estate_service.dart';
 import 'attachments_section.dart';
 import 'photo_section.dart';
 import 'song_for_the_page_section.dart';
+
+const _scotlandCertifiedCopiesUrl = 'https://my.pkc.gov.uk/en';
+const _ewniCertifiedCopiesUrl =
+    'https://www.gov.uk/order-copy-birth-death-marriage-certificate';
 
 /// What To Do First rich-media dashboard.
 ///
@@ -46,6 +51,8 @@ class _WhatToDoFirstDashboardState
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _copiesUrlController = TextEditingController();
+  final _copiesUrlFocusNode = FocusNode();
+  bool _copiesUrlDirty = false;
   bool _registrarInitialized = false;
   Timer? _registrarSaveTimer;
   String _lastSavedPhone = '';
@@ -98,6 +105,18 @@ class _WhatToDoFirstDashboardState
   String _lastSavedVetUrl = '';
 
   @override
+  void initState() {
+    super.initState();
+    _copiesUrlFocusNode.addListener(_handleCopiesUrlFocusChange);
+  }
+
+  void _handleCopiesUrlFocusChange() {
+    if (!_copiesUrlFocusNode.hasFocus && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
     _registrarSaveTimer?.cancel();
     _credentialsSaveTimer?.cancel();
@@ -105,6 +124,9 @@ class _WhatToDoFirstDashboardState
     _phoneController.dispose();
     _emailController.dispose();
     _copiesUrlController.dispose();
+    _copiesUrlFocusNode
+      ..removeListener(_handleCopiesUrlFocusChange)
+      ..dispose();
     _phonePin1Controller.dispose();
     _computerPassword1Controller.dispose();
     _phonePin2Controller.dispose();
@@ -191,8 +213,6 @@ class _WhatToDoFirstDashboardState
 
   String get _effectiveEmail => _emailController.text.trim();
 
-  String get _effectiveCopiesUrl => _copiesUrlController.text.trim();
-
   void _scheduleRegistrarSave() {
     _registrarSaveTimer?.cancel();
     _registrarSaveTimer =
@@ -205,9 +225,28 @@ class _WhatToDoFirstDashboardState
         Timer(const Duration(milliseconds: 500), _saveCopiesUrl);
   }
 
+  void _onCopiesUrlChanged(String _) {
+    _copiesUrlDirty = true;
+    _scheduleCopiesUrlSave();
+  }
+
+  String get _currentCopiesDefaultUrl {
+    final processRegion = ref.read(estateProcessRegionProvider).valueOrNull ??
+        EstateProcessRegion.scotland;
+    return processRegion == EstateProcessRegion.ewni
+        ? _ewniCertifiedCopiesUrl
+        : _scotlandCertifiedCopiesUrl;
+  }
+
   Future<void> _saveCopiesUrl() async {
     final url = _copiesUrlController.text.trim();
-    if (url == _lastSavedCopiesUrl) return;
+    if (url == _lastSavedCopiesUrl) {
+      _copiesUrlDirty = false;
+      if (url.isEmpty) {
+        _copiesUrlController.text = _currentCopiesDefaultUrl;
+      }
+      return;
+    }
 
     final repo = ref.read(sectionsRepositoryProvider);
     try {
@@ -455,6 +494,13 @@ class _WhatToDoFirstDashboardState
         asyncAttachments.isLoading && !asyncAttachments.hasValue;
 
     final asyncSection = ref.watch(sectionProvider(widget.sectionId));
+    final asyncProcessRegion = ref.watch(estateProcessRegionProvider);
+    final processRegion =
+        asyncProcessRegion.valueOrNull ?? EstateProcessRegion.scotland;
+    final isEwni = processRegion == EstateProcessRegion.ewni;
+
+    final defaultCopiesUrl =
+        isEwni ? _ewniCertifiedCopiesUrl : _scotlandCertifiedCopiesUrl;
 
     // Adopt whatever is stored the first time it arrives, and again whenever it
     // changes underneath us, without stomping on an in-flight edit. While the
@@ -529,10 +575,8 @@ class _WhatToDoFirstDashboardState
         if (!_registrarInitialized) {
           _phoneController.text = section.registrarPhone;
           _emailController.text = section.registrarEmail;
-          _copiesUrlController.text = section.certifiedCopiesUrl;
           _lastSavedPhone = section.registrarPhone;
           _lastSavedEmail = section.registrarEmail;
-          _lastSavedCopiesUrl = section.certifiedCopiesUrl;
 
           _phonePin1Controller.text = section.phonePin1;
           _computerPassword1Controller.text = section.computerPassword1;
@@ -551,6 +595,24 @@ class _WhatToDoFirstDashboardState
       orElse: () {},
     );
 
+    final storedCopiesUrl = asyncSection.valueOrNull?.certifiedCopiesUrl;
+    if (storedCopiesUrl != null &&
+        asyncProcessRegion.hasValue &&
+        !_copiesUrlFocusNode.hasFocus) {
+      if (_copiesUrlDirty &&
+          storedCopiesUrl == _copiesUrlController.text.trim()) {
+        _copiesUrlDirty = false;
+      }
+      if (!_copiesUrlDirty) {
+        final displayedCopiesUrl =
+            storedCopiesUrl.isNotEmpty ? storedCopiesUrl : defaultCopiesUrl;
+        if (_copiesUrlController.text != displayedCopiesUrl) {
+          _copiesUrlController.text = displayedCopiesUrl;
+          _lastSavedCopiesUrl = storedCopiesUrl;
+        }
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -564,7 +626,7 @@ class _WhatToDoFirstDashboardState
         const SizedBox(height: 28),
         _buildDeathCertificateSection(certificateAttachments),
         const SizedBox(height: 28),
-        _buildRegistrarOutcomeSection(),
+        _buildRegistrarOutcomeSection(isEwni: isEwni),
         const SizedBox(height: 28),
         _buildTellUsOnceSection(),
         const SizedBox(height: 28),
@@ -1289,6 +1351,7 @@ class _WhatToDoFirstDashboardState
     required TextInputType keyboardType,
     required IconData actionIcon,
     required VoidCallback onAction,
+    FocusNode? focusNode,
     ValueChanged<String>? onChanged,
   }) {
     return Container(
@@ -1305,6 +1368,7 @@ class _WhatToDoFirstDashboardState
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               keyboardType: keyboardType,
               onChanged: onChanged ?? (_) => _scheduleRegistrarSave(),
               decoration: InputDecoration(
@@ -1334,12 +1398,111 @@ class _WhatToDoFirstDashboardState
 
   // MARK: - What the Registrar will Give You
 
-  Widget _buildRegistrarOutcomeSection() {
+  Widget _registrarBullet(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Icon(Icons.circle, size: 7, color: Colors.grey.shade800),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$title: ',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  TextSpan(text: description),
+                ],
+              ),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF2C2C2E),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _registrarLabelText(String label, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label ',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            TextSpan(text: text),
+          ],
+        ),
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF2C2C2E),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegistrarOutcomeSection({required bool isEwni}) {
+    const intro = 'At the end of registration, the registrar will issue:';
+    final savedCopiesUrl = _copiesUrlController.text.trim();
+    final copiesUrl = savedCopiesUrl.isNotEmpty
+        ? savedCopiesUrl
+        : isEwni
+            ? _ewniCertifiedCopiesUrl
+            : _scotlandCertifiedCopiesUrl;
+    final bulletPoints = isEwni
+        ? <(String, String)>[
+            (
+              'The Green Form (Certificate for Burial or Cremation)',
+              'Handed directly to your funeral director to allow the funeral to proceed.',
+            ),
+            (
+              'Tell Us Once Reference Code',
+              'A unique reference to report the death across government departments (DWP, DVLA, HMRC, etc.) at once.',
+            ),
+          ]
+        : <(String, String)>[
+            (
+              'Form 14 (Certificate of Registration of Death)',
+              'Sent to your funeral director to allow burial/cremation.',
+            ),
+            (
+              'Abbreviated Death Certificate',
+              'Issued free for basic records.',
+            ),
+            (
+              'Tell Us Once Code',
+              'A unique reference to report the death across government departments (DWP, DVLA, HMRC, etc.) at once.',
+            ),
+          ];
+    final copiesHeading = isEwni
+        ? 'Certified Copies of the Death Certificate'
+        : 'Full Death Certificates (Extracts)';
+    final copiesDescription = isEwni
+        ? 'You will need official Full Death Certificates to settle the estate, close bank accounts, and deal with pensions/insurance.'
+        : 'To manage accounts, pensions, and property, you will need Full Extract Copies.';
+    final copiesCost = isEwni
+        ? '£12.50 per copy at registration (via your local council\'s Register Office or GOV.UK).'
+        : '£10.00 each at the time of registration (or £15.00 later via the link below).';
+    final copiesRecommendation = isEwni
+        ? 'Request several copies so you can notify multiple financial institutions at the same time. You can order more from the link below.'
+        : 'Order several full copies so you can send them to multiple banks and insurers simultaneously.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
-          title: 'What the Registrar will Give You',
+          title: 'What the Registrar Will Give You',
           icon: Icons.back_hand_rounded,
           tint: Colors.purple,
         ),
@@ -1351,12 +1514,15 @@ class _WhatToDoFirstDashboardState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'At the end of the phone call, the registrar will issue the '
-                  'formal Death Certificate (Form 14), which allows the '
-                  'funeral director to proceed, and they will give you the '
-                  'unique access code for the Tell Us Once service.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  intro,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF2C2C2E),
+                  ),
                 ),
+                const SizedBox(height: 10),
+                for (final point in bulletPoints)
+                  _registrarBullet(point.$1, point.$2),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
                 const SizedBox(height: 14),
@@ -1366,7 +1532,7 @@ class _WhatToDoFirstDashboardState
                         size: 18, color: Colors.purple.shade700),
                     const SizedBox(width: 8),
                     Text(
-                      'Certified Copies',
+                      copiesHeading,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -1376,28 +1542,29 @@ class _WhatToDoFirstDashboardState
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'You will need to ask them for 5 Full Certified Copies. '
-                  'They cost £10.00 each at the time of registration. '
-                  "You'll need to pay for them. Ouch! You can order more "
-                  'later for £15.00 via:',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                Text(
+                  copiesDescription,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
+                const SizedBox(height: 8),
+                _registrarLabelText('Cost:', copiesCost),
+                _registrarLabelText('Recommendation:', copiesRecommendation),
                 const SizedBox(height: 12),
                 if (widget.isOwner)
                   _buildEditableContactField(
                     controller: _copiesUrlController,
+                    focusNode: _copiesUrlFocusNode,
                     icon: Icons.public_rounded,
                     tint: Colors.blue,
                     hint: 'Order copies link',
                     keyboardType: TextInputType.url,
                     actionIcon: Icons.open_in_new_rounded,
-                    onAction: () => _launch(_effectiveCopiesUrl),
-                    onChanged: (_) => _scheduleCopiesUrlSave(),
+                    onAction: () => _launch(copiesUrl),
+                    onChanged: _onCopiesUrlChanged,
                   )
-                else if (_effectiveCopiesUrl.isNotEmpty)
+                else
                   _externalLinkRow(
-                    url: _effectiveCopiesUrl,
+                    url: copiesUrl,
                     tint: Colors.blue,
                   ),
               ],

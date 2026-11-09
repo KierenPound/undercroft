@@ -387,9 +387,10 @@ class EstateReadiness {
 
 /// Lists everyone who has been invited to, or already shares, [estateId].
 ///
-/// Owners can read every row for their estate (`estate_access_select_linked`).
-/// Revoked rows are included on purpose: because revocation keeps the row,
-/// the estate retains a record of who previously had access.
+/// Accepted owners can read every row for their estate
+/// (`estate_access_select_linked`). Revoked rows are included on purpose:
+/// because revocation keeps the row, the estate retains a record of who
+/// previously had access.
 Future<List<EstateInvite>> fetchEstateInvites({
   required String estateId,
   required String currentUserId,
@@ -446,14 +447,10 @@ final estateInvitesProvider = FutureProvider<List<EstateInvite>>((ref) async {
   final estateId = await ref.watch(estateIdProvider.future);
   if (estateId.isEmpty) return [];
 
-  try {
-    return await fetchEstateInvites(
-      estateId: estateId,
-      currentUserId: userId,
-    );
-  } catch (_) {
-    return [];
-  }
+  return fetchEstateInvites(
+    estateId: estateId,
+    currentUserId: userId,
+  );
 });
 
 /// Creates a pending co-owner invite for the given estate.

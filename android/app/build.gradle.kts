@@ -1,13 +1,77 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseSigningPropertiesFile = rootProject.file("key.properties")
+val releaseSigningProperties = Properties().apply {
+    if (releaseSigningPropertiesFile.isFile) {
+        releaseSigningPropertiesFile.inputStream().use(::load)
+    }
+}
+val releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+
+fun resolveKeystorePath(path: String): String =
+    if (path.startsWith("~/")) {
+        System.getProperty("user.home") + path.substring(1)
+    } else {
+        path
+    }
+
+if (releaseBuildRequested) {
+    if (!releaseSigningPropertiesFile.isFile) {
+        throw GradleException(
+            "Android release signing is not configured. " +
+                "See android/RELEASE_SIGNING.md."
+        )
+    }
+
+    val requiredProperties = listOf(
+        "storeFile",
+        "storePassword",
+        "keyAlias",
+        "keyPassword",
+    )
+    val missingProperties = requiredProperties.filter {
+        releaseSigningProperties.getProperty(it).isNullOrBlank()
+    }
+    if (missingProperties.isNotEmpty()) {
+        throw GradleException(
+            "Missing ${missingProperties.joinToString()} in android/key.properties."
+        )
+    }
+
+    val storeFilePath = resolveKeystorePath(
+        releaseSigningProperties.getProperty("storeFile")
+            ?: throw GradleException("Missing storeFile in android/key.properties.")
+    )
+    if (!rootProject.file(storeFilePath).isFile) {
+        throw GradleException(
+            "Android release keystore was not found at: $storeFilePath"
+        )
+    }
+}
+
 android {
     namespace = "com.undercroft.undercroft"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
+
+    signingConfigs {
+        create("release") {
+            keyAlias = releaseSigningProperties.getProperty("keyAlias")
+            keyPassword = releaseSigningProperties.getProperty("keyPassword")
+            storeFile = releaseSigningProperties.getProperty("storeFile")?.let {
+                rootProject.file(resolveKeystorePath(it))
+            }
+            storePassword = releaseSigningProperties.getProperty("storePassword")
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -31,9 +95,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

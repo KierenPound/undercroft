@@ -179,7 +179,7 @@ class SectionDetailView extends ConsumerWidget {
                         sectionTitle: displayTitle,
                       ),
                       const SizedBox(height: 28),
-                      const ConfirmationDashboard(),
+                      ConfirmationDashboard(isOwner: isOwner),
                       const SizedBox(height: 28),
                       SongForThePageSection(
                         youtubeUrl: section.youtubeUrl,

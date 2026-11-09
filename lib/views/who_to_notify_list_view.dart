@@ -429,8 +429,8 @@ class _StaticOrgCard extends StatelessWidget {
         icon: Icons.credit_card,
         tint: Colors.grey,
         notes: [
-          'Amazon, Apple, and anything else running on a direct debit or recurring card payment should get cancelled automatically by the bank once they freeze the accounts.',
-          "You shouldn't have to contact them. Aside from setting up your own Amazon Prime account or paying for your own deliveries!",
+          'Amazon, Apple, Netflix and others should be setup as Organisations, just like a bank account.  Typically an email is the account number. A direct debit or recurring card payment should get cancelled automatically by the bank, but best to notify and cancel the service.',
+          "Life Ledger can probably help with Netflix, but typically the others will need a call or livechat.  Check the Organisation entry.",
         ],
       );
 
@@ -615,7 +615,7 @@ class _AppleAccountInstructions extends StatelessWidget {
                 body:
                     'You will have either received an iMessage or an email with the access key.',
                 bullets: [
-                  'For iPhone users, go to: Settings → {Your Name} → Sign in & Security → Legacy Contact → Asset Key → {My Name}',
+                  'For iPhone users, go to: Settings → {Your Name} → Sign in & Security → Legacy Contact → Access Key → {My Name}',
                 ],
               ),
               SizedBox(height: 18),

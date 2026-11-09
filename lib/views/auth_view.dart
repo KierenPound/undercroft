@@ -92,16 +92,64 @@ class _AuthViewState extends State<AuthView> {
     );
   }
 
+  String _friendlyAuthError(String message, {required bool isSignUp}) {
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('invalid login credentials')) {
+      return 'The email or password does not match our records. Check them and try again.';
+    }
+    if (normalized.contains('email not confirmed')) {
+      return 'Please confirm your email address before signing in. Check your inbox for the confirmation link.';
+    }
+    if (normalized.contains('already registered') ||
+        normalized.contains('already exists')) {
+      return 'An account with this email already exists. Try signing in instead.';
+    }
+    if (normalized.contains('invalid email') ||
+        normalized.contains('email address is invalid') ||
+        normalized.contains('unable to validate email')) {
+      return 'Please enter a valid email address.';
+    }
+    if (normalized.contains('password') &&
+        (normalized.contains('at least') ||
+            normalized.contains('too short') ||
+            normalized.contains('weak'))) {
+      return 'Your password does not meet the requirements. Choose a stronger password and try again.';
+    }
+    if (normalized.contains('rate limit') ||
+        normalized.contains('too many requests')) {
+      return 'Too many attempts. Please wait a few minutes and try again.';
+    }
+
+    return isSignUp
+        ? 'We could not create your account. Please check your details and try again.'
+        : 'We could not sign you in. Please check your details and try again.';
+  }
+
   Future<void> _submit() async {
     final isSignUp = _screenMode == _AuthScreenMode.signUp;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final missingFields = <String>[
+      if (email.isEmpty) 'email',
+      if (password.isEmpty) 'password',
+    ];
+
+    if (missingFields.isNotEmpty) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Please enter your ${missingFields.join(' and ')}.';
+        _info = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
       _info = null;
     });
 
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
     debugPrint('[auth_view] submit mode=${isSignUp ? 'sign_up' : 'sign_in'} '
         'email=$email');
     try {
@@ -131,7 +179,9 @@ class _AuthViewState extends State<AuthView> {
     } on AuthException catch (e) {
       debugPrint('[auth_view] auth error=${e.message}');
       if (mounted) {
-        setState(() => _error = e.message);
+        setState(
+          () => _error = _friendlyAuthError(e.message, isSignUp: isSignUp),
+        );
       }
     } catch (e) {
       debugPrint('[auth_view] unexpected error=$e');

@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/prep_section.dart';
+import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+
+final _legalDocumentsConfig = sectionConfigByTitle('Legal Documents')!;
 
 /// Confirmation rich-content dashboard.
 ///
@@ -11,7 +17,12 @@ import '../../services/estate_service.dart';
 /// (handled by [PhotoSection]) and the Song for the page
 /// (handled by [SongForThePageSection]).
 class ConfirmationDashboard extends ConsumerWidget {
-  const ConfirmationDashboard({super.key});
+  final bool isOwner;
+
+  const ConfirmationDashboard({
+    super.key,
+    required this.isOwner,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -381,7 +392,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Why it matters:  The Will explicitly names the Executors.  '
-                  'These are the only people legally allowed to sign the '
+                  'They are generally the only people legally allowed to sign the '
                   'upcoming HMRC tax returns and '
                   '${isEwni ? 'probate application' : 'court inventories'}.',
                   style: const TextStyle(fontSize: 15, color: Colors.grey),
@@ -416,29 +427,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'A photocopy is useless for the court.  The '
-                            'physical paper original must be kept safe.  It is '
-                            'located in the bureau',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              '[The master copy is held securely at the solicitors]',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF2C2C2E),
-                              ),
-                            ),
-                          ),
+                          _SolicitorIntroEditor(isOwner: isOwner),
                         ],
                       ),
                     ),
@@ -1069,6 +1058,126 @@ class ConfirmationDashboard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SolicitorIntroEditor extends ConsumerStatefulWidget {
+  final bool isOwner;
+
+  const _SolicitorIntroEditor({required this.isOwner});
+
+  @override
+  ConsumerState<_SolicitorIntroEditor> createState() =>
+      _SolicitorIntroEditorState();
+}
+
+class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+  Timer? _saveTimer;
+  String? _lastAppliedIntro;
+  String _lastSavedIntro = '';
+
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), _saveIntro);
+  }
+
+  Future<void> _saveIntro() async {
+    final intro = _controller.text;
+    if (intro == _lastSavedIntro) return;
+
+    final section =
+        ref.read(sectionByTitleProvider(_legalDocumentsConfig)).valueOrNull;
+    if (section == null) return;
+
+    try {
+      await ref.read(sectionsRepositoryProvider).updateSolicitorIntro(
+            sectionId: section.id,
+            solicitorIntro: intro,
+          );
+      _lastSavedIntro = intro;
+      ref.invalidate(sectionProvider(section.id));
+      ref.invalidate(sectionByTitleProvider(_legalDocumentsConfig));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save solicitor note')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asyncSection =
+        ref.watch(sectionByTitleProvider(_legalDocumentsConfig));
+    final section = asyncSection.valueOrNull;
+
+    if (section != null && !_focusNode.hasFocus) {
+      final storedIntro = section.solicitorIntro.isNotEmpty
+          ? section.solicitorIntro
+          : PrepSection.defaultSolicitorIntro;
+      if (_lastAppliedIntro != storedIntro) {
+        _controller.text = storedIntro;
+        _lastSavedIntro = storedIntro;
+        _lastAppliedIntro = storedIntro;
+      }
+    }
+
+    if (section == null) {
+      if (asyncSection.hasError) {
+        return const Text(
+          'Could not load the solicitor note.',
+          style: TextStyle(fontSize: 14, color: Colors.red),
+        );
+      }
+      return const Center(
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (!widget.isOwner) {
+      return Text(
+        _controller.text,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF2C2C2E),
+        ),
+      );
+    }
+
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      maxLines: null,
+      minLines: 1,
+      textCapitalization: TextCapitalization.sentences,
+      onChanged: (_) => _scheduleSave(),
+      onTapOutside: (_) => _focusNode.unfocus(),
+      decoration: const InputDecoration(
+        hintText: 'Add a note about where the original Will is kept...',
+        border: InputBorder.none,
+        isDense: true,
+        contentPadding: EdgeInsets.zero,
+      ),
+      style: const TextStyle(
+        fontSize: 14,
+        color: Color(0xFF2C2C2E),
+      ),
     );
   }
 }

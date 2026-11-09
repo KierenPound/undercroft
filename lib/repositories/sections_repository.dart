@@ -71,13 +71,10 @@ class SectionsRepository {
         // Read the result back locally instead of asking PostgREST to coerce
         // the updated row — an empty result set raises
         // "Cannot coerce the result to a single JSON object".
-        await _client
-            .from('sections')
-            .update({
-              'youtube_url': resolvedYoutube,
-              'order_index': orderIndex,
-            })
-            .eq('id', existing['id']);
+        await _client.from('sections').update({
+          'youtube_url': resolvedYoutube,
+          'order_index': orderIndex,
+        }).eq('id', existing['id']);
 
         return PrepSection.fromJson({
           ...existing,
@@ -123,8 +120,19 @@ class SectionsRepository {
   }) async {
     await _client
         .from('sections')
-        .update({'youtube_url': youtubeUrl})
-        .eq('id', sectionId);
+        .update({'youtube_url': youtubeUrl}).eq('id', sectionId);
+  }
+
+  /// Updates only the shared solicitor note, used in both Legal Documents and
+  /// Confirmation so either editor can change the same text.
+  Future<void> updateSolicitorIntro({
+    required String sectionId,
+    required String solicitorIntro,
+  }) async {
+    await _client.from('sections').update({
+      'solicitor_intro': solicitorIntro,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', sectionId);
   }
 
   Future<PrepSection> fetchSection(String sectionId) async {
@@ -256,7 +264,10 @@ class SectionsRepository {
           );
     } catch (_) {
       try {
-        await _client.from('attachments').delete().eq('id', data['id'] as String);
+        await _client
+            .from('attachments')
+            .delete()
+            .eq('id', data['id'] as String);
       } catch (_) {}
       rethrow;
     }

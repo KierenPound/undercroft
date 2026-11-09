@@ -105,6 +105,12 @@ else
     exit 1
   fi
 
+  if [[ ! -f android/key.properties ]]; then
+    echo "Android release signing is not configured." >&2
+    echo "Follow android/RELEASE_SIGNING.md before deploying an Android release." >&2
+    exit 1
+  fi
+
   echo "Building for Android..."
   flutter build apk --release "${defines[@]}"
 
