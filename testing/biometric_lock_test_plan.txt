@@ -1,0 +1,240 @@
+# UnderCroft — Biometric Lock & Backup/Recovery Test Plan
+
+**Review item:** 2. Biometric lock and backup/recovery
+**Status:** PLAN — not yet executed
+**Prepared:** 2026-11-10
+
+**Artefact under test:** release build — versionName 1.0.0 / versionCode 20
+(signed release APK; matching TestFlight build where stated)
+**Package:** `com.kierenpound.undercroft`
+**Biometric plugin:** `local_auth` 2.3.0
+**Backend:** single Supabase project, production (no staging environment exists)
+
+
+## 0. Purpose and how to read this
+
+This plan maps every clause of the review item — cold start, background return,
+cancellation, lockout/fallback, sign-out, reinstall, device change, recovery —
+to a numbered, reproducible test. For each test it states the expected result
+**derived from the implementation**, not from assumption, so pass/fail is
+objective rather than a matter of opinion.
+
+Known limitations are listed up front in Section 6. They are stated as known
+design characteristics, not left to be discovered, so the review can judge them
+on their merits.
+
+
+## 1. Scope
+
+**In scope:** biometric lock lifecycle, sign-out, reinstall, device change,
+data residency, and the restore path.
+
+**Out of scope, with reason:**
+- Storage bucket contents and RLS — covered by the separate RLS security test.
+- Invite claim and estate access control — separate review item.
+- Android biometric *enrolment* UX — an OS concern, not app behaviour.
+
+
+## 2. Implementation facts — the basis for the expected results
+
+| # | Fact | Source |
+|---|------|--------|
+| F1 | The lock is a **UI gate**. It hides the UI until the owner authenticates; it does **not** encrypt the stored Supabase session. | comment in `lib/services/biometric_lock_service.dart` |
+| F2 | Preference stored as `biometric_lock_enabled` in `SharedPreferences` (device-local). | same |
+| F3 | Passcode fallback is **deliberately permitted** (`biometricOnly: false`) so a biometric lockout cannot permanently shut an owner out of their own records. | `.../biometric_lock_service.dart` |
+| F4 | The lock covers every route: it wraps the router output, so the navigation stack and in-progress form state survive an unlock. | `lib/main.dart`, `lib/views/biometric_lock_gate.dart` |
+| F5 | **Cold start always locks** if the feature is enabled. | `_bootstrap()` |
+| F6 | **Background grace period is 60 seconds.** Under 60 s in the background, no re-prompt; over 60 s, re-lock. | `BiometricLockGate.gracePeriod` |
+| F7 | `AppLifecycleState.inactive` is ignored on purpose (Control Centre, call banners should not force re-auth). | `didChangeAppLifecycleState` |
+| F8 | Until the preference has loaded, a blank cover is shown so records are never briefly visible on cold start. | `build()` |
+| F9 | Supabase is initialised with URL + key only; no custom `authOptions`, so the session uses the default persistence. | `lib/services/supabase_service.dart` |
+| F10 | Only two keys are stored locally anywhere in the app: `biometric_lock_enabled` and `_hasOpenedAppBefore`. There is **no local database, no secure storage, no Hive/sqflite anywhere in `lib/`.** | search of `lib/` |
+
+
+## 3. What is backed up — data residency
+
+| Data | Where it lives | Survives reinstall? | Survives device change? |
+|---|---|---|---|
+| Estate records, sections, documents, attachments | Supabase | Yes | Yes |
+| Members / executors / invitations | Supabase | Yes | Yes |
+| Uploaded images and files | Supabase Storage | Yes | Yes |
+| Supabase auth session | Device `SharedPreferences` | **No** | **No** (per device) |
+| `biometric_lock_enabled` | Device `SharedPreferences` | **No** — resets to off | **No** |
+| `_hasOpenedAppBefore` | Device `SharedPreferences` | **No** | **No** |
+
+**Consequence:** there is no device-side backup to lose. All user content is
+server-authoritative, so "recovery" is an **authentication** question, not a
+data-restore question: sign in and the records are there. Test B9 proves this.
+
+
+## 4. Test cases
+
+### B0 — Setup (baseline)
+**Method:** device with biometrics enrolled; release build installed.
+**Steps:** launch → Settings → Privacy → enable the biometric lock → note the
+current item/estate counts → create a marker record, e.g. an estate note reading
+`RESTORE-TEST-2026-11-10`.
+**Evidence:** screenshot of the toggle; screenshot of the marker record.
+
+### B1 — Cold start
+**Steps:** force-quit from the app switcher, relaunch.
+**Expected:** blank cover, then the lock screen. **No frame in which records are
+visible.** (F5, F8)
+**Evidence:** screen recording; scrub for any flash of data.
+
+### B2 — Background return, short (under grace period)
+**Steps:** background the app; return after ~15 s.
+**Expected:** no re-prompt. This is deliberate, not a defect. (F6)
+**Evidence:** screen recording.
+
+### B3 — Background return, long (over grace period)
+**Steps:** background the app; wait 90 s; return.
+**Expected:** lock screen reappears; unlock succeeds. (F6)
+**Evidence:** screen recording with a visible stopwatch in frame.
+
+### B4 — Cancellation
+**Steps:** at the biometric prompt, cancel / dismiss the sheet.
+**Expected:** app **stays locked**; records remain covered; the "Unlock" button
+is available and retries.
+**Evidence:** screen recording.
+
+### B5 — Lockout / fallback
+**Steps:** fail biometrics repeatedly until the device locks biometrics out; then
+attempt again.
+**Expected:** the device passcode sheet is permitted and, on success, unlocks the
+app. This is the case that distinguishes a locked app from a bricked one. (F3)
+**Evidence:** screen recording of the failure sequence and the successful
+fallback.
+
+### B6 — Sign-out
+**Steps:** Settings → sign out.
+**Expected:** return to auth; no estate data reachable; relaunch shows no data.
+**Evidence:** screen recording.
+
+### B7 — Reinstall
+**Steps:** uninstall the app; reinstall; launch.
+**Expected:** signed out (session gone from device) **and the biometric toggle is
+back off**, because both are device-local preferences. Both outcomes are
+expected; neither is a defect. (F2, F10)
+**Evidence:** screen recording; screenshot of the toggle showing off.
+
+### B8 — Device change
+**Steps:** on a **second device**, install and sign in as the same account.
+**Expected:** the same estate and the same counts; the `RESTORE-TEST-2026-11-10`
+marker present.
+**Evidence:** side-by-side screenshots of both devices; screen recording of the
+second sign-in.
+
+### B9 — Recovery / restore proof  *(answers "prove restore works")*
+**Steps:** record counts and the marker before (B0) → uninstall (B7) → reinstall
+→ sign in → compare.
+**Expected:** identical records, counts and marker. Nothing is lost, because
+nothing was stored only on the device. (F9, F10, Section 3)
+**Evidence:** before/after screenshots; optional Supabase dashboard row-count
+screenshot as server-side corroboration.
+
+### B10 — App-switcher thumbnail  *(known gap — expect scrutiny here)*
+**Steps:** with the app unlocked, background it (within the 60 s grace period)
+and open the app switcher.
+**Expected:** to be **recorded, not assumed**. Because the lock only engages on
+cold start or after 60 s, the OS snapshot taken at backgrounding may show
+records. If it does, that is the finding this test exists to surface. (F6)
+**Evidence:** screenshot or photograph of the app-switcher thumbnail.
+
+### B11 — Feature disabled
+**Steps:** turn the lock off in Settings; force-quit; relaunch.
+**Expected:** no lock screen at all; the app opens directly. Toggling takes
+effect without a restart. (F2)
+**Evidence:** screen recording.
+
+
+## 5. Results table (to complete during execution)
+
+| # | Test | Device | OS | Pass/Fail | Notes | Evidence file |
+|---|------|--------|----|-----------|-------|---------------|
+| B0 | Setup / baseline | | | | | |
+| B1 | Cold start | | | | | |
+| B2 | Background — short | | | | | |
+| B3 | Background — long | | | | | |
+| B4 | Cancellation | | | | | |
+| B5 | Lockout / fallback | | | | | |
+| B6 | Sign-out | | | | | |
+| B7 | Reinstall | | | | | |
+| B8 | Device change | | | | | |
+| B9 | Recovery / restore | | | | | |
+| B10 | App-switcher snapshot | | | | | |
+| B11 | Feature disabled | | | | | |
+
+**Devices tested:** _(record model, OS version and build number per device)_
+**Builds tested:** _(versionName / versionCode, and iOS build number)_
+
+
+## 6. Known limitations — stated up front
+
+These are recorded as known characteristics so they can be assessed directly,
+rather than appearing as unexpected findings.
+
+1. **The lock is a privacy gate, not at-rest encryption.** It protects against
+   casual over-the-shoulder access while the app is open. It does not encrypt
+   stored data. (F1)
+2. **The session token is stored in `SharedPreferences`, not the OS keychain**
+   (`NSUserDefaults` on iOS). On a non-jailbroken device this is not
+   user-readable, but it is included in device backups unless excluded.
+3. **App-switcher snapshot within the grace period is a potential exposure.**
+   See B10 — the test exists to establish the actual behaviour rather than assume
+   it. If confirmed, the fix is a cheap lifecycle hook, not a redesign.
+4. **Reinstall resets the biometric preference to off.** Inherent to
+   device-local preferences. This means an attacker with the device passcode who
+   reinstalls is not blocked by the lock — though they would still need the
+   Supabase credentials to reach any data.
+5. **There is no in-app escape hatch from the lock screen.** The overlay covers
+   everything including Settings, so the only route out of a lockout is the
+   device passcode fallback (B5). If biometrics were permanently unavailable
+   *and* the passcode were unknown, the app data would be unreachable on that
+   device. This is the intended trade-off of F3, but it is a deliberate
+   trade-off rather than an oversight.
+6. **Signing in on a second device does not revoke the first device's session.**
+   No single-session enforcement is configured. To be confirmed in B8 rather
+   than assumed.
+7. **Android cannot screen-record the biometric prompt** (secure window), so
+   Android evidence is filmed with a second device.
+8. **Testing runs against production Supabase** — no staging project exists, so
+   test accounts and estates are created in the live project and should be
+   cleaned up afterwards.
+
+
+## 7. Evidence index
+
+Suggested naming, so the results table and clips line up:
+
+```
+bio_00_setup.mp4
+bio_01_coldstart.mp4
+bio_02_background_short.mp4
+bio_03_background_long.mp4
+bio_04_cancellation.mp4
+bio_05_lockout_fallback.mp4
+bio_06_signout.mp4
+bio_07_reinstall.mp4
+bio_08_device_change.mp4
+bio_09_restore.mp4
+bio_10_app_switcher.png
+bio_11_disabled.mp4
+```
+
+Method notes: screen recording for sequences (with microphone narration), still
+screenshots for static states. iOS: Control Centre → Screen Record. Keep a
+stopwatch visible in the frame for B2/B3 so elapsed time is visible to the
+reviewer.
+
+
+## 8. Sign-off
+
+| Field | Value |
+|---|---|
+| Tester | |
+| Date | |
+| Devices / OS | |
+| Build(s) | |
+| Overall result | |
+| Findings raised | |
