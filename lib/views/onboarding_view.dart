@@ -115,43 +115,31 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       final joiningPath =
           _joiningPath ?? (_hasPendingInvite ? _JoiningPath.inviteCode : null);
 
-      // Helper: claim a pending invite by code. Returns the estate id or
-      // null if the code is invalid/expired. Sets _error on failure.
+      // Helper: claim a pending invite by code. The claim is performed
+      // server-side by claim_invite(), which looks the invite up *by code*,
+      // verifies it, and stamps the caller — so the client never selects or
+      // updates estate_access directly. Returns the estate id, or null and
+      // sets _error on failure.
       Future<String?> claimInvite(String code) async {
-        // Don't let a user who already has accepted access claim another
-        // invite — they already have a role on an estate.
-        final existing = await client
-            .from('estate_access')
-            .select('estate_id, role')
-            .eq('user_id', user.id)
-            .eq('status', 'accepted')
-            .limit(1);
-
-        if (existing.isNotEmpty) {
-          setState(() => _error =
-              'You already have access to an estate. Sign out and use a different account to join with this invite code.');
+        try {
+          final estateId = await client.rpc(
+            'claim_invite',
+            params: {'p_code': code},
+          );
+          return estateId as String?;
+        } on PostgrestException catch (e) {
+          // claim_invite raises SQLSTATEs: 23505 (caller already a member),
+          // P0002 (no such pending code), 22023 (empty/blank code).
+          if (e.code == '23505') {
+            setState(() => _error =
+                'You already have access to an estate. Sign out and use a different account to join with this invite code.');
+          } else if (e.code == 'P0002' || e.code == '22023') {
+            setState(() => _error = 'Invalid invite code.');
+          } else {
+            setState(() => _error = 'Could not claim invite: ${e.message}');
+          }
           return null;
         }
-
-        final invite = await client
-            .from('estate_access')
-            .select('id, estate_id, role')
-            .eq('invite_code', code)
-            .eq('status', 'pending')
-            .isFilter('user_id', null)
-            .maybeSingle();
-
-        if (invite == null) {
-          setState(() => _error = 'Invalid invite code.');
-          return null;
-        }
-
-        await client.from('estate_access').update({
-          'user_id': user.id,
-          'status': 'accepted',
-        }).eq('id', invite['id'] as String);
-
-        return invite['estate_id'] as String?;
       }
 
       if (joiningPath == _JoiningPath.inviteCode) {

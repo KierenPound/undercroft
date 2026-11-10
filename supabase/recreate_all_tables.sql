@@ -373,7 +373,10 @@ GRANT ALL ON public.checklist_items TO authenticated;
 GRANT ALL ON public.attachments TO authenticated;
 
 GRANT SELECT ON public.estates TO anon;
-GRANT SELECT ON public.estate_access TO anon;
+-- estate_access is deliberately not granted to anon: the only rows an
+-- anonymous caller could reach were pending invites, which exposed invite_code
+-- and invited_email to anyone on the internet. See migration 0030.
+REVOKE SELECT ON public.estate_access FROM anon;
 GRANT SELECT ON public.documents TO anon;
 GRANT SELECT ON public.who_to_notify TO anon;
 GRANT SELECT ON public.notify_account_details TO anon;
@@ -588,6 +591,11 @@ BEGIN
 END;
 $$;
 
+-- CREATE FUNCTION grants EXECUTE to PUBLIC by default, so it must be revoked
+-- before granting the narrower set. Without this, anon could call create_estate
+-- (it fails harmlessly on the NOT NULL owner_id, but the RPC should not be
+-- reachable at all). See migration 0031.
+REVOKE ALL ON FUNCTION public.create_estate(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.create_estate(text) TO authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
@@ -691,21 +699,38 @@ CREATE TRIGGER estates_guard_update
 -- ---------------------------------------------------------------------------
 -- 9. POLICIES: public.estate_access
 -- ---------------------------------------------------------------------------
+-- A pending invite is readable only by the estate's owners (who issued it) and
+-- by the invitee whose email it carries. The previous clause tested the row
+-- rather than the requester, which made every pending code world-readable, and
+-- the policy was open to anon. See migration 0030.
 CREATE POLICY estate_access_select_linked ON public.estate_access
     FOR SELECT
-    TO anon, authenticated
+    TO authenticated
     USING (
         user_id = auth.uid()
         OR public.is_estate_owner(estate_id)
         OR public.is_estate_member_owner(estate_id)
-        OR (status = 'pending' AND user_id IS NULL AND invite_code IS NOT NULL)
+        OR (
+            status = 'pending'
+            AND user_id IS NULL
+            AND invite_code IS NOT NULL
+            AND invited_email IS NOT NULL
+            AND lower(invited_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        )
     );
 
+-- INSERT means "create an invite" and nothing more: the estate's owner, still
+-- pending, unlinked, carrying a code. The previous `user_id = auth.uid()` branch
+-- let any signed-in user insert an accepted owner row for any estate id and
+-- grant themselves access with no invite involved. See migration 0030.
 CREATE POLICY estate_access_owner_insert ON public.estate_access
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        user_id = auth.uid() OR public.is_estate_owner(estate_id)
+        public.is_estate_owner(estate_id)
+        AND status = 'pending'
+        AND user_id IS NULL
+        AND invite_code IS NOT NULL
     );
 
 CREATE POLICY estate_access_owner_update ON public.estate_access
@@ -725,41 +750,66 @@ CREATE POLICY estate_access_owner_delete ON public.estate_access
         public.is_estate_owner(estate_id)
     );
 
--- An invite claim may only ever yield the role the invite already carried. The
--- previous single policy used `role IN ('executor','owner')` in its WITH CHECK,
--- but a WITH CHECK sees only the NEW row — so an executor invite could be
--- claimed as an owner. Its trailing `estate_id = estate_id` style comparisons
--- were tautologies (NEW compared with NEW) and guarded nothing. Hence one
--- policy per role, plus the guard trigger below, since RLS cannot see OLD.
-CREATE POLICY estate_access_claim_executor_invite ON public.estate_access
-    FOR UPDATE
-    TO authenticated
-    USING (
-        status = 'pending'
-        AND user_id IS NULL
-        AND invite_code IS NOT NULL
-        AND role = 'executor'
-    )
-    WITH CHECK (
-        status = 'accepted'
-        AND user_id = auth.uid()
-        AND role = 'executor'
-    );
+-- Claiming an invite is a single, code-checked entry point. The old approach
+-- used per-role UPDATE policies that SELECTed the invite and then UPDATEed it
+-- from the client, so a WITH CHECK saw only the NEW row — an executor invite
+-- could be claimed as an owner, and the client could not be trusted to have
+-- verified the code at all. RLS also cannot see OLD, so immutability of a
+-- claimed row cannot be expressed in a policy. claim_invite does the lookup and
+-- the write in one locked transaction; the guard trigger below keeps a claim to
+-- user_id/status only. See migration 0030.
+CREATE OR REPLACE FUNCTION public.claim_invite(p_code text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+SET row_security = off
+AS $$
+DECLARE
+    caller_id     uuid := auth.uid();
+    target_id     uuid;
+    target_estate uuid;
+BEGIN
+    IF caller_id IS NULL THEN
+        RAISE EXCEPTION 'claim_invite: no authenticated user';
+    END IF;
 
-CREATE POLICY estate_access_claim_owner_invite ON public.estate_access
-    FOR UPDATE
-    TO authenticated
-    USING (
-        status = 'pending'
-        AND user_id IS NULL
-        AND invite_code IS NOT NULL
-        AND role = 'owner'
-    )
-    WITH CHECK (
-        status = 'accepted'
-        AND user_id = auth.uid()
-        AND role = 'owner'
-    );
+    IF p_code IS NULL OR length(trim(p_code)) = 0 THEN
+        RAISE EXCEPTION 'Invalid invite code'
+            USING ERRCODE = 'invalid_parameter_value';
+    END IF;
+
+    -- One membership per account, matching the rule the app already applied.
+    IF EXISTS (
+        SELECT 1 FROM public.estate_access
+        WHERE user_id = caller_id AND status = 'accepted'
+    ) THEN
+        RAISE EXCEPTION 'You already have access to an estate'
+            USING ERRCODE = 'unique_violation';
+    END IF;
+
+    -- FOR UPDATE so two simultaneous claims of one code cannot both succeed.
+    SELECT id, estate_id INTO target_id, target_estate
+    FROM public.estate_access
+    WHERE invite_code = upper(trim(p_code))
+      AND status = 'pending'
+      AND user_id IS NULL
+    FOR UPDATE;
+
+    IF target_id IS NULL THEN
+        RAISE EXCEPTION 'Invalid invite code' USING ERRCODE = 'no_data_found';
+    END IF;
+
+    UPDATE public.estate_access
+    SET user_id = caller_id, status = 'accepted'
+    WHERE id = target_id;
+
+    RETURN target_estate;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_invite(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_invite(text) TO authenticated, service_role;
 
 -- Guard: claiming an invite may only set user_id and status. Deliberately NOT
 -- SECURITY DEFINER — the function reads only OLD/NEW and touches no tables.
