@@ -50,6 +50,9 @@ app.*.map.json
 supabase_config.json
 ios/Flutter/Local.xcconfig
 
+# Supabase CLI scratch state
+supabase/.temp/
+
 # Release APK kept in the repo root for ad-hoc sideloading — a build artifact,
 # not source. 64 MB, and rebuildable from any commit.
 /undercroft-release.apk
