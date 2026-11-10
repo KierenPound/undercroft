@@ -1,0 +1,269 @@
+# UnderCroft — Supabase Private-File Storage Test Plan
+
+**Review item:** 3. Supabase private-file storage
+**Status:** PLAN — not yet executed
+**Prepared:** 2026-11-10
+
+**Backend under test:** Supabase project (production — no staging environment exists)
+**Bucket:** `estate-documents` — **private** (`public = false`)
+**App build:** versionName 1.0.0 / versionCode 20
+**Previous coverage:** the earlier RLS test exercised *database* access. This plan
+covers **live storage operations** — upload, download, replacement, deletion,
+signed and retained URLs, and cross-estate isolation at the object layer.
+
+
+## 0. Purpose and how to read this
+
+The review item is explicit that database RLS was already covered and that live
+storage operations were not. This plan therefore tests the *object* layer
+directly: real bytes, real signed URLs, real HTTP status codes.
+
+Every expected result is derived from the implementation (Section 2) so that
+pass/fail is objective. Known limitations and design characteristics are stated
+up front in Section 6 rather than left to be discovered.
+
+**All test documents must be fictional.** No real wills, deeds, certificates or
+ID images are to be uploaded during testing.
+
+
+## 1. Scope
+
+**In scope:** object-level access control across estates and roles; upload,
+download, replacement and deletion; signed-URL lifecycle and expiry; the
+retained `download_url` values; server-side bucket configuration; cleanup on
+estate/account deletion.
+
+**Out of scope, with reason:**
+- Database table RLS — already covered by the RLS security test.
+- The invite/claim flow — separate review item.
+- CDN caching behaviour — Supabase-managed, not app-controlled.
+
+
+## 2. Implementation facts — the basis for the expected results
+
+| # | Fact | Source |
+|---|------|--------|
+| F1 | Bucket `estate-documents` is created **private** (`public = false`), 50 MB file-size limit, MIME allowlist: `application/pdf`, `image/jpeg`, `image/png`, `image/heic`, `text/plain`. | `recreate_all_tables.sql` §16 |
+| F2 | The bucket is created with `ON CONFLICT (id) DO NOTHING`, so re-running the script **will not correct a drifted live bucket config**. The live bucket must be verified directly. | same |
+| F3 | Object keys are `estate-documents/<estateId>/…` — the bucket name is redundantly repeated as the first path segment, and the policies test for it. | `sections_repository.dart`, `about_you_repository.dart` |
+| F4 | **SELECT (download) is available to owners *and* executors** — this policy omits the role filter. | `estate_docs_select_linked` |
+| F5 | **INSERT / UPDATE / DELETE are owner-only.** Executors cannot upload, replace or delete. | `estate_docs_insert_owner`, `estate_docs_update_owner`, `estate_docs_delete_owner` |
+| F6 | Every policy scopes to `(storage.foldername(name))[2]::uuid IN get_allowed_estate_ids(...)` — i.e. the estate UUID embedded in the path is the access boundary. | §16 |
+| F7 | `GRANT SELECT ON storage.objects TO anon` exists, and the SELECT policy is granted `TO anon, authenticated`. The mitigation is that `get_allowed_estate_ids()` should return nothing for an anonymous caller. **This must be verified live.** | §16 |
+| F8 | Uploads are written **row first, bytes second**, with the row rolled back if the upload fails — deliberately, so no orphan object can exist that no row points at. | `sections_repository.dart`, `about_you_repository.dart` |
+| F9 | On replacement, the **previous object is removed once the new one lands**, so a superseded object should no longer be retrievable. | `about_you_repository.dart` |
+| F10 | Signed URLs are used for display, TTL **3600 s (1 hour)**, with client-side reuse caching and a renewal margin. | `sections_repository.dart`, `utility_details_repository.dart`, `about_you_repository.dart` |
+| F11 | `getPublicUrl(...)` is called and the resulting URL is **stored in the database row** (`download_url`) even though the bucket is private. | `sections_repository.dart`, `about_you_repository.dart` |
+| F12 | Estate/account deletion walks the storage tree manually (a "folder" is only a path prefix) and removes objects in batches of 100. | `estate_service.dart` |
+| F13 | `about-you` uploads always write a `.jpg` extension regardless of the actual MIME type (e.g. HEIC input). | `about_you_repository.dart` |
+
+
+## 3. Test method — how the evidence is produced
+
+Two complementary evidence types, as in the previous RLS round:
+
+1. **Scripted HTTP calls with real per-user tokens (primary).** Three test
+   accounts — **A** (estate owner), **B** (accepted executor of A's estate),
+   **C** (authenticated stranger, not a member of A's estate) — plus an
+   **anon** request with no session. Record the exact HTTP status and response
+   body for each call.
+2. **In-app screenshots (supporting)** — showing the same operations through the
+   app, so the UI path is also evidenced.
+
+For downloads, verify **byte integrity** by comparing a SHA-256 of the retrieved
+file against the original, rather than just checking for a 200.
+
+Relevant Storage API routes, for reproducibility:
+
+```
+Upload       POST   /storage/v1/object/estate-documents/<estateId>/<path>
+Download     GET    /storage/v1/object/estate-documents/<estateId>/<path>
+Sign         POST   /storage/v1/object/sign/estate-documents/<estateId>/<path>
+Delete       DELETE /storage/v1/object/estate-documents/<estateId>/<path>
+Public route GET    /storage/v1/object/public/estate-documents/<estateId>/<path>
+```
+
+> Record the **exact** status code and body observed, even where the expectation
+> below says "denied" — the specific code is part of the evidence.
+
+
+## 4. Test cases
+
+**S0 — Setup.** Create accounts A (owner), B (executor of A's estate), C
+(unrelated authenticated user). Create a fictional test document
+(`storage-test-2026-11-10.pdf`, a few KB of dummy content) and record its
+SHA-256.
+
+**S1 — Owner upload.** A uploads to A's estate prefix.
+*Expected:* success; object exists in the bucket; the `attachments` /
+document row exists. (F3, F8)
+
+**S2 — Owner download.** A requests a signed URL and downloads.
+*Expected:* 200; bytes identical (SHA-256 matches). (F10)
+
+**S3 — Cross-estate download (authenticated stranger).** C requests a signed
+URL for, and attempts a direct GET of, A's object.
+*Expected:* **denied.** C is not in `get_allowed_estate_ids()`. (F6)
+
+**S4 — Anonymous download.** No session; GET the object via the public route and
+attempt to sign a URL for it.
+*Expected:* **denied** — not a 200 returning bytes. This is the live proof of
+F7's mitigation.
+
+**S5 — Cross-estate upload.** C attempts to upload into A's estate prefix.
+*Expected:* denied by the owner-scoped INSERT policy. (F5, F6)
+
+**S6 — Executor download (positive).** B downloads A's document.
+*Expected:* **allowed** — the SELECT policy deliberately includes executors.
+If this fails, read access for executors is broken. (F4)
+
+**S7 — Executor upload.** B attempts a new upload into the estate.
+*Expected:* denied. (F5)
+
+**S8 — Executor replacement.** B attempts to overwrite an existing object.
+*Expected:* denied. (F5)
+
+**S9 — Executor deletion.** B attempts to delete an object.
+*Expected:* denied. (F5)
+
+**S10 — Owner replacement, and the retained URL.** A replaces the document with
+a new version.
+*Expected:* new object present; **previous object gone**; and the signed/retained
+URL issued for the *old* object **no longer serves it**. (F9)
+This is the "retained URL" case the review item asks for.
+
+**S11 — Owner deletion.** A deletes the document.
+*Expected:* object and row both gone; a previously issued signed URL no longer
+serves the file.
+
+**S12 — Failed upload leaves nothing behind.** Force an upload failure
+(see S13/S14).
+*Expected:* **no object and no database row** — the rollback path in F8 works.
+Worth confirming explicitly, because the design intent is zero orphans.
+
+**S13 — Oversized file.** Attempt a file above the 50 MB limit.
+*Expected:* rejected server-side. (F1)
+
+**S14 — Disallowed MIME type.** Attempt a type outside the allowlist (e.g. a
+`.zip` or `.docx`).
+*Expected:* rejected server-side. (F1)
+*Note:* this also confirms the retention policy — wills and deeds must therefore
+be PDFs.
+
+**S15 — Signed-URL expiry.** Sign a URL with a short TTL (e.g. 60 s); download
+before expiry, then again after.
+*Expected:* works before expiry; **fails after**. (F10)
+
+**S16 — The retained public URL on a private bucket.** Take the `download_url`
+value stored in the database row (produced by `getPublicUrl`) and fetch it.
+*Expected:* does **not** serve the file, because the bucket is private. (F11)
+This matters: if it *did* serve the file, the bucket would be effectively public.
+
+**S17 — Path traversal / crafted key.** Attempt `../` sequences, an absolute-ish
+key, or a key naming another estate's folder.
+*Expected:* denied; no object created outside the estate prefix. (F3, F6)
+
+**S18 — Cleanup on deletion.** Delete the test estate (or the account) and
+confirm the estate folder is emptied, **including nested `utilities/` and
+`about-you/` subfolders**. (F12)
+
+**S19 — Live bucket configuration.** Verify directly against the live project
+that the bucket is private with the stated size limit and MIME allowlist.
+*Expected:* matches F1. Record any drift — F2 means the script will not correct it.
+
+
+## 5. Results table (to complete during execution)
+
+| # | Test | Actor | Expected | Observed (status / body) | Pass/Fail | Note |
+|---|------|-------|----------|--------------------------|-----------|------|
+| S0 | Setup | — | — | | | |
+| S1 | Owner upload | A | allow | | | |
+| S2 | Owner download | A | 200, bytes match | | | |
+| S3 | Cross-estate download | C | deny | | | |
+| S4 | Anonymous download | anon | deny | | | |
+| S5 | Cross-estate upload | C | deny | | | |
+| S6 | Executor download | B | **allow** | | | |
+| S7 | Executor upload | B | deny | | | |
+| S8 | Executor replacement | B | deny | | | |
+| S9 | Executor deletion | B | deny | | | |
+| S10 | Replacement + retained URL | A | old object gone, old URL dead | | | |
+| S11 | Owner deletion | A | object + row gone | | | |
+| S12 | Failed upload rollback | A | no orphan | | | |
+| S13 | Oversized file | A | reject | | | |
+| S14 | Disallowed MIME | A | reject | | | |
+| S15 | Signed-URL expiry | A | live then dead | | | |
+| S16 | Retained public URL | — | no access | | | |
+| S17 | Path traversal | C | deny | | | |
+| S18 | Cleanup on deletion | A | folder emptied | | | |
+| S19 | Bucket config | — | private / 50 MB / allowlist | | | |
+
+**Test accounts:** _(record A / B / C identities and how created, then deleted)_
+**Fictional documents used:** _(name, size, SHA-256)_
+
+
+## 6. Known limitations and characteristics — stated up front
+
+1. **The database stores a *public* URL for a *private* bucket** (F11). The
+   stored `download_url` is effectively a placeholder; actual access is via
+   signed URLs. **It is not an access grant** — but S16 must confirm that live.
+   Defence-in-depth note: if the bucket were ever flipped to public, every
+   retained URL would become immediately live, and estate UUIDs are not secret
+   (see the earlier invite-code finding). Worth recording as a conditional risk
+   rather than a present one.
+2. **`GRANT SELECT ON storage.objects TO anon` exists** (F7). It is mitigated by
+   `get_allowed_estate_ids()` returning nothing for an anonymous caller — which
+   is exactly what S4 verifies. The grant could be revoked for tidiness.
+3. **No client-side MIME or size validation was found in the upload path** — the
+   bucket's server-side allowlist is the control. S13/S14 confirm it holds.
+4. **Object keys redundantly repeat the bucket name** as the first path segment
+   (F3). Harmless, but the policies and the keys must stay in step — if one
+   changed without the other, access would break or open.
+5. **`about-you` uploads force a `.jpg` extension regardless of input type**
+   (F13), so a HEIC file may be stored with a misleading extension.
+6. **The bucket is created with `ON CONFLICT DO NOTHING`** (F2), so the repo
+   script is not authoritative for a bucket that already exists. The live
+   configuration must be checked by hand (S19).
+7. **Testing runs against production** — no staging project exists. Test
+   accounts and their estates must be cleaned up afterwards (S18 covers the
+   storage side of that).
+
+
+## 7. Evidence index
+
+```
+storage_00_setup.txt                  (accounts, documents, SHA-256)
+storage_01_owner_upload.txt
+storage_02_owner_download.txt
+storage_03_cross_estate_download.txt
+storage_04_anon_download.txt
+storage_05_cross_estate_upload.txt
+storage_06_executor_download.txt
+storage_07_executor_upload.txt
+storage_08_executor_replace.txt
+storage_09_executor_delete.txt
+storage_10_replacement_retained_url.txt
+storage_11_owner_delete.txt
+storage_12_failed_upload_rollback.txt
+storage_13_oversized.txt
+storage_14_disallowed_mime.txt
+storage_15_signed_url_expiry.txt
+storage_16_retained_public_url.txt
+storage_17_path_traversal.txt
+storage_18_cleanup.txt
+storage_19_bucket_config.txt
+```
+
+Suggested format per case: the request (method, path, actor), the full response
+status and body, and for downloads the SHA-256 comparison. Screenshot the
+equivalent in-app action alongside the scripted call where one exists.
+
+
+## 8. Sign-off
+
+| Field | Value |
+|---|---|
+| Tester | |
+| Date | |
+| Accounts used | |
+| Overall result | |
+| Findings raised | |
