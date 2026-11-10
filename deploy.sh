@@ -9,6 +9,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+# Keep Gradle's home on the internal disk. By default it lives at ~/.gradle,
+# which here is a symlink onto the external SSD — and on that volume Gradle's
+# atomic temp-file writes fail ("problems-report*.html: File exists"), killing
+# every build before it starts. The internal copy holds the same cache, so
+# nothing is re-downloaded. Override GRADLE_USER_HOME to point it elsewhere.
+export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle-internal}"
+
 readonly CONFIG="supabase_config.json"
 
 if [[ ! -f "$CONFIG" ]]; then
