@@ -319,8 +319,8 @@ class CarsDashboard extends StatelessWidget {
                 _insuranceRuleBullet(
                   title: 'Named Drivers are NOT Covered:',
                   text: 'Even if you are listed as a named driver on my car '
-                      'insurance policy, your cover becomes instantly invalid '
-                      'the moment we shuffle off this mortal coil.',
+                      'insurance policy, your cover nearly always becomes invalid '
+                      'the moment we shuffle off this mortal coil.  Check with the insurer',
                 ),
                 const SizedBox(height: 12),
                 _insuranceRuleBullet(
