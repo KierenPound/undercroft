@@ -1,0 +1,136 @@
+--Initial findings from G testimng from Trae--
+I've completed the static audit and run the live tests that are safe to run. **This found a live, confirmed security hole — read the first section before anything else.**
+
+---
+
+# UnderCroft RLS Security Test — Results
+
+## Environment limitation
+- No staging project exists (only one Supabase project is configured, and it's the live one).
+- No Docker/psql available locally, so no isolated stack could be spun up.
+- Per the safety rules, I ran **read-only anonymous probes only**. Tests needing authenticated sessions were not run against production, because creating test users/estates there would modify live data.
+
+---
+
+## CRITICAL — confirmed live, right now
+
+**Anonymous internet users can read your pending invite codes.**
+
+With nothing but the public anon key — no login, no session — the REST API returned your pending invitations:
+
+```
+[anon estate_access pending] HTTP 200  rows=2
+   -> role=executor invite_code=3G****  estate_id=58907709…
+   -> role=owner    invite_code=38****  estate_id=58907709…
+[anon estates]              HTTP 200  rows=0     <- isolation works here
+```
+
+Cause: the fourth clause of `estate_access_select_linked` tests only the *row*, not the requester, and the policy is granted to `anon`:
+
+```sql
+OR (status = 'pending' AND user_id IS NULL AND invite_code IS NOT NULL)
+```
+
+Combined with `GRANT SELECT ON public.estate_access TO anon`, every outstanding invite code is world-readable. Since anyone who knows a code can claim it, **an unauthenticated stranger can turn an outstanding co-owner invite into full access to your estate.**
+
+**Recommendation: revoke the two outstanding invites now** and re-issue fresh ones once the fix below is in. Treat both codes as compromised. (I've masked them above rather than reproducing them.)
+
+---
+
+## Second finding — needs a staging check
+
+`recreate_all_tables.sql` permits any signed-in user to grant themselves access to **any** estate:
+
+```sql
+CREATE POLICY estate_access_owner_insert ON public.estate_access
+    WITH CHECK ( user_id = auth.uid() OR public.is_estate_owner(estate_id) );
+```
+
+The `user_id = auth.uid()` branch passes with no requirement that the estate belongs to you and no invite involved. A signed-in user can POST an `estate_access` row `{estate_id: <any estate>, user_id: <themselves>, role: 'owner', status: 'accepted'}` and become an accepted co-owner. Estate UUIDs aren't secret, because of the finding above.
+
+Two caveats, stated honestly:
+- I could not test this live (it would write a real row).
+- [0001_fix_estate_access_rls_recursion.sql](file:///Users/kierenpound/Developer/UnderCroft/supabase/migrations/0001_fix_estate_access_rls_recursion.sql#L73-L79) contains a **different, safe** version of the same policy (`estate_id IN (SELECT id FROM estates WHERE owner_id = auth.uid())`). The two files disagree, so which one is live in your project is unverified. Either way the drift is a problem — [recreate_all_tables.sql](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L703-L708) is the newer, consolidated script, and it's the permissive one.
+
+## Third finding — the invite code is not a secret at the database layer
+
+The claim policies check that a row *is* pending, but never check that the code the caller typed matches it. RLS can't compare against client input, so the only real check is the app's `.eq('invite_code', code)` — a client-side filter, and the code is itself readable (finding 1). The UPDATE is then keyed on the row id:
+
+[onboarding_view.dart](file:///Users/kierenpound/Developer/UnderCroft/lib/views/onboarding_view.dart#L136-L152) selects by code, then updates `.eq('id', ...)` setting `user_id`/`status`. The guard trigger from 0019 correctly stops the *role/estate* being altered, but nothing stops a caller skipping the SELECT and updating any pending row directly.
+
+---
+
+## Test results
+
+| # | Test | Result | Basis |
+|---|---|---|---|
+| 1 | User A reads Estate A's records | PASS (not run live) | Code: data tables gate on `get_allowed_estate_ids()` |
+| 2 | User A cannot read Estate B | **FAIL** | `estate_access` pending rows leak to anon (live); self-grant INSERT path (code) |
+| 3 | User B cannot read Estate A | **FAIL** | Same root causes |
+| 4 | Executor sees only role-permitted data | PASS (not run live) | Executors get read-all + checklist write, per [checklist_items_linked_update](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L1094-L1108) |
+| 5 | Unauthorised INSERT/UPDATE/DELETE on another estate | **FAIL** (INSERT) / PASS (UPDATE, DELETE) | INSERT via permissive `estate_access_owner_insert`; UPDATE/DELETE correctly gated by `estate_id` |
+| 6 | Executor can't promote self to owner | **FAIL** | Own estate blocked by the unique index (L348-350); **any other estate** reachable via self-INSERT |
+| 7 | Revoked access stops access, incl. old token | PASS (not run live) | All policies call helpers requiring `status='accepted'` per query — JWT age is irrelevant |
+| 8 | Claim can't change estate or role | PASS (not run live) | Per-role claim policies + [estate_access_guard_claim](file:///Users/kierenpound/Developer/UnderCroft/supabase/migrations/0019_fix_invite_claim_escalation.sql#L66-L91) |
+| 9 | SECURITY DEFINER / RPC / storage audit | PASS with notes | See below |
+| 10 | Failed requests leave data unchanged | PASS by design | Guard triggers `RAISE EXCEPTION`, so the statement rolls back |
+
+**Test 9 detail:** `delete_my_account` is safe — no parameters, deletes only `auth.uid()` ([L614-629](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L614-L629)). Storage policies correctly bind to `foldername(name)[2]::uuid IN get_allowed_estate_ids()` and use `SECURITY DEFINER` with `row_security = off`, so they don't recurse. Helpers all scope to `auth.uid()`. Notes: `create_estate` is `SECURITY DEFINER` and deletes *every* estate the caller owns (safe in scope, but a destructive footgun if called by accident), and the helpers plus `get_or_create_current_estate_context` are granted to `anon` unnecessarily (inert, since `auth.uid()` is NULL).
+
+## Recommended corrections
+
+1. **Drop the `user_id = auth.uid()` branch** from `estate_access_owner_insert` — [recreate_all_tables.sql L703-708](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L703-L708); require owner-scoped inserts only.
+2. **Stop leaking pending rows.** Remove the pending-invite clause from `estate_access_select_linked` ([L693-701](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L693-L701)) and the `UPDATE` claim policies, replacing both with a single `SECURITY DEFINER` RPC — e.g. `claim_invite(p_code text)` — that looks up the row *by code* and does the acceptance server-side. That makes the code a real secret check.
+3. **Revoke `GRANT SELECT ... TO anon`** on `estate_access` (and review the other tables at [L375-388](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L375-L388)).
+4. **Reconcile the 0001 vs master-script drift** and make one artifact authoritative, so the live policy can't differ from the repo.
+5. **Confirm executor read scope is intended** — executors currently read everything including attachments and `about_you`.
+
+## Plain-English summary
+
+The database does a good job of keeping one estate's *content* away from another user, and revocation, role-pinning and storage all hold up well. But the *invitation system* is open to the street: your pending invite codes are readable by anyone on the internet without logging in, and the code itself isn't really checked by the database. In practice that means a stranger could join an estate as an executor or co-owner while an invite is outstanding. **Revoke your two outstanding invites today**, then we should fix the invite flow properly before the next round of testing. Nothing was changed in your database during this test — every probe was read-only.
+
+I can write these fixes as a new migration for your review (not applying it) — say the word. Also worth flagging: the live project URL is `https://mpsygpgaakdtlgjzmbtr.supabase.co`, which differs from what's recorded in my project memory, so I'll correct that.
+
+--Trae pass 2
+Done.
+
+- [recreate_all_tables.sql#L594-L599](file:///Users/kierenpound/Developer/UnderCroft/supabase/recreate_all_tables.sql#L594-L599) — added `REVOKE ALL ON FUNCTION public.create_estate(text) FROM PUBLIC;` before the grant.
+- New [0031_revoke_public_execute_create_estate.sql](file:///Users/kierenpound/Developer/UnderCroft/supabase/migrations/0031_revoke_public_execute_create_estate.sql) — same change for the live project. Apply it when convenient (`supabase db push`, or paste into the SQL editor).
+
+Your second answer came through as "Other" but the text didn't reach me — could you restate your preference on invite claiming? Specifically:
+
+**Should `claim_invite` require the caller's email to match the invite's `invited_email`?**
+
+- **Keep code-only** (current): knowing the 6-char code is enough; anyone the owner gives the code to can join, even from a different email address.
+- **Enforce email match**: only the person at the invited address can claim; ties the invitation to that email.
+
+Once you tell me which, I'll either leave it as-is or add the check.
+
+Memory check: the authoritative [project_memory.md](file:///Users/kierenpound/.trae/memory/projects/-Users-kierenpound-Developer-UnderCroft--p2-2bf58c530cc421b5c6ce/project_memory.md#L3) already carries the correct URL — `https://mpsygpgaakdtlgjzmbtr.supabase.co`. The old value (`khvydomhfyqhepkvcdsh`) now survives only in dated session logs from 21 Oct, which are historical records I've left untouched. So nothing to change.
+
+## RLS Security Test Results
+
+**Method:** live REST calls with the publishable/anon key + real per-user tokens. No service_role, no SQL session. Test users A/B/C/D created and deleted. **Result: 29/29 checks PASS.**
+
+| # | Required test | Sub-checks | Result |
+|---|---------------|-----------|--------|
+| 1 | User A reads Estate A | 1a | **PASS** |
+| 2 | User A cannot read Estate B | 2a | **PASS** |
+| 3 | User B cannot read Estate A | 3a (estate), 3b (sections) | **PASS** |
+| 4 | Executor sees only role-permitted data | 4a invite created · 4b claim by code · 4c reads own estate · 4d blocked from B · 4e reads checklist | **PASS** |
+| 5 | Unauthorised INSERT/UPDATE/DELETE | 5a self-grant INSERT → 403 · 5b UPDATE estate → 0 rows · 5c DELETE estate → 0 rows · 5d INSERT document → 403 · 5e toggle checklist → 0 rows | **PASS** |
+| 6 | Executor cannot self-promote | 6a role is executor · 6b UPDATE to owner → 0 rows | **PASS** |
+| 7 | Revoked access blocks further reads | 7a revoke · 7b estate read → 0 rows · 7c sections → 0 rows · 7d token still valid | **PASS** |
+| 8 | Claim cannot change estate/role | 8a role stayed executor · 8b estate unchanged · 8c move membership → 0 rows | **PASS** |
+| 9 | SECURITY DEFINER / RPC / storage audit | 9a anon `claim_invite` → 401 · 9b anon `create_estate` → 401 · 9c bogus code refused | **PASS** |
+| 10 | Failed requests leave data unchanged | 10a estate name · 10b checklist flag · 10c Estate B name | **PASS** |
+
+Detail by evidence type:
+- **Live API (true authenticated requests):** tests 1–8, 10, and 9a/9b/9c.
+- **Code inspection only:** the `storage.objects` policies (correctly gated by `(storage.foldername(name))[2]::uuid IN (SELECT public.get_allowed_estate_ids(...))`) — no storage objects were created, so this was not exercised by a live request.
+- **Extras:** non-member authenticated user reads 0 rows from `estate_access` (invite privacy).
+
+Notable specific observations:
+- 5b/5c/5e returned HTTP 200 with an empty body — RLS silently filtered all rows, so nothing was modified (confirmed by test 10).
+- Test 7d confirms revocation is a **data-level** control (the JWT stays valid until it expires; access is denied by RLS, not by token invalidation). Worth remembering if you ever want immediate session kill.
+- 9b was the only genuine gap found in the first run and is now closed by **[0031](file:///Users/kierenpound/Developer/UnderCroft/supabase/migrations/0031_revoke_public_execute_create_estate.sql)**.
