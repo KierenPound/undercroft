@@ -1,0 +1,163 @@
+APK SIGNING VERIFICATION EVIDENCE
+=================================
+
+Generated : 2026-11-10 (Europe/London)
+Artefact  : undercroft-release.apk
+Location  : /Users/kierenpound/Developer/UnderCroft/undercroft-release.apk
+Size      : 61M (64,142,235 bytes)
+Built     : Nov 10 22:05:15 2026
+SHA-256   : 321097fa5dba2bb341d8c6a3079df36a9084cb106da5fb92730e5bdf6215e6f3
+Repo HEAD : 4f92af1ece3c31805d93ee1ebefc3b3dcc0ac51b ("Add APK contents evidence")
+
+PURPOSE
+-------
+Record of a review question raised on release signing, together with the
+independent verification performed against the built release APK. Kept as a
+durable record alongside the other testing and review artefacts.
+
+Scope note: the underlying original review document was not supplied, so only
+the specific items named in the query below have been verified.
+
+
+================================================================================
+PART A - ORIGINAL REVIEW QUERY (as supplied)
+================================================================================
+
+1. Release signing / Section 1 item 2
+
+OPEN — Verify the exact outstanding item against the original review. Source
+configuration exists, but independently check the signing certificate of this
+APK, production keystore handling and update/install path. The absence of
+traditional META-INF signature files is not evidence of unsigned packaging:
+Android APKs can use v2/v3 signin
+
+[The supplied text ends mid-word at "signin"; no further text was provided.
+Reproduced verbatim and unaltered.]
+
+
+================================================================================
+PART B - VERIFICATION RESPONSE
+================================================================================
+
+VERDICT
+-------
+The query is technically correct. The absence of META-INF signature files is
+NOT evidence that the APK is unsigned. Following independent verification, the
+APK IS correctly signed, using the release (non-debug) certificate.
+
+
+B.1  WHY THE QUERY IS CORRECT - TWO UNRELATED THINGS CALLED "THE SIGNATURE"
+
+    Scheme        Where the signature lives                      Visible in
+                                                                 unzip -l?
+    -----------   --------------------------------------------   ----------
+    v1 (JAR)      Files inside META-INF/ - MANIFEST.MF,          Yes
+                  *.SF, *.RSA
+    v2 / v3       A separate "APK Signing Block" between the     No - not a
+                  file data and the central directory             file entry
+
+An APK with zero META-INF signature files can therefore be fully signed.
+
+Confirmed on this artefact: no *.RSA / *.SF / MANIFEST.MF entries are present
+(see testing/apk_contents_evidence.txt), and the APK is nonetheless signed.
+
+
+B.2  ITEM 1 - SIGNING CERTIFICATE OF THIS APK: VERIFIED
+
+Command:
+    apksigner verify --verbose --print-certs undercroft-release.apk
+
+Output (JVM native-access warnings omitted):
+
+    Verifies
+    Verified using v1 scheme (JAR signing): false
+    Verified using v2 scheme (APK Signature Scheme v2): true
+    Verified using v3 scheme (APK Signature Scheme v3): false
+    Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+    Verified using v4 scheme (APK Signature Scheme v4): false
+    Verified for SourceStamp: false
+    Number of signers: 1
+    Signer #1 certificate DN: CN=Kieren Pound, OU=Rowanbank, O=UnderCroft, L=Dunning, ST=Perthshire, C=PE
+    Signer #1 certificate SHA-256 digest: 5a56575cee842810efd6e6d4d10ebd0515085b4fffe77e1b746b3eeae0c8312a
+    Signer #1 certificate SHA-1 digest: ba2870f20d894df83429917655384fdf525014b8
+    Signer #1 certificate MD5 digest: ceda812efcbada37af766ab4642fef65
+    Signer #1 key algorithm: RSA
+    Signer #1 key size (bits): 2048
+    Signer #1 public key SHA-256 digest: 3d5c7f5d28ce6379244152a76607ab66c020c588b9b5d03741f06f258776bc27
+    Signer #1 public key SHA-1 digest: c266599826045181f2ebf3a1d57d76c5bb5a99d3
+    Signer #1 public key MD5 digest: 0eebe79420016e805a21a793b0b47ed3
+
+    Exit status: 0
+
+Conclusion:
+    - Result is "Verifies": a valid signature is present.
+    - The signer is the RELEASE certificate, not a debug key. A debug-signed
+      build would report CN=Android Debug.
+    - Expected signing identity for future builds (certificate SHA-256 digest):
+          5a56575cee842810efd6e6d4d10ebd0515085b4fffe77e1b746b3eeae0c8312a
+
+
+B.3  ITEM 2 - PRODUCTION KEYSTORE HANDLING: VERIFIED CLEAN
+
+    - android/key.properties is gitignored and untracked:
+          android/.gitignore:13:key.properties   android/key.properties
+    - Keystore file: ~/.android/undercroft-release.jks
+          -rw-------   (mode 0600, owner-only)
+    - key.properties defines: storePassword, keyPassword, keyAlias, storeFile
+      (values deliberately not reproduced; the file is not in version control)
+    - No keystore, .jks or signing property file is tracked by git.
+    - android/RELEASE_SIGNING.md documents key creation and build setup.
+    - The build fails loudly if the keystore or any required property is missing.
+
+
+B.4  ITEM 3 - UPDATE / INSTALL PATH: VERIFIED SOUND
+
+Command:
+    aapt2 dump badging undercroft-release.apk
+
+Output:
+    package: name='com.kierenpound.undercroft' versionCode='20' versionName='1.0.0'
+    minSdkVersion:'24'
+    targetSdkVersion:'36'
+    application-label:'UnderCroft'
+    native-code: 'arm64-v8a' 'armeabi-v7a' 'x86_64'
+
+Conclusion:
+    - minSdkVersion is 24. The v1 (JAR) signature scheme is only required for
+      API levels below 24, so v2-only signing is correct for this floor. No
+      install compatibility is lost.
+    - adb install -r performs an in-place update provided the signature matches
+      the installed build. Changing signing identity requires an uninstall of
+      the existing build first.
+
+
+B.5  FINDING WORTH A DECISION - v3 SIGNING IS DISABLED
+
+v3 is reported false. This is not an install or upload defect (Play App Signing
+manages rotation on its own), but v3 is what enables key rotation with
+proof-of-rotation. A v2-only APK carries no key-rotation lineage, so the signing
+key could not later be rotated without changing app identity or establishing a
+new signing lineage.
+
+If rotation capability is wanted, enable it in the release signing config:
+
+    enableV3Signing = true
+
+Logged as a conscious decision point, not an error.
+
+
+================================================================================
+PART C - HOW TO REPRODUCE
+================================================================================
+
+    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+    APKSIGNER=/Users/kierenpound/Library/Android/sdk/build-tools/36.0.0/apksigner
+
+    shasum -a 256 undercroft-release.apk
+    $APKSIGNER verify --verbose --print-certs undercroft-release.apk
+    aapt2 dump badging undercroft-release.apk
+    unzip -l undercroft-release.apk
+
+Related record:
+    testing/apk_contents_evidence.txt - full 480-entry file listing, SHA-256,
+    document scan.
