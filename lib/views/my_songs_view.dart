@@ -1244,6 +1244,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                     child: YoutubePlayer(
                       controller: _controller,
                       keepAlive: true,
+                      // Matches the section player: don't seize the screen on
+                      // rotation, since Rotation Lock leaves no way back out.
+                      // Fullscreen is still available from the player button.
+                      autoFullScreen: false,
                     ),
                   ),
                 ),
