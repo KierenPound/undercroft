@@ -305,6 +305,11 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
                           child: YoutubePlayer(
                             controller: _controller!,
                             keepAlive: true,
+                            // Never take over the screen on rotation. The
+                            // default auto-fullscreens whenever the device is
+                            // landscape and blocks back navigation, which
+                            // stranded an iPad tester who could not rotate out.
+                            autoFullScreen: false,
                           ),
                         ),
                       ),
