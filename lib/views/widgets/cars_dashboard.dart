@@ -317,7 +317,7 @@ class CarsDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _insuranceRuleBullet(
-                  title: 'Named Drivers are NOT Covered:',
+                  title: 'Important: Check Motor Insurance Cover',
                   text: 'Even if you are listed as a named driver on my car '
                       'insurance policy, your cover nearly always becomes invalid '
                       'the moment we shuffle off this mortal coil.  Check with the insurer',
@@ -331,7 +331,7 @@ class CarsDashboard extends StatelessWidget {
                       'insurance provider to arrange "Executor Cover", a '
                       'temporary policy (via apps like Cuvva), or a '
                       'brand-new policy in your own name. Driving it under '
-                      'the old policy is illegal and means you are driving '
+                      'the old policy may be illegal and means you are driving '
                       'uninsured.',
                 ),
                 const SizedBox(height: 22),
