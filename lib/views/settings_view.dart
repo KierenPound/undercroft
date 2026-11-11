@@ -412,7 +412,16 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           ),
         ),
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // The bottom of the screen is where Android draws its own back/home/
+          // recents controls, which on an edge-to-edge window sit over the last
+          // item. Add the system inset on top of the usual margin so the version
+          // line clears those buttons once you scroll all the way down.
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            16 + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
             // Your ID
             _SectionCard(

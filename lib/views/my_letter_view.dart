@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
 import '../repositories/sections_repository.dart';
@@ -203,7 +204,8 @@ class _LetterEditorState extends ConsumerState<_LetterEditor> {
     // field has focus the controller is the source of truth, so re-syncing here
     // would overwrite in-progress typing and jump the cursor.
     final storedLetter = asyncSection.valueOrNull?.letterText ?? '';
-    if (_lastAppliedStoredLetter != storedLetter && !_letterFocusNode.hasFocus) {
+    if (_lastAppliedStoredLetter != storedLetter &&
+        !_letterFocusNode.hasFocus) {
       _letterController.text = storedLetter;
       _lastSavedLetter = storedLetter;
       _lastAppliedStoredLetter = storedLetter;
@@ -326,6 +328,20 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
     }
     if (picked == null) return;
 
+    final int pickedSize;
+    try {
+      pickedSize = await picked.length();
+    } catch (_) {
+      _showMessage('Could not read that video.');
+      return;
+    }
+    if (!mounted) return;
+
+    if (pickedSize > SectionsRepository.maxVideoBytes) {
+      _showVideoTooLarge(pickedSize);
+      return;
+    }
+
     final Uint8List bytes;
     try {
       bytes = await picked.readAsBytes();
@@ -334,12 +350,8 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
       return;
     }
     if (!mounted) return;
-
     if (bytes.length > SectionsRepository.maxVideoBytes) {
-      _showMessage(
-        'That video is ${_formatSize(bytes.length)}. The limit is 100 MB, so '
-        'please choose a shorter clip.',
-      );
+      _showVideoTooLarge(bytes.length);
       return;
     }
 
@@ -355,11 +367,27 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
           );
       ref.invalidate(sectionProvider(widget.sectionId));
       _showMessage('Your video has been saved.');
+    } on StorageException catch (error) {
+      if (error.statusCode == '413') {
+        _showMessage(
+          'Supabase rejected that video because it is too large. Keep it '
+          'under 50 MB, or try a shorter clip.',
+        );
+      } else {
+        _showMessage('Sorry, the video could not be saved. Please try again.');
+      }
     } catch (_) {
       _showMessage('Sorry, the video could not be saved. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showVideoTooLarge(int bytes) {
+    _showMessage(
+      'That video is ${_formatSize(bytes)}. The limit is 50 MB; choose a '
+      'shorter clip or a lower-resolution video.',
+    );
   }
 
   Future<void> _removeVideo() async {
@@ -434,41 +462,44 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const _VideoNote(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              // Half the page width, right-justified, with a floor so the
-              // player stays watchable on a narrow phone and a ceiling so it
-              // does not dominate a desktop window. My Songs uses the same
-              // 16:9 shape.
-              final boxWidth =
-                  (constraints.maxWidth * 0.5).clamp(200.0, 440.0);
-              return Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: boxWidth,
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: hasVideo
-                        ? _VideoPlayerBox(
-                            key: ValueKey(videoPath),
-                            storagePath: videoPath,
-                          )
-                        : const _EmptyVideoBox(),
+              // The clip sits on the right in the shape phone cameras use
+              // (portrait), with the note beside it on the left. Sharing one
+              // row keeps the block short, so more of the letter above stays
+              // in view. A floor keeps the player watchable on a narrow
+              // phone; a ceiling stops it dominating a desktop window.
+              final videoWidth =
+                  (constraints.maxWidth * 0.34).clamp(110.0, 180.0);
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Expanded(child: _VideoNote()),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: videoWidth,
+                    child: AspectRatio(
+                      aspectRatio: 9 / 16,
+                      child: hasVideo
+                          ? _VideoPlayerBox(
+                              key: ValueKey(videoPath),
+                              storagePath: videoPath,
+                            )
+                          : const _EmptyVideoBox(),
+                    ),
                   ),
-                ),
+                ],
               );
             },
           ),
-          const SizedBox(height: 16),
           if (_busy)
             const Padding(
-              padding: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.only(top: 12),
               child: LinearProgressIndicator(),
             ),
-          if (widget.isOwner)
+          if (widget.isOwner) ...[
+            const SizedBox(height: 16),
             _VideoButtons(
               hasVideo: hasVideo,
               busy: _busy,
@@ -476,13 +507,14 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
               onChoose: () => _addVideo(ImageSource.gallery),
               onRemove: _removeVideo,
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// The explanatory note under the "My Video to You" heading.
+/// The explanatory note beside the "My Video to You" clip.
 class _VideoNote extends StatelessWidget {
   const _VideoNote();
 
@@ -502,11 +534,10 @@ class _VideoNote extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'This is your chance to say something in your own voice. Record '
-              'a short message now, or choose a video already on this device. '
-              'It is stored privately with your estate, so your family can '
-              'watch it alongside your letter. Up to 100 MB — a minute or two '
-              'is plenty.',
+              'Say something in your own voice. Record a short message, or '
+              'choose one from this device — it stays private with your '
+              'estate, so your family can watch it alongside your letter. '
+              'Up to 50 MB; aim for about a minute.',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.45,

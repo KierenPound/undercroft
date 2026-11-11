@@ -1227,7 +1227,7 @@ VALUES (
     'estate-documents',
     'estate-documents',
     false,
-    104857600,
+    52428800,
     ARRAY['application/pdf','image/jpeg','image/png','image/heic','text/plain',
           'video/mp4','video/quicktime','video/x-m4v','video/3gpp','video/webm']
 )

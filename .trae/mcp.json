@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "supabase-undercroft-readonly": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=mpsygpgaakdtlgjzmbtr&read_only=true&features=database"
+    }
+  }
+}

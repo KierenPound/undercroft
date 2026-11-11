@@ -289,10 +289,8 @@ class SectionsRepository {
   /// Largest "My Video to You" clip the app will accept, in bytes.
   ///
   /// Mirrors the `estate-documents` bucket's `file_size_limit` (see migration
-  /// 0033), so anything the app refuses would also have been refused by
-  /// Storage. Checked before the upload starts so a large clip fails
-  /// immediately with a clear message instead of after a long transfer.
-  static const int maxVideoBytes = 100 * 1024 * 1024;
+  /// 0034). Checked before reading the file into memory or starting the upload.
+  static const int maxVideoBytes = 50 * 1024 * 1024;
 
   /// Uploads the "My Video to You" clip and points the section row at it.
   ///
@@ -464,7 +462,7 @@ const List<SectionConfig> allSectionConfigs = [
     orderIndex: 0,
     infoText: 'This page is for your personal letter to the people you leave '
         'behind. It can be as short or as long as you like, and it is simply '
-        'a space for your own words.',
+        'a space for your own words. You can also record a short video.',
   ),
   SectionConfig(
     title: 'What to Do First',
