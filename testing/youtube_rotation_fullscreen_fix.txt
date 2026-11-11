@@ -1,0 +1,151 @@
+UNDERCROFT - YOUTUBE PLAYER ROTATION FULLSCREEN FIX
+Date: 2026-11-10
+Fixed in: 1.0.0 (21)
+Reporter: Wendy, iPad beta tester
+
+--------------------------------------------------------------------------
+1. WHAT WAS REPORTED
+--------------------------------------------------------------------------
+
+    "Just tried to test v18 but every time I open a section a music video
+     comes on and I can't get out of it!"
+
+On an iPad. Reported as happening on every section page. The owner could
+not reproduce it on an iPhone.
+
+--------------------------------------------------------------------------
+2. WHAT WAS RULED OUT FIRST
+--------------------------------------------------------------------------
+
+The app does not auto-play video on opening a section. Every playback
+call was traced:
+
+    fromVideoId(autoPlay: false)   song_for_the_page_section.dart   cues only
+    loadVideoById                  song_for_the_page_section.dart   replace only
+    cueVideoById                   my_songs_view.dart               cue only
+    playVideo()                    my_songs_view.dart               needs a tap
+
+Two further things worth recording, because they look like faults and
+are not:
+
+  - A song player on every section page is by design. Every section page
+    renders SongForThePageSection, and all seven seeded sections carry a
+    youtubeUrl pointing at a music video (seed_data.dart).
+
+  - Reinstalling does not remove it. Songs live in Supabase, and seeding
+    is idempotent, so a reinstall leaves every song exactly where it was.
+
+--------------------------------------------------------------------------
+3. ROOT CAUSE
+--------------------------------------------------------------------------
+
+Plugin: youtube_player_iframe 6.0.2.
+
+YoutubePlayer.autoFullScreen defaults to TRUE and the app never passed it
+(youtube_player.dart:35).
+
+On every window metrics change the widget does this (youtube_player.dart
+lines 263-283):
+
+    void didChangeMetrics() {
+      ...
+      if (!mounted || !widget.autoFullScreen) return;
+      final isLandscape = size.width > size.height;
+      if (isLandscape && !opt.enabled) {
+        if (_mostRecentlyActive == null || _mostRecentlyActive == this) {
+          _controller.enterFullScreen(lock: false);
+        }
+      }
+    }
+
+So the trigger is not "opening a section in landscape". It is "any resize
+event while the view is landscape".
+
+Two details made it unavoidable and repeatable:
+
+  - Exit requires returning to portrait. Entering uses lock: false, and
+    the only exit branch is !isLandscape. If Rotation Lock is on, that
+    rotation can never happen, so there is no way out at all.
+
+  - Back navigation is disabled while fullscreen. The widget returns
+    PopScope(canPop: !value.fullScreenOption.enabled)
+    (youtube_player.dart line 329).
+
+  - Every section is affected, not just the first. _mostRecentlyActive is
+    a static, and it is reset to null when a player is disposed (line
+    253). Leaving a section therefore makes the next one eligible again.
+
+Note on iOS specifically: this is NOT the old native-fullscreen problem.
+webview_platform_io.dart (lines 12-17) sets allowsInlineMediaPlayback:
+true, so iOS is not forcing fullscreen. The takeover is the plugin's own
+overlay.
+
+Why an iPad and not an iPhone: the trigger is a metrics change while
+landscape, and an iPad simply spends far more time in landscape. The same
+file also sets mediaTypesRequiringUserAction to an empty set, meaning
+this WebView permits media to start with no user gesture - a related
+quirk worth knowing, though not the cause here.
+
+--------------------------------------------------------------------------
+4. REPRODUCED
+--------------------------------------------------------------------------
+
+Confirmed on an iPhone by rotating to landscape while on a section page.
+This shows the trigger is the orientation change rather than the device,
+and explains why the tablet looked irrelevant when it was the whole
+story.
+
+--------------------------------------------------------------------------
+5. THE FIX
+--------------------------------------------------------------------------
+
+autoFullScreen: false, on both players:
+
+    lib/views/widgets/song_for_the_page_section.dart
+    lib/views/my_songs_view.dart
+
+My Songs carried the same default. Auto-fullscreen on rotation is arguably
+reasonable for a jukebox, but with Rotation Lock on it strands the user
+the same way, so it was changed too.
+
+Deliberate fullscreen is retained: the player's own fullscreen button
+still works. Only the automatic behaviour on resize was removed.
+
+Commits:
+
+    c7b6ec7  section player
+    7e9c6ca  My Songs player
+    6433972  version bump to 1.0.0+21
+
+--------------------------------------------------------------------------
+6. HOW TO VERIFY
+--------------------------------------------------------------------------
+
+1. Settings should read 1.0.0 (21). The screen reads the version from
+   PackageInfo, so this confirms the new build is actually installed.
+
+2. Open a section in landscape. The player should stay inline at 260px,
+   and back navigation should work.
+
+3. Tap play. The song should still play normally.
+
+4. Tap the fullscreen button. It should still go fullscreen on request.
+
+--------------------------------------------------------------------------
+7. IF IT RECURS ON AN OLDER BUILD
+--------------------------------------------------------------------------
+
+Rotate the iPad to portrait, which releases the overlay - unless Rotation
+Lock is on, in which case force-quit the app. This is why the portrait
+workaround cannot be offered unconditionally.
+
+--------------------------------------------------------------------------
+8. A NOTE ON TIMING
+--------------------------------------------------------------------------
+
+It was queried why this had not been reported earlier. The behaviour
+requires a resize while landscape, so a tester who never resizes anything
+never meets it. Likely explanations, in order: the tester previously used
+the iPad in portrait; she had not opened section pages in landscape
+before; or she had seen it but read a music video as intentional
+behaviour and only reported it once it trapped her.
