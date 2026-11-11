@@ -40,6 +40,9 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^8.1.2
 
+  # Playback of the "My Video to You" clip (Supabase signed URL)
+  video_player: ^2.9.2
+
   # HTTP client (works on web + mobile for PDF thumbnail downloads)
   http: ^1.2.0
 

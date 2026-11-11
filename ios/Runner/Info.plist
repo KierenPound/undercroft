@@ -34,6 +34,8 @@
 	<string>Unlock UnderCroft with Face ID so your estate records stay private.</string>
         <key>NSLocationWhenInUseUsageDescription</key>
         <string>Allow UnderCroft to access location while you use the app so photo attachments can include location information when available.</string>
+        <key>NSMicrophoneUsageDescription</key>
+        <string>Allow UnderCroft to use the microphone so your "My Video to You" message can record sound.</string>
         <key>NSPhotoLibraryUsageDescription</key>
         <string>Allow UnderCroft to access your photo library so you can attach existing photos to your estate records.</string>
 	<key>UIApplicationSceneManifest</key>

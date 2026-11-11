@@ -286,6 +286,98 @@ class SectionsRepository {
     await _client.from('attachments').delete().eq('id', attachment.id);
   }
 
+  /// Largest "My Video to You" clip the app will accept, in bytes.
+  ///
+  /// Mirrors the `estate-documents` bucket's `file_size_limit` (see migration
+  /// 0033), so anything the app refuses would also have been refused by
+  /// Storage. Checked before the upload starts so a large clip fails
+  /// immediately with a clear message instead of after a long transfer.
+  static const int maxVideoBytes = 100 * 1024 * 1024;
+
+  /// Uploads the "My Video to You" clip and points the section row at it.
+  ///
+  /// Follows the same row-first-then-bytes order as [uploadAttachment]: the
+  /// row is moved to the new path, and only then are the bytes written. If the
+  /// upload fails the row is put back, so the bucket never ends up holding a
+  /// file that no row references. On success the superseded clip is deleted so
+  /// the estate is only billed for the one it actually shows.
+  Future<PrepSection> uploadSectionVideo({
+    required PrepSection section,
+    required Uint8List bytes,
+    required String mimeType,
+    required String fileExtension,
+  }) async {
+    final path = 'estate-documents/${section.estateId}/sections/${section.id}/'
+        'video_${DateTime.now().millisecondsSinceEpoch}$fileExtension';
+    final previousPath = section.videoPath;
+
+    await _client.from('sections').update({
+      'video_path': path,
+      'video_mime': mimeType,
+      'video_size_bytes': bytes.length,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', section.id);
+
+    try {
+      await _client.storage.from('estate-documents').uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(contentType: mimeType, upsert: true),
+          );
+    } catch (_) {
+      try {
+        await _client.from('sections').update({
+          'video_path': previousPath,
+          'video_mime': section.videoMime,
+          'video_size_bytes': section.videoSizeBytes,
+        }).eq('id', section.id);
+      } catch (_) {}
+      rethrow;
+    }
+
+    if (previousPath.isNotEmpty && previousPath != path) {
+      try {
+        await _client.storage.from('estate-documents').remove([previousPath]);
+      } catch (_) {}
+    }
+
+    _signedUrls.remove(previousPath);
+    return section.copyWith(
+      videoPath: path,
+      videoMime: mimeType,
+      videoSizeBytes: bytes.length,
+    );
+  }
+
+  /// Clears the "My Video to You" clip and removes the underlying object.
+  Future<PrepSection> deleteSectionVideo(PrepSection section) async {
+    final path = section.videoPath;
+
+    await _client.from('sections').update({
+      'video_path': '',
+      'video_mime': '',
+      'video_size_bytes': 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', section.id);
+
+    if (path.isNotEmpty) {
+      try {
+        await _client.storage.from('estate-documents').remove([path]);
+      } catch (_) {}
+      _signedUrls.remove(path);
+    }
+
+    return section.copyWith(videoPath: '', videoMime: '', videoSizeBytes: 0);
+  }
+
+  /// A stable signed URL for the section's clip, or an empty string when there
+  /// is none. Reuses the same cache as attachments so re-opening the page does
+  /// not re-sign (and re-download) the same video.
+  Future<String> signedVideoUrl(String storagePath) async {
+    if (storagePath.isEmpty) return '';
+    return _signedUrl(storagePath);
+  }
+
   /// Seeds a freshly created estate with the default sections and their
   /// starter checklist items.
   ///

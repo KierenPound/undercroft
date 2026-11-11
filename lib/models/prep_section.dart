@@ -33,6 +33,12 @@ class PrepSection {
   final String petInsuranceCompany;
   final String petPolicyNumber;
   final String petMicrochipNumber;
+
+  /// Storage object path of the "My Video to You" clip in the private
+  /// `estate-documents` bucket. Empty means no video has been added.
+  final String videoPath;
+  final String videoMime;
+  final int videoSizeBytes;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<ChecklistItem> checklistItems;
@@ -67,6 +73,9 @@ class PrepSection {
     this.petInsuranceCompany = '',
     this.petPolicyNumber = '',
     this.petMicrochipNumber = '',
+    this.videoPath = '',
+    this.videoMime = '',
+    this.videoSizeBytes = 0,
     required this.createdAt,
     required this.updatedAt,
     this.checklistItems = const [],
@@ -103,6 +112,9 @@ class PrepSection {
       petInsuranceCompany: json['pet_insurance_company'] as String? ?? '',
       petPolicyNumber: json['pet_policy_number'] as String? ?? '',
       petMicrochipNumber: json['pet_microchip_number'] as String? ?? '',
+      videoPath: json['video_path'] as String? ?? '',
+      videoMime: json['video_mime'] as String? ?? '',
+      videoSizeBytes: (json['video_size_bytes'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -137,9 +149,17 @@ class PrepSection {
       'pet_insurance_company': petInsuranceCompany,
       'pet_policy_number': petPolicyNumber,
       'pet_microchip_number': petMicrochipNumber,
+      'video_path': videoPath,
+      'video_mime': videoMime,
+      'video_size_bytes': videoSizeBytes,
     };
   }
 
+  /// The columns a generic section save writes back.
+  ///
+  /// The video columns are deliberately absent: the video is only ever written
+  /// through the dedicated repository methods, so a letter autosave can never
+  /// wipe a clip that was uploaded after the editor last read the row.
   Map<String, dynamic> toUpdateJson() {
     return {
       'title': title,
@@ -196,6 +216,9 @@ class PrepSection {
     String? petInsuranceCompany,
     String? petPolicyNumber,
     String? petMicrochipNumber,
+    String? videoPath,
+    String? videoMime,
+    int? videoSizeBytes,
     List<ChecklistItem>? checklistItems,
     List<Attachment>? attachments,
   }) {
@@ -229,6 +252,9 @@ class PrepSection {
           petInsuranceCompany ?? this.petInsuranceCompany,
       petPolicyNumber: petPolicyNumber ?? this.petPolicyNumber,
       petMicrochipNumber: petMicrochipNumber ?? this.petMicrochipNumber,
+      videoPath: videoPath ?? this.videoPath,
+      videoMime: videoMime ?? this.videoMime,
+      videoSizeBytes: videoSizeBytes ?? this.videoSizeBytes,
       createdAt: createdAt,
       updatedAt: updatedAt,
       checklistItems: checklistItems ?? this.checklistItems,

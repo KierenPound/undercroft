@@ -251,6 +251,9 @@ CREATE TABLE IF NOT EXISTS public.sections (
     pet_insurance_company text NOT NULL DEFAULT '',
     pet_policy_number    text NOT NULL DEFAULT '',
     pet_microchip_number text NOT NULL DEFAULT '',
+    video_path       text NOT NULL DEFAULT '',
+    video_mime       text NOT NULL DEFAULT '',
+    video_size_bytes bigint NOT NULL DEFAULT 0,
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -1224,8 +1227,9 @@ VALUES (
     'estate-documents',
     'estate-documents',
     false,
-    52428800,
-    ARRAY['application/pdf','image/jpeg','image/png','image/heic','text/plain']
+    104857600,
+    ARRAY['application/pdf','image/jpeg','image/png','image/heic','text/plain',
+          'video/mp4','video/quicktime','video/x-m4v','video/3gpp','video/webm']
 )
 ON CONFLICT (id) DO NOTHING;
 
