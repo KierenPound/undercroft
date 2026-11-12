@@ -285,15 +285,22 @@ class SectionDetailView extends ConsumerWidget {
                         sectionId: section.id,
                         isOwner: isOwner,
                       ),
-                    ] else ...[
+                    ] else if (section.title == 'Who to Notify') ...[
                       PhotoSection(
                         sectionId: section.id,
                         estateId: estateId,
                         isOwner: isOwner,
-                        defaultAsset: 'assets/images/wtdl_1.jpg',
+                        defaultAsset:
+                            'assets/images/defaults/default_who_to_notify.jpeg',
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 24),
+                      SongForThePageSection(
+                        youtubeUrl: section.youtubeUrl,
+                        sectionId: section.id,
+                        isOwner: isOwner,
+                      ),
+                    ] else ...[
                       SongForThePageSection(
                         youtubeUrl: section.youtubeUrl,
                         sectionId: section.id,
