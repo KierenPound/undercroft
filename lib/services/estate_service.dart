@@ -105,6 +105,58 @@ final estateRoleProvider = FutureProvider<String>((ref) async {
 /// anything to the database. Set to `null` to resume the real role.
 final simulatedRoleProvider = StateProvider<String?>((ref) => null);
 
+/// Developer-only switch that puts invitations behind the paid handover
+/// unlock, so the purchase flow can be rehearsed without waiting for billing
+/// to ship. Off by default, and never written anywhere: turning it back off
+/// leaves the estate exactly as it was.
+final testPaymentGateProvider = StateProvider<bool>((ref) => false);
+
+/// Whether the current estate has a durable handover entitlement.
+///
+/// Clients can read only the estate ID from this table. Grants and store
+/// transaction details are written by trusted backend/admin code.
+final estateHandoverEntitlementProvider = FutureProvider<bool>((ref) async {
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) return false;
+
+  try {
+    final row = await Supabase.instance.client
+        .from('estate_handover_entitlements')
+        .select('estate_id')
+        .eq('estate_id', estateId)
+        .maybeSingle();
+    return row != null;
+  } catch (_) {
+    // Fail closed if the entitlement table is unavailable or the request fails.
+    return false;
+  }
+});
+
+/// Temporary in-memory unlock after a successful store transaction.
+///
+/// A verified store transaction must be granted through trusted backend code
+/// before this becomes durable.
+final sessionInvitesUnlockedProvider = StateProvider<bool>((ref) => false);
+
+/// Whether invitations are unlocked by either a persisted entitlement or a
+/// successful purchase in the current session.
+final invitesUnlockedProvider = Provider<bool>((ref) {
+  final sessionUnlock = ref.watch(sessionInvitesUnlockedProvider);
+  final durableUnlock =
+      ref.watch(estateHandoverEntitlementProvider).valueOrNull ?? false;
+  return sessionUnlock || durableUnlock;
+});
+
+/// Whether invitations are currently withheld pending payment.
+///
+/// False whenever the test gate is off, so the app behaves exactly as it does
+/// today unless a developer has deliberately switched the gate on.
+final invitesLockedProvider = Provider<bool>((ref) {
+  final gating = ref.watch(testPaymentGateProvider);
+  final unlocked = ref.watch(invitesUnlockedProvider);
+  return gating && !unlocked;
+});
+
 /// Whether the current user should be treated as an estate owner.
 ///
 /// Respects [simulatedRoleProvider] first so developers can toggle into the

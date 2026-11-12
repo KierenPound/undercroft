@@ -26,6 +26,24 @@ CREATE TABLE IF NOT EXISTS public.estates (
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.estate_handover_entitlements (
+    estate_id uuid PRIMARY KEY
+        REFERENCES public.estates(id) ON DELETE CASCADE,
+    source text NOT NULL
+        CHECK (source IN ('beta_free', 'app_store', 'google_play')),
+    store_environment text
+        CHECK (
+            store_environment IS NULL
+            OR store_environment IN ('Sandbox', 'Production', 'Test', 'Play')
+        ),
+    store_transaction_id text,
+    granted_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS estate_handover_entitlements_transaction_unique
+    ON public.estate_handover_entitlements (store_transaction_id)
+    WHERE store_transaction_id IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.estate_access (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     estate_id     uuid NOT NULL REFERENCES public.estates(id) ON DELETE CASCADE,
@@ -324,6 +342,7 @@ TRUNCATE TABLE
     public.notify_account_details,
     public.who_to_notify,
     public.documents,
+    public.estate_handover_entitlements,
     public.estates
     CASCADE;
 
@@ -361,6 +380,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS estate_access_unique_pending_email_per_estate
 -- 4. TABLE & SEQUENCE GRANTS
 -- ---------------------------------------------------------------------------
 GRANT ALL ON public.estates TO authenticated;
+REVOKE ALL ON TABLE public.estate_handover_entitlements
+    FROM anon, authenticated;
+GRANT SELECT (estate_id) ON TABLE public.estate_handover_entitlements
+    TO authenticated;
+GRANT ALL ON TABLE public.estate_handover_entitlements TO service_role;
 GRANT ALL ON public.estate_access TO authenticated;
 GRANT ALL ON public.documents TO authenticated;
 GRANT ALL ON public.who_to_notify TO authenticated;
@@ -399,6 +423,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 -- 5. ROW LEVEL SECURITY (RLS) ENABLEMENT
 -- ---------------------------------------------------------------------------
 ALTER TABLE public.estates         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.estate_handover_entitlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estate_access   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documents       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.who_to_notify   ENABLE ROW LEVEL SECURITY;
@@ -424,7 +449,7 @@ BEGIN
         SELECT policyname, tablename
         FROM pg_policies
         WHERE schemaname = 'public'
-          AND tablename IN ('estate_access', 'estates', 'documents', 'who_to_notify', 'notify_account_details', 'funeral_arrangements', 'about_you', 'ad_hoc_data', 'contacts', 'tradespeople', 'utility_details', 'sections', 'checklist_items', 'attachments')
+          AND tablename IN ('estate_access', 'estates', 'estate_handover_entitlements', 'documents', 'who_to_notify', 'notify_account_details', 'funeral_arrangements', 'about_you', 'ad_hoc_data', 'contacts', 'tradespeople', 'utility_details', 'sections', 'checklist_items', 'attachments')
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol.policyname, pol.tablename);
     END LOOP;
@@ -671,6 +696,14 @@ CREATE POLICY estates_owner_delete ON public.estates
     FOR DELETE
     TO authenticated
     USING ( auth.uid() = owner_id );
+
+CREATE POLICY estate_handover_entitlements_read_linked
+    ON public.estate_handover_entitlements
+    FOR SELECT
+    TO authenticated
+    USING (
+        estate_id IN (SELECT public.get_allowed_estate_ids())
+    );
 
 -- Guard: an estate update may not change its identity fields. Deliberately
 -- NOT SECURITY DEFINER — the function reads only OLD/NEW and touches no

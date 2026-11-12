@@ -5,7 +5,10 @@ It is a working decision, not a marketing page. Update it when the decision chan
 
 ## Status
 
-Decided, not yet built. Build it after the first round of beta feedback.
+The TestFlight purchase flow has been exercised with an Apple Sandbox purchase.
+The app currently unlocks invitations for that session only. Migration `0035`
+adds durable, per-estate entitlement records, but a trusted store-verification
+function and production purchase grants are still required before launch.
 
 ## What Is Paid
 
@@ -52,15 +55,23 @@ so it can be changed without shipping a new build.
   Apple requires their system for unlocking digital features in-app — no Stripe
   for this.
 - **Non-consumable**, so *Restore Purchases* is required and meaningful.
-- Anticipated entitlement shape: a single boolean per estate, e.g.
-  `estates.handover_unlocked`. Keep the check in one place — the invitation entry
+- Entitlement records live in `estate_handover_entitlements`, one row per
+  estate. The source distinguishes `beta_free`, `app_store`, and `google_play`.
+  Authenticated clients may read whether their estate has a row but cannot
+  grant or edit one; trusted backend/admin code writes grants.
+- Keep the check in one place — the invitation entry
   points (`inviteExecutor` and `inviteOwner` in
   `lib/services/estate_service.dart`, plus `lib/services/invite_print_service.dart`)
   — so the digital and printed routes share the same gate.
+- The current test gate is UI-only. Before charging customers, enforce the
+  entitlement in the trusted invite-creation path too; do not rely on a
+  disabled button or a client-side purchase callback.
 - **TestFlight purchases are free and sandboxed**, so testers can rehearse the
   real purchase flow without being charged.
-- Revoking entitlement on refund needs server-side receipt validation and App
-  Store Server Notifications. Not a beta concern.
+- A store callback in the app is not sufficient proof of payment. Apple and
+  Google grants must be validated by trusted server code before writing an
+  `app_store` or `google_play` entitlement. Refund revocation needs server-side
+  transaction status checks / store notifications before public launch.
 
 ## Testing Without Paying
 
@@ -81,6 +92,11 @@ hold in mind:
 - Sandbox purchases do **not** carry into production. A tester who buys the
   unlock in TestFlight would have to buy it again on the live app, so nobody
   should be asked to purchase during the beta.
+- If a beta tester does try a Sandbox purchase, record any permanent beta
+  access as `beta_free`, not as an `app_store` payment. The Sandbox transaction
+  is useful for checking checkout, but it is not a real charge and does not
+  automatically create the durable entitlement row. Beta grants are made by
+  trusted admin/backend code.
 
 If that ever needs revisiting, the honest lever is a free unlock for a named list
 of beta estates, not a change to the price.

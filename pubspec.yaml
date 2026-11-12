@@ -1,7 +1,7 @@
 name: undercroft
 description: Multi-platform (iOS + Android) estate preparation companion app.
 publish_to: 'none'
-version: 1.0.0+22
+version: 1.0.0+25
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -42,6 +42,9 @@ dependencies:
 
   # Playback of the "My Video to You" clip (Supabase signed URL)
   video_player: ^2.9.2
+
+  # Apple/Google in-app purchase for the one-off handover unlock
+  in_app_purchase: ^3.2.0
 
   # HTTP client (works on web + mobile for PDF thumbnail downloads)
   http: ^1.2.0

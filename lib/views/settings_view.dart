@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/biometric_lock_service.dart';
 import '../services/estate_service.dart';
 import '../services/invite_print_service.dart';
+import '../services/payment_service.dart';
 import 'widgets/about_you_section.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
@@ -26,6 +28,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   String _ownerGeneratedEmail = '';
   bool _inviting = false;
   bool _invitingOwner = false;
+  bool _buyingInviteUnlock = false;
+  bool _restoringInviteUnlock = false;
   bool _lockLoading = true;
   bool _lockSupported = false;
   bool _lockEnabled = false;
@@ -200,6 +204,99 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     }
   }
 
+  /// Runs the real store purchase for the handover unlock.
+  ///
+  /// Only reachable while the test gate is on. The store result remains
+  /// session-only until trusted backend verification grants a durable row.
+  Future<void> _buyInviteUnlock() async {
+    setState(() => _buyingInviteUnlock = true);
+    final result = await PaymentService.purchaseHandoverUnlock();
+    if (!mounted) return;
+    setState(() => _buyingInviteUnlock = false);
+
+    switch (result.outcome) {
+      case PurchaseOutcome.purchased:
+        ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invitations unlocked')),
+        );
+      case PurchaseOutcome.noPurchasesFound:
+        break;
+      case PurchaseOutcome.cancelled:
+        break;
+      case PurchaseOutcome.unavailable:
+      case PurchaseOutcome.failed:
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Purchase unavailable'),
+            content: SingleChildScrollView(
+              child: SelectableText(
+                '${result.message ?? 'The purchase could not be completed.'}'
+                '\n\nDiagnostic: ${result.diagnosticCode ?? 'unknown'}'
+                '\nProduct: $handoverProductId',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  /// Restores a handover purchase from the platform store.
+  ///
+  /// A restored transaction opens the gate for this session. Permanent access
+  /// still comes from the trusted estate entitlement record.
+  Future<void> _restoreInviteUnlock() async {
+    setState(() => _restoringInviteUnlock = true);
+    final result = await PaymentService.restoreHandoverUnlock();
+    if (!mounted) return;
+    setState(() => _restoringInviteUnlock = false);
+
+    switch (result.outcome) {
+      case PurchaseOutcome.purchased:
+        ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Previous purchase restored for this session'),
+          ),
+        );
+      case PurchaseOutcome.noPurchasesFound:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.message ?? 'No previous purchase was found.',
+            ),
+          ),
+        );
+      case PurchaseOutcome.cancelled:
+        break;
+      case PurchaseOutcome.unavailable:
+      case PurchaseOutcome.failed:
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Restore unavailable'),
+            content: SelectableText(
+              '${result.message ?? 'The purchase could not be restored.'}'
+              '\n\nDiagnostic: ${result.diagnosticCode ?? 'unknown'}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
   /// Opens a support or legal page in the device browser.
   Future<void> _openExternal(String url) async {
     var opened = false;
@@ -344,7 +441,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         // A revoked row with no recorded email says nothing and offers no
         // action, so it only adds clutter to the list.
         final invites = allInvites
-            .where((invite) => !(invite.isRevoked && invite.invitedEmail == null))
+            .where(
+                (invite) => !(invite.isRevoked && invite.invitedEmail == null))
             .toList();
 
         if (invites.isEmpty) {
@@ -393,6 +491,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
 
     // Used by the invitations list.
     final asyncInvites = ref.watch(estateInvitesProvider);
+
+    // Only ever true while a developer has the test gate switched on.
+    final invitesLocked = ref.watch(invitesLockedProvider);
+    final testPaymentGate = ref.watch(testPaymentGateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -716,6 +818,35 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           value ? 'executor' : null;
                     },
                   ),
+                  // Owner-only, because that is who the paywall applies to.
+                  if (actualRole == 'owner') ...[
+                    const Divider(height: 24),
+                    const Text(
+                      'Put invitations behind the paid handover unlock, so the '
+                      'purchase flow can be tried end to end. Nothing is '
+                      'written to the estate.',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Test Payment Logic'),
+                      subtitle: Text(
+                        testPaymentGate
+                            ? (invitesLocked
+                                ? 'Invitations are locked until unlocked by making a test payment'
+                                : 'Invitations are unlocked for this session')
+                            : 'Invitations are free, as today',
+                      ),
+                      value: testPaymentGate,
+                      onChanged: (value) {
+                        ref
+                            .read(sessionInvitesUnlockedProvider.notifier)
+                            .state = false;
+                        ref.read(testPaymentGateProvider.notifier).state =
+                            value;
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -723,6 +854,19 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             // Invite executor (owners only)
             if (actualRole == 'owner') ...[
               const SizedBox(height: 16),
+
+              // Rehearses the paid gate. Shown only while it is closed, which
+              // can only happen with Test Payment Logic switched on.
+              if (invitesLocked) ...[
+                _UnlockInvitesCard(
+                  buying: _buyingInviteUnlock,
+                  onUnlock: _buyInviteUnlock,
+                  restoring: _restoringInviteUnlock,
+                  onRestore: _restoreInviteUnlock,
+                ),
+                const SizedBox(height: 16),
+              ],
+
               _SectionCard(
                 title: 'Invite an executor',
                 child: Column(
@@ -737,6 +881,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _emailController,
+                      enabled: !invitesLocked,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         labelText: 'Email (optional)',
@@ -749,7 +894,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: _inviting
+                        onPressed: _inviting || invitesLocked
                             ? null
                             : () {
                                 final eid = asyncEstateId.valueOrNull;
@@ -852,6 +997,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _ownerEmailController,
+                      enabled: !invitesLocked,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         labelText: 'Email (optional)',
@@ -864,7 +1010,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: _invitingOwner
+                        onPressed: _invitingOwner || invitesLocked
                             ? null
                             : () {
                                 final eid = asyncEstateId.valueOrNull;
@@ -1267,6 +1413,91 @@ class _SectionCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           child,
+        ],
+      ),
+    );
+  }
+}
+
+/// The paywall shown while invitations are withheld.
+///
+/// Only reachable with Test Payment Logic switched on, so the copy can be
+/// blunt about the fact that this is a rehearsal.
+class _UnlockInvitesCard extends StatelessWidget {
+  final bool buying;
+  final VoidCallback onUnlock;
+  final bool restoring;
+  final VoidCallback onRestore;
+
+  const _UnlockInvitesCard({
+    required this.buying,
+    required this.onUnlock,
+    required this.restoring,
+    required this.onRestore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Unlock invites',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bringing an executor or a co-owner into this estate is a one-off '
+            'purchase. Everything else in UnderCroft stays free.',
+            style: TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            kIsWeb
+                ? 'Browser preview only. You can check the invitation lock '
+                    'here, but Apple purchases require the iOS app. The unlock '
+                    'button will report that the store is unavailable.'
+                : 'Use TestFlight or an Apple sandbox test account to test '
+                    'without being charged. This toggle does not select the '
+                    'store environment. Restored purchases are checked against '
+                    'the same store account.',
+            style: TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: buying ? null : onUnlock,
+              icon: buying
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.lock_open),
+              label: Text(
+                buying
+                    ? 'Waiting for the App Store…'
+                    : 'Unlock invites — $handoverPriceLabel',
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton.icon(
+              onPressed: restoring || buying ? null : onRestore,
+              icon: restoring
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.restore),
+              label: Text(
+                restoring ? 'Checking purchases…' : 'Restore Purchases',
+              ),
+            ),
+          ),
         ],
       ),
     );
