@@ -10,9 +10,10 @@ const _unmetColor = Color(0xFFE08A2C);
 /// Owner-facing summary of how ready the estate is for a handover, shown on
 /// its own "Readiness" section rather than inside Settings.
 ///
-/// Driven entirely by who has been invited and who has accepted. Never
-/// consults payment state: an unredeemed paid invite is exactly as unprepared
-/// as an unsent one, so money alone never turns a step green.
+/// Invitation status and the owner's annual review confirmation drive the
+/// checklist. It never consults payment state: an unredeemed paid invite is
+/// exactly as unprepared as an unsent one, so money alone never turns a step
+/// green.
 class ReadinessDashboard extends ConsumerWidget {
   const ReadinessDashboard({super.key});
 
@@ -20,7 +21,7 @@ class ReadinessDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncInvites = ref.watch(estateInvitesProvider);
 
-    return asyncInvites.when(
+    final readinessContent = asyncInvites.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: SizedBox(
@@ -51,11 +52,10 @@ class ReadinessDashboard extends ConsumerWidget {
             acceptedMembers++;
           }
         }
-        final estateInvitedSomeone =
-            acceptedMembers >= 2 || pendingInvites > 0;
+        final estateInvitedSomeone = acceptedMembers >= 2 || pendingInvites > 0;
 
-        final anyAccepted =
-            readiness.acceptedOwnerCount > 0 || readiness.acceptedExecutorCount > 0;
+        final anyAccepted = readiness.acceptedOwnerCount > 0 ||
+            readiness.acceptedExecutorCount > 0;
 
         // Least to most ready, so the executor — the person who will actually
         // have to act — sits at the bottom as the goal.
@@ -96,6 +96,129 @@ class ReadinessDashboard extends ConsumerWidget {
         );
       },
     );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        readinessContent,
+        const SizedBox(height: 16),
+        const _EstateReviewCheckIn(),
+      ],
+    );
+  }
+}
+
+class _EstateReviewCheckIn extends ConsumerStatefulWidget {
+  const _EstateReviewCheckIn();
+
+  @override
+  ConsumerState<_EstateReviewCheckIn> createState() =>
+      _EstateReviewCheckInState();
+}
+
+class _EstateReviewCheckInState extends ConsumerState<_EstateReviewCheckIn> {
+  bool _saving = false;
+
+  Future<void> _confirmReview() async {
+    final estateId = ref.read(estateIdProvider).valueOrNull ?? '';
+    if (estateId.isEmpty) return;
+
+    setState(() => _saving = true);
+    try {
+      await confirmEstateDetailsReviewed(estateId: estateId);
+      ref.invalidate(estateOwnerReviewStatusProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your review date has been updated')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update your review date')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final role = ref.watch(estateRoleProvider).valueOrNull;
+    if (role != 'owner') return const SizedBox.shrink();
+
+    final asyncStatus = ref.watch(estateOwnerReviewStatusProvider);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Annual details review',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 12),
+          asyncStatus.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (_, __) => const Text(
+              'Could not load your review status.',
+              style: TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+            data: (status) {
+              final lastReviewedAt = status?.lastReviewedAt;
+              final isCurrent = lastReviewedAt != null &&
+                  status!.nextReminderAt.isAfter(DateTime.now());
+              final label = lastReviewedAt == null
+                  ? 'Estate details have not been reviewed yet'
+                  : isCurrent
+                      ? 'Estate details last reviewed on '
+                          '${_reviewDate(lastReviewedAt)}'
+                      : 'Estate details are due for review. Last checked on '
+                          '${_reviewDate(lastReviewedAt)}';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ReadinessStep(label: label, met: isCurrent),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _confirmReview,
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.check_circle_outline),
+                      label: const Text('I have checked my details'),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -132,4 +255,10 @@ class _ReadinessStep extends StatelessWidget {
       ],
     );
   }
+}
+
+String _reviewDate(DateTime value) {
+  final date = value.toLocal();
+  return '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}/${date.year}';
 }

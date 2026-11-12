@@ -15,6 +15,27 @@ class EstateContext {
   });
 }
 
+class EstateOwnerReviewStatus {
+  final DateTime? lastReviewedAt;
+  final DateTime nextReminderAt;
+  final bool remindersEnabled;
+
+  const EstateOwnerReviewStatus({
+    required this.lastReviewedAt,
+    required this.nextReminderAt,
+    required this.remindersEnabled,
+  });
+
+  factory EstateOwnerReviewStatus.fromRow(Map<String, dynamic> row) {
+    return EstateOwnerReviewStatus(
+      lastReviewedAt:
+          DateTime.tryParse(row['last_reviewed_at'] as String? ?? ''),
+      nextReminderAt: DateTime.parse(row['next_reminder_at'] as String),
+      remindersEnabled: row['reminders_enabled'] as bool? ?? true,
+    );
+  }
+}
+
 enum EstateProcessRegion {
   scotland,
   ewni;
@@ -181,6 +202,53 @@ final estateIdProvider = FutureProvider<String>((ref) async {
     return '';
   }
 });
+
+/// The private annual-review schedule for the signed-in estate owner.
+final estateOwnerReviewStatusProvider =
+    FutureProvider<EstateOwnerReviewStatus?>((ref) async {
+  final user = ref.watch(currentUserProvider).valueOrNull;
+  if (user == null) return null;
+
+  final role = await ref.watch(estateRoleProvider.future);
+  if (role != 'owner') return null;
+
+  final estateId = await ref.watch(estateIdProvider.future);
+  if (estateId.isEmpty) return null;
+
+  final row = await Supabase.instance.client
+      .from('estate_owner_review_status')
+      .select(
+        'last_reviewed_at, next_reminder_at, reminders_enabled',
+      )
+      .eq('estate_id', estateId)
+      .eq('owner_user_id', user.id)
+      .maybeSingle();
+
+  if (row == null) return null;
+  return EstateOwnerReviewStatus.fromRow(row);
+});
+
+Future<void> confirmEstateDetailsReviewed({
+  required String estateId,
+}) async {
+  await Supabase.instance.client.rpc(
+    'confirm_estate_details_reviewed',
+    params: {'requested_estate_id': estateId},
+  );
+}
+
+Future<void> setEstateReviewRemindersEnabled({
+  required String estateId,
+  required bool enabled,
+}) async {
+  await Supabase.instance.client.rpc(
+    'set_estate_review_reminders_enabled',
+    params: {
+      'requested_estate_id': estateId,
+      'enabled': enabled,
+    },
+  );
+}
 
 final hasEstateProvider = FutureProvider<bool>((ref) async {
   final estateId = await ref.watch(estateIdProvider.future);

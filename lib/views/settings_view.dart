@@ -34,6 +34,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _lockSupported = false;
   bool _lockEnabled = false;
   bool _updatingProcessRegion = false;
+  bool _updatingReviewReminders = false;
   bool _deletingAccount = false;
 
   /// Read once and reused, so the footer doesn't refetch on every rebuild.
@@ -89,6 +90,27 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       if (mounted) {
         setState(() => _updatingProcessRegion = false);
       }
+    }
+  }
+
+  Future<void> _setReviewRemindersEnabled(bool enabled) async {
+    final estateId = ref.read(estateIdProvider).valueOrNull ?? '';
+    if (estateId.isEmpty) return;
+
+    setState(() => _updatingReviewReminders = true);
+    try {
+      await setEstateReviewRemindersEnabled(
+        estateId: estateId,
+        enabled: enabled,
+      );
+      ref.invalidate(estateOwnerReviewStatusProvider);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update reminder settings')),
+      );
+    } finally {
+      if (mounted) setState(() => _updatingReviewReminders = false);
     }
   }
 
@@ -476,6 +498,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final asyncUser = ref.watch(currentUserProvider);
     final asyncEstateName = ref.watch(estateNameProvider);
     final asyncProcessRegion = ref.watch(estateProcessRegionProvider);
+    final asyncReviewStatus = ref.watch(estateOwnerReviewStatusProvider);
 
     final actualRole = asyncRole.valueOrNull ?? '';
     final effectiveRole = simulatedRole ?? actualRole;
@@ -615,6 +638,39 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             ),
 
             const SizedBox(height: 16),
+
+            if (isActualOwner) ...[
+              _SectionCard(
+                title: 'Annual email reminder',
+                child: asyncReviewStatus.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  error: (_, __) => const Text(
+                    'Could not load your reminder setting.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  data: (status) => SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Email me once a year'),
+                    subtitle: const Text(
+                      'A discreet reminder will be sent to your sign-in '
+                      'email address.',
+                    ),
+                    value: status?.remindersEnabled ?? true,
+                    onChanged: _updatingReviewReminders
+                        ? null
+                        : _setReviewRemindersEnabled,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             _SectionCard(
               title: 'Legal process',
