@@ -105,7 +105,7 @@ const List<DefaultSection> defaultSections = [
       'Confirm HMRC to get an Inheritance Tax Refernce Number',
       'Fill in HMRC Tax Forms',
       'Pay the tax (sorry!)',
-      'Get the IHT421 certificate and submit to the Sheriff Court',
+      'Complete the required HMRC and court application steps for your jurisdiction',
       'Receive the Grant of Confirmation and unlock the cash (if any)'
     ],
   ),

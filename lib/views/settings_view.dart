@@ -657,7 +657,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   ),
                   data: (status) => SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Email me once a year'),
                     subtitle: const Text(
                       'A discreet reminder will be sent to your sign-in '
                       'email address.',

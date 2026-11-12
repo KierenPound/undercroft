@@ -45,7 +45,7 @@ class ConfirmationDashboard extends ConsumerWidget {
         const SizedBox(height: 28),
         _buildPayTaxSection(isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildIht421AndCourtSection(isEwni: isEwni),
+        _buildHmrcStampedC1AndCourtSection(isEwni: isEwni),
         const SizedBox(height: 28),
         _buildGrantConfirmationSection(isEwni: isEwni),
       ],
@@ -781,21 +781,19 @@ class ConfirmationDashboard extends ConsumerWidget {
                   tint: Colors.indigo,
                   icon: Icons.assignment,
                   title: 'Form IHT423 (The Direct Payment Scheme)',
-                  body: 'Complete a copy of this form for TSB and Starling.  '
-                      'This sends a legal instruction to the banks to pull '
-                      'money directly from my frozen accounts and wire it '
-                      'straight to HMRC to clear the tax bill.  We\'ll try to '
-                      'ensure there is cash enough to do this',
+                  body: 'Complete a copy of this form for any banks where we '
+                      'hold accounts. This sends a legal instruction to the '
+                      'banks to pull money directly from my frozen accounts '
+                      'and wire it straight to HMRC to clear the tax bill.',
                 ),
                 const SizedBox(height: 12),
                 _infoCallout(
                   tint: Colors.brown,
                   icon: Icons.cottage,
                   title: 'The Property Installment Option',
-                  body: 'Because much of the value is tied up in '
-                      'bricks-and-mortar (Rowanbank and 5 Grey Row), HMRC '
-                      'allows the tax owed on houses to be split into 10 '
-                      'annual installments.  You only need to pay the first '
+                  body: 'Because often much of the value is tied up in mortar, '
+                      'HMRC allows the tax owed on houses to be split into 10 '
+                      'annual installments. You only need to pay the first '
                       '10% installment upfront to pass this step.',
                 ),
               ],
@@ -806,12 +804,12 @@ class ConfirmationDashboard extends ConsumerWidget {
     );
   }
 
-  // MARK: - IHT421 Stamped Cert + Sheriff Court
+  // MARK: - HMRC Stamped C1 + Sheriff Court
 
-  Widget _buildIht421AndCourtSection({required bool isEwni}) {
+  Widget _buildHmrcStampedC1AndCourtSection({required bool isEwni}) {
     const tint = Colors.red;
     const courtPackageItems = [
-      'Your completed Form C1 (Asset Inventory)',
+      'Your HMRC-stamped Form C1 (Confirmation Inventory)',
       'The Original physical paper Will',
       'A certified copy of the Death Certificate',
       'The required Court Submission Fee',
@@ -819,7 +817,8 @@ class ConfirmationDashboard extends ConsumerWidget {
     const ewniCourtPackageItems = [
       'Your GOV.UK Online Application Cover Sheet (or PA1P form)',
       'The Original physical paper Will',
-      'A certified copy of the Death Certificate',
+      'A certified copy of the Death Certificate (only required if applying '
+          'by paper using PA1P or if the death occurred abroad)',
       'The required Court Submission Fee',
     ];
 
@@ -829,7 +828,7 @@ class ConfirmationDashboard extends ConsumerWidget {
         _sectionHeader(
           title: isEwni
               ? 'IHT400 Share / Code & HMCTS Probate Registry'
-              : 'IHT421 Stamped Certificate & local Sheriff Court',
+              : 'HMRC Stamped C1 & local Sheriff Court',
           icon: Icons.mail,
           tint: tint,
         ),
@@ -844,8 +843,12 @@ class ConfirmationDashboard extends ConsumerWidget {
                   icon: Icons.upload_file,
                   tint: Colors.red,
                   stepNumber: 1,
-                  title: 'Mail IHT400 to HMRC',
-                  body: 'Mail your completed Form IHT400 to:',
+                  title: isEwni
+                      ? 'Mail IHT400 to HMRC'
+                      : 'Mail Forms IHT400 and C1 to HMRC',
+                  body: isEwni
+                      ? 'Mail your completed Form IHT400 to:'
+                      : 'Post your completed Form IHT400 and Form C1 together to HMRC:',
                 ),
                 const SizedBox(height: 12),
                 Padding(
@@ -862,7 +865,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                   icon: Icons.verified_user,
                   tint: Colors.orange,
                   stepNumber: 2,
-                  title: 'Wait for Tax Clearance',
+                  title: isEwni ? 'Wait for Tax Clearance' : 'HMRC Stamped C1',
                   body: isEwni
                       ? 'Once HMRC receives your paperwork and checks that the '
                           'tax payment from Step 5 has cleared, they will send '
@@ -870,13 +873,9 @@ class ConfirmationDashboard extends ConsumerWidget {
                           'share link) by post or email.  You then enter that '
                           'code directly into your GOV.UK online probate '
                           'application as proof that the tax hurdle is cleared.'
-                      : 'Once HMRC receives your paperwork and checks that the '
-                          'tax payment from Step 5 has cleared, they will not '
-                          'send you a physical receipt.  Instead, they will '
-                          'generate a secure, stamped digital certificate '
-                          'called an IHT421 (or an online clearance code).  '
-                          'They will send this code directly to the court as '
-                          'proof that the tax hurdle is cleared.',
+                      : 'Once the tax and clearance are settled, HMRC will '
+                          'physically stamp Form C1 and post it back to the '
+                          'executor or solicitor.',
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -891,8 +890,8 @@ class ConfirmationDashboard extends ConsumerWidget {
                   body: isEwni
                       ? 'Once HMRC issues your tax clearance code, send your '
                           'final application package to HMCTS Probate Registry:'
-                      : 'Once HMRC issues your tax clearance code, mail your '
-                          'final court package to the local Sheriff Court:',
+                      : 'Lodge the HMRC-stamped Form C1 and the following '
+                          'documents with the local Sheriff Court:',
                 ),
                 const SizedBox(height: 12),
                 Padding(
@@ -973,12 +972,13 @@ class ConfirmationDashboard extends ConsumerWidget {
               children: [
                 Text(
                   isEwni
-                      ? 'The Probate Registry will review the application.  '
-                          'Within 2 to 4 weeks, they will issue the formal '
-                          'Grant of Probate.'
-                      : 'The Sheriff Court will review the Will and inventory.  '
-                          'Within 2 to 4 weeks, they will issue the formal '
-                          'Grant of Confirmation.',
+                      ? 'The Probate Registry will review the application. '
+                          'Typically within 8 to 16 weeks (depending on '
+                          'Probate Registry backlogs), they will issue the '
+                          'formal Grant of Probate.'
+                      : 'The Sheriff Court will review the Will and stamped '
+                          'C1 inventory. Typically within 2 to 6 weeks, they '
+                          'will issue the formal Grant of Confirmation.',
                   style: const TextStyle(
                     fontSize: 15,
                     color: Color(0xFF2C2C2E),
