@@ -6,7 +6,7 @@
 #
 #   1. bump the build number in pubspec.yaml
 #   2. regenerate ios/Flutter/Local.xcconfig (the Supabase defines)
-#   3. flutter pub get
+#   3. flutter pub get + flutter build ios --config-only
 #   4. xcodebuild clean                 (Product > Clean Build Folder)
 #   5. xcodebuild archive               (Product > Archive)
 #   6. xcodebuild -exportArchive        (Distribute App > App Store Connect)
@@ -80,7 +80,7 @@ import re
 path = pathlib.Path("pubspec.yaml")
 text = path.read_text()
 
-match = re.search(r"^version:\s*(\d+\.\d+\.\d+\+)(\d+)\s*$", text, re.MULTILINE)
+match = re.search(r"^version:[ \t]*(\d+\.\d+\.\d+\+)(\d+)[ \t]*$", text, re.MULTILINE)
 if match is None:
     raise SystemExit("pubspec.yaml has no 'version: x.y.z+n' line to bump")
 
@@ -99,10 +99,28 @@ zsh scripts/generate_ios_local_xcconfig.sh
 
 # --- 3. Pub / generated files --------------------------------------------
 # xcodebuild needs Generated.xcconfig and ios/Flutter/ephemeral, which the
-# Flutter tool writes. Running pub get first means a clean checkout archives
-# without a separate manual step.
+# Flutter tool writes. `pub get` alone is NOT enough: it leaves the generated
+# xcconfig alone, so the iOS target keeps reading the previous build number and
+# the archive ships stamped with the wrong one (App Store Connect then rejects
+# it as a duplicate). `--config-only` rewrites those files from the pubspec we
+# just bumped, without doing a full build.
 echo "Resolving packages..."
 flutter pub get
+
+echo "Regenerating the Flutter iOS config..."
+flutter build ios --release --config-only
+
+# --- 3b. Verify the build number actually moved --------------------------
+# Cheaper to fail here than to find out from App Store Connect.
+generated_version="$(sed -n 's/^FLUTTER_BUILD_NUMBER=//p' ios/Flutter/Generated.xcconfig)"
+pubspec_version="$(sed -n 's/^version: *//p' pubspec.yaml | head -n 1)"
+echo "  pubspec:   $pubspec_version"
+echo "  archive:   ${generated_version:-<missing>}"
+if [[ "${pubspec_version##*+}" != "$generated_version" ]]; then
+  echo "Generated.xcconfig did not pick up the new build number." >&2
+  echo "The archive would be stamped with a stale version." >&2
+  exit 1
+fi
 
 # --- 4. Clean -------------------------------------------------------------
 echo "Cleaning..."
