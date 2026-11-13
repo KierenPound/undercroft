@@ -639,38 +639,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
 
             const SizedBox(height: 16),
 
-            if (isActualOwner) ...[
-              _SectionCard(
-                title: 'Annual email reminder',
-                child: asyncReviewStatus.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  error: (_, __) => const Text(
-                    'Could not load your reminder setting.',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                  data: (status) => SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    subtitle: const Text(
-                      'A discreet reminder will be sent to your sign-in '
-                      'email address.',
-                    ),
-                    value: status?.remindersEnabled ?? true,
-                    onChanged: _updatingReviewReminders
-                        ? null
-                        : _setReviewRemindersEnabled,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
             _SectionCard(
               title: 'Legal process',
               child: Column(
@@ -844,6 +812,40 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           ],
                         ),
             ),
+
+            if (isActualOwner) ...[
+              const SizedBox(height: 16),
+
+              // Annual email reminder
+              _SectionCard(
+                title: 'Annual email reminder',
+                child: asyncReviewStatus.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  error: (_, __) => const Text(
+                    'Could not load your reminder setting.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  data: (status) => SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    subtitle: const Text(
+                      'A discreet reminder will be sent to your sign-in '
+                      'email address.',
+                    ),
+                    value: status?.remindersEnabled ?? true,
+                    onChanged: _updatingReviewReminders
+                        ? null
+                        : _setReviewRemindersEnabled,
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 16),
 
