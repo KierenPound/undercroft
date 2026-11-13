@@ -25,11 +25,12 @@ class WhoToNotify {
     return WhoToNotify(
       whoToNotifyId: json['who_to_notify_id'] as String,
       estateId: json['estate_id'] as String,
-      companyName: json['company_name'] as String,
+      companyName: json['company_name'] as String? ?? '',
       contactNumber: json['contact_number'] as String?,
       weblink: json['weblink'] as String?,
       supplementaryNotes: json['supplementary_notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 
@@ -68,10 +69,9 @@ class WhoToNotify {
       weblink: identical(weblink, _unsetWhoToNotifyField)
           ? this.weblink
           : weblink as String?,
-      supplementaryNotes:
-          identical(supplementaryNotes, _unsetWhoToNotifyField)
-              ? this.supplementaryNotes
-              : supplementaryNotes as String?,
+      supplementaryNotes: identical(supplementaryNotes, _unsetWhoToNotifyField)
+          ? this.supplementaryNotes
+          : supplementaryNotes as String?,
       createdAt: createdAt,
     );
   }

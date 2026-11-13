@@ -19,7 +19,8 @@ class NotesSection extends ConsumerStatefulWidget {
   ConsumerState<NotesSection> createState() => _NotesSectionState();
 }
 
-class _NotesSectionState extends ConsumerState<NotesSection> {
+class _NotesSectionState extends ConsumerState<NotesSection>
+    with WidgetsBindingObserver {
   final _notesController = TextEditingController();
   final _notesFocusNode = FocusNode();
   Timer? _saveTimer;
@@ -27,8 +28,20 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
   String? _lastAppliedStoredNotes;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _notesFocusNode.dispose();
     _notesController.dispose();
     super.dispose();
@@ -37,6 +50,13 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 400), _saveNotes);
+  }
+
+  void _flushPendingSave() {
+    if (!(_saveTimer?.isActive ?? false)) return;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_saveNotes());
   }
 
   Future<void> _saveNotes() async {
@@ -49,7 +69,7 @@ class _NotesSectionState extends ConsumerState<NotesSection> {
       if (section != null) {
         await repo.updateSection(section.copyWith(notes: current));
         _lastSavedNotes = current;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {

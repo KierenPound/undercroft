@@ -26,11 +26,12 @@ class FuneralArrangement {
     return FuneralArrangement(
       funeralArrangementId: json['funeral_arrangement_id'] as String,
       estateId: json['estate_id'] as String,
-      name: json['name'] as String,
+      name: json['name'] as String? ?? '',
       notes: (json['notes'] as String?) ?? '',
       prepaidDetails: (json['prepaid_details'] as String?) ?? '',
       url: (json['url'] as String?) ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

@@ -117,20 +117,21 @@ class AboutYouSection extends ConsumerWidget {
       return;
     }
 
-    final controller = TextEditingController();
+    var ownerName = '';
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add owner'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: ownerName,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Full name',
             hintText: 'e.g. Kieren Pound',
           ),
-          onSubmitted: (value) => Navigator.of(ctx).pop(value),
+          onChanged: (value) => ownerName = value,
+          onFieldSubmitted: (value) => Navigator.of(ctx).pop(value),
         ),
         actions: [
           TextButton(
@@ -138,13 +139,12 @@ class AboutYouSection extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(ownerName),
             child: const Text('Add'),
           ),
         ],
       ),
     );
-    controller.dispose();
 
     if (result == null || result.trim().isEmpty) return;
 
@@ -183,7 +183,8 @@ class _AboutYouCard extends ConsumerStatefulWidget {
   ConsumerState<_AboutYouCard> createState() => _AboutYouCardState();
 }
 
-class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
+class _AboutYouCardState extends ConsumerState<_AboutYouCard>
+    with WidgetsBindingObserver {
   static const Color tint = Color(0xFF5B7C6A);
 
   late TextEditingController _nameController;
@@ -204,6 +205,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _entry = widget.entry;
     _nameController = TextEditingController(text: _entry.fullName);
     _niController = TextEditingController(text: _entry.niNumber);
@@ -214,8 +216,14 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _debounce?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _nameController.dispose();
     _niController.dispose();
     _chiController.dispose();
@@ -225,6 +233,13 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
   void _scheduleSave() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), _saveTextFields);
+  }
+
+  void _flushPendingSave() {
+    if (!(_debounce?.isActive ?? false)) return;
+    _debounce?.cancel();
+    _debounce = null;
+    unawaited(_saveTextFields());
   }
 
   Future<void> _saveTextFields() async {
@@ -570,8 +585,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard> {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     foregroundColor: Colors.red,
                   ),
-                  child: const Text('Remove',
-                      style: TextStyle(fontSize: 12)),
+                  child: const Text('Remove', style: TextStyle(fontSize: 12)),
                 ),
             ],
           )

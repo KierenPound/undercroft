@@ -153,7 +153,8 @@ class _LetterEditor extends ConsumerStatefulWidget {
   ConsumerState<_LetterEditor> createState() => _LetterEditorState();
 }
 
-class _LetterEditorState extends ConsumerState<_LetterEditor> {
+class _LetterEditorState extends ConsumerState<_LetterEditor>
+    with WidgetsBindingObserver {
   final _letterController = TextEditingController();
   final _letterFocusNode = FocusNode();
   final _scrollController = ScrollController();
@@ -162,8 +163,20 @@ class _LetterEditorState extends ConsumerState<_LetterEditor> {
   String? _lastAppliedStoredLetter;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _letterFocusNode.dispose();
     _letterController.dispose();
     _scrollController.dispose();
@@ -173,6 +186,13 @@ class _LetterEditorState extends ConsumerState<_LetterEditor> {
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), _saveLetter);
+  }
+
+  void _flushPendingSave() {
+    if (!(_saveTimer?.isActive ?? false)) return;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_saveLetter());
   }
 
   Future<void> _saveLetter() async {

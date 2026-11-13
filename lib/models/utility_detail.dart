@@ -58,7 +58,8 @@ class UtilityDetail {
       kind: UtilityKind.fromDb((json['kind'] as String?) ?? ''),
       notes: (json['notes'] as String?) ?? '',
       storagePath: (json['storage_path'] as String?) ?? '',
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

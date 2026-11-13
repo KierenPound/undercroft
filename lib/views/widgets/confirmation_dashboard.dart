@@ -1072,7 +1072,8 @@ class _SolicitorIntroEditor extends ConsumerStatefulWidget {
       _SolicitorIntroEditorState();
 }
 
-class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor> {
+class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor>
+    with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   Timer? _saveTimer;
@@ -1080,8 +1081,20 @@ class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor> {
   String _lastSavedIntro = '';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _focusNode.dispose();
     _controller.dispose();
     super.dispose();
@@ -1090,6 +1103,13 @@ class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor> {
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), _saveIntro);
+  }
+
+  void _flushPendingSave() {
+    if (!(_saveTimer?.isActive ?? false)) return;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_saveIntro());
   }
 
   Future<void> _saveIntro() async {
@@ -1106,8 +1126,10 @@ class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor> {
             solicitorIntro: intro,
           );
       _lastSavedIntro = intro;
-      ref.invalidate(sectionProvider(section.id));
-      ref.invalidate(sectionByTitleProvider(_legalDocumentsConfig));
+      if (mounted) {
+        ref.invalidate(sectionProvider(section.id));
+        ref.invalidate(sectionByTitleProvider(_legalDocumentsConfig));
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

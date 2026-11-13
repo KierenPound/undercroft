@@ -35,7 +35,8 @@ class UtilityDetailSection extends ConsumerStatefulWidget {
       _UtilityDetailSectionState();
 }
 
-class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
+class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
+    with WidgetsBindingObserver {
   final _notesController = TextEditingController();
   final _notesFocusNode = FocusNode();
   Timer? _saveTimer;
@@ -46,8 +47,20 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
   UtilityKind get _kind => widget.kind;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _notesFocusNode.dispose();
     _notesController.dispose();
     super.dispose();
@@ -96,6 +109,13 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
     _saveTimer = Timer(const Duration(milliseconds: 500), _saveNotes);
   }
 
+  void _flushPendingSave() {
+    if (!(_saveTimer?.isActive ?? false)) return;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_saveNotes());
+  }
+
   Future<void> _saveNotes() async {
     final current = _notesController.text;
     if (current == _lastSavedNotes) return;
@@ -108,7 +128,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection> {
         notes: current,
       );
       _lastSavedNotes = current;
-      ref.invalidate(utilityDetailsProvider);
+      if (mounted) ref.invalidate(utilityDetailsProvider);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

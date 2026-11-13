@@ -27,7 +27,8 @@ class NotifyAccountDetails {
       accountCode: json['account_code'] as String?,
       otherCode: json['other_code'] as String?,
       otherDescription: json['other_description'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

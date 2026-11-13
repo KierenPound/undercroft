@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
+import '../../utils/log.dart';
 
 final attachmentsProvider = FutureProvider.autoDispose
     .family<List<Attachment>, String>((ref, sectionId) async {
@@ -48,6 +50,59 @@ class AttachmentsSection extends ConsumerStatefulWidget {
 class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
   bool _uploading = false;
 
+  static const int _maxAttachmentBytes = SectionsRepository.maxAttachmentBytes;
+
+  void _showTooLarge(String fileName) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$fileName is over the 50 MB file limit. Choose a smaller file.',
+        ),
+      ),
+    );
+  }
+
+  Future<Uint8List> _readPickedFile(PlatformFile file) async {
+    if (file.size > _maxAttachmentBytes) {
+      throw const _AttachmentTooLargeException();
+    }
+
+    final bytes = file.bytes;
+    if (bytes != null) {
+      if (bytes.length > _maxAttachmentBytes) {
+        throw const _AttachmentTooLargeException();
+      }
+      return bytes;
+    }
+
+    final stream = file.readStream;
+    if (stream != null) {
+      final builder = BytesBuilder(copy: false);
+      var totalBytes = 0;
+      await for (final chunk in stream) {
+        totalBytes += chunk.length;
+        if (totalBytes > _maxAttachmentBytes) {
+          throw const _AttachmentTooLargeException();
+        }
+        builder.add(chunk);
+      }
+      return builder.takeBytes();
+    }
+
+    final path = file.path;
+    if (path == null) throw StateError('The selected file is unavailable.');
+    final source = File(path);
+    if (await source.length() > _maxAttachmentBytes) {
+      throw const _AttachmentTooLargeException();
+    }
+    final fileBytes = await source.readAsBytes();
+    if (fileBytes.length > _maxAttachmentBytes) {
+      throw const _AttachmentTooLargeException();
+    }
+    return fileBytes;
+  }
+
   Future<void> _pickPhotos() async {
     final picker = ImagePicker();
     final picked = await picker.pickMultiImage(
@@ -62,7 +117,15 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
 
     for (final file in picked) {
       try {
+        if (await file.length() > _maxAttachmentBytes) {
+          _showTooLarge(file.name);
+          continue;
+        }
         final bytes = await file.readAsBytes();
+        if (bytes.length > _maxAttachmentBytes) {
+          _showTooLarge(file.name);
+          continue;
+        }
         final mimeType = file.mimeType ?? 'image/jpeg';
         await repo.uploadAttachment(
           sectionId: widget.sectionId,
@@ -90,7 +153,8 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'heic'],
-      withData: true,
+      withData: false,
+      withReadStream: kIsWeb || defaultTargetPlatform != TargetPlatform.macOS,
     );
     if (result == null || result.files.isEmpty) return;
 
@@ -99,7 +163,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
 
     for (final file in result.files) {
       try {
-        final bytes = file.bytes ?? Uint8List(0);
+        final bytes = await _readPickedFile(file);
         final ext = file.extension?.toLowerCase() ?? '';
         final type = ext == 'pdf' ? AttachmentType.pdf : AttachmentType.photo;
         final mime = ext == 'pdf'
@@ -115,6 +179,8 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
           bytes: bytes,
           mimeType: mime,
         );
+      } on _AttachmentTooLargeException {
+        _showTooLarge(file.name);
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -478,14 +544,16 @@ class _PdfThumbnailState extends State<_PdfThumbnail> {
   }
 
   Future<void> _render() async {
-    debugPrint('PDF thumbnail: rendering from url=${widget.url}');
+    logDebug('PDF thumbnail: rendering');
     try {
-      final response = await http.get(Uri.parse(widget.url));
+      final response = await http
+          .get(Uri.parse(widget.url))
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
       final bytes = response.bodyBytes;
-      debugPrint('PDF thumbnail: downloaded ${bytes.length} bytes');
+      logDebug('PDF thumbnail: downloaded ${bytes.length} bytes');
 
       PdfDocument doc;
       if (kIsWeb) {
@@ -505,13 +573,13 @@ class _PdfThumbnailState extends State<_PdfThumbnail> {
         backgroundColor: '#ffffff',
       );
       await doc.close();
-      debugPrint('PDF thumbnail: rendered ${pageImage?.bytes.length} bytes');
+      logDebug('PDF thumbnail: rendered ${pageImage?.bytes.length} bytes');
 
       if (mounted && pageImage?.bytes != null) {
         setState(() => _imageBytes = pageImage!.bytes);
       }
     } catch (e) {
-      debugPrint('PDF thumbnail FAILED: $e');
+      logDebug('PDF thumbnail failed errorType=${e.runtimeType}');
       if (mounted) setState(() => _failed = true);
     }
   }
@@ -536,4 +604,8 @@ class _PdfThumbnailState extends State<_PdfThumbnail> {
       ),
     );
   }
+}
+
+class _AttachmentTooLargeException implements Exception {
+  const _AttachmentTooLargeException();
 }

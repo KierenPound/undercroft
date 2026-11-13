@@ -44,8 +44,8 @@ class WhatToDoFirstDashboard extends ConsumerStatefulWidget {
       _WhatToDoFirstDashboardState();
 }
 
-class _WhatToDoFirstDashboardState
-    extends ConsumerState<WhatToDoFirstDashboard> {
+class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
+    with WidgetsBindingObserver {
   bool _uploading = false;
 
   final _phoneController = TextEditingController();
@@ -55,6 +55,7 @@ class _WhatToDoFirstDashboardState
   bool _copiesUrlDirty = false;
   bool _registrarInitialized = false;
   Timer? _registrarSaveTimer;
+  Future<void> Function()? _pendingRegistrarSave;
   String _lastSavedPhone = '';
   String _lastSavedEmail = '';
   String _lastSavedCopiesUrl = '';
@@ -107,7 +108,13 @@ class _WhatToDoFirstDashboardState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _copiesUrlFocusNode.addListener(_handleCopiesUrlFocusChange);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSaves();
   }
 
   void _handleCopiesUrlFocusChange() {
@@ -118,9 +125,8 @@ class _WhatToDoFirstDashboardState
 
   @override
   void dispose() {
-    _registrarSaveTimer?.cancel();
-    _credentialsSaveTimer?.cancel();
-    _petSaveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSaves();
     _phoneController.dispose();
     _emailController.dispose();
     _copiesUrlController.dispose();
@@ -147,6 +153,24 @@ class _WhatToDoFirstDashboardState
     _vetUrlController.dispose();
     _vetUrlFocusNode.dispose();
     super.dispose();
+  }
+
+  void _flushPendingSaves() {
+    final petPending = _petSaveTimer?.isActive ?? false;
+    final registrarSave = _pendingRegistrarSave;
+    final credentialsPending = _credentialsSaveTimer?.isActive ?? false;
+
+    _petSaveTimer?.cancel();
+    _petSaveTimer = null;
+    _registrarSaveTimer?.cancel();
+    _registrarSaveTimer = null;
+    _pendingRegistrarSave = null;
+    _credentialsSaveTimer?.cancel();
+    _credentialsSaveTimer = null;
+
+    if (petPending) unawaited(_savePetFields());
+    if (registrarSave != null) unawaited(registrarSave());
+    if (credentialsPending) unawaited(_saveCredentials());
   }
 
   String get _effectiveVetPhone => _vetPhoneController.text.trim();
@@ -198,7 +222,7 @@ class _WhatToDoFirstDashboardState
         _lastSavedVetName = vetName;
         _lastSavedVetPhone = vetPhone;
         _lastSavedVetUrl = vetUrl;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {
@@ -214,15 +238,22 @@ class _WhatToDoFirstDashboardState
   String get _effectiveEmail => _emailController.text.trim();
 
   void _scheduleRegistrarSave() {
-    _registrarSaveTimer?.cancel();
-    _registrarSaveTimer =
-        Timer(const Duration(milliseconds: 500), _saveRegistrarContact);
+    _scheduleRegistrarSaveCallback(_saveRegistrarContact);
   }
 
   void _scheduleCopiesUrlSave() {
+    _scheduleRegistrarSaveCallback(_saveCopiesUrl);
+  }
+
+  void _scheduleRegistrarSaveCallback(Future<void> Function() save) {
     _registrarSaveTimer?.cancel();
-    _registrarSaveTimer =
-        Timer(const Duration(milliseconds: 500), _saveCopiesUrl);
+    _pendingRegistrarSave = save;
+    _registrarSaveTimer = Timer(const Duration(milliseconds: 500), () {
+      final pendingSave = _pendingRegistrarSave;
+      _pendingRegistrarSave = null;
+      _registrarSaveTimer = null;
+      if (pendingSave != null) unawaited(pendingSave());
+    });
   }
 
   void _onCopiesUrlChanged(String _) {
@@ -256,7 +287,7 @@ class _WhatToDoFirstDashboardState
           section.copyWith(certifiedCopiesUrl: url),
         );
         _lastSavedCopiesUrl = url;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {
@@ -281,7 +312,7 @@ class _WhatToDoFirstDashboardState
         );
         _lastSavedPhone = phone;
         _lastSavedEmail = email;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {
@@ -330,7 +361,7 @@ class _WhatToDoFirstDashboardState
         _lastSavedPhonePin2 = pin2;
         _lastSavedComputerPassword2 = pw2;
         _lastSavedWifiPassword = wifi;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {

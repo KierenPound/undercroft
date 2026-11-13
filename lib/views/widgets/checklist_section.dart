@@ -81,16 +81,17 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
   }
 
   Future<void> _renameItem(ChecklistItem item) async {
-    final controller = TextEditingController(text: item.text);
+    var itemText = item.text;
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Rename item'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: item.text,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(labelText: 'Item text'),
+          onChanged: (value) => itemText = value,
         ),
         actions: [
           TextButton(
@@ -98,7 +99,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(itemText),
             child: const Text('Save'),
           ),
         ],

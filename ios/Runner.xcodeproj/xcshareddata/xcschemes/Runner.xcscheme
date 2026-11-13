@@ -10,7 +10,7 @@
             ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
             <ActionContent
                title = "Generate Local Flutter Defines"
-               scriptText = "/bin/sh &quot;$SOURCE_ROOT/../scripts/generate_ios_local_xcconfig.sh&quot;&#10;">
+               scriptText = "if grep -q &quot;^// DEV_TOOLS=1&quot; &quot;$SOURCE_ROOT/Flutter/Local.xcconfig&quot; 2&gt;/dev/null; then&#10;  /bin/sh &quot;$SOURCE_ROOT/../scripts/generate_ios_local_xcconfig.sh&quot; --dev-tools&#10;else&#10;  /bin/sh &quot;$SOURCE_ROOT/../scripts/generate_ios_local_xcconfig.sh&quot;&#10;fi&#10;">
                <EnvironmentBuildable>
                   <BuildableReference
                      BuildableIdentifier = "primary"

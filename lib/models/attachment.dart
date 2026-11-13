@@ -53,12 +53,13 @@ class Attachment {
     return Attachment(
       id: json['id'] as String,
       sectionId: json['section_id'] as String,
-      fileName: json['file_name'] as String,
+      fileName: json['file_name'] as String? ?? '',
       type: type,
       storagePath: json['storage_path'] as String? ?? '',
       downloadUrl: json['download_url'] as String? ?? '',
       fileSize: json['file_size'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

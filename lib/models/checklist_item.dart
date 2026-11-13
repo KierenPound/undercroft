@@ -19,10 +19,11 @@ class ChecklistItem {
     return ChecklistItem(
       id: json['id'] as String,
       sectionId: json['section_id'] as String,
-      text: json['text'] as String,
+      text: json['text'] as String? ?? '',
       isCompleted: json['is_completed'] as bool? ?? false,
       orderIndex: json['order_index'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

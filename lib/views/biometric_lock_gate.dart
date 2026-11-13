@@ -27,7 +27,9 @@ class _BiometricLockGateState extends State<BiometricLockGate>
     with WidgetsBindingObserver {
   bool _ready = false;
   bool _locked = true;
+  bool _privacyCover = false;
   bool _prompting = false;
+  bool _handlingResume = false;
   DateTime? _backgroundedAt;
 
   @override
@@ -60,45 +62,70 @@ class _BiometricLockGateState extends State<BiometricLockGate>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_prompting) return;
 
-    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive) {
+      if (!_privacyCover) setState(() => _privacyCover = true);
+      return;
+    }
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
       // Keep the earliest timestamp if the platform reports a sequence of
       // backgrounding states.
       _backgroundedAt ??= DateTime.now();
+      if (!_privacyCover) setState(() => _privacyCover = true);
       return;
     }
     if (state == AppLifecycleState.resumed) {
       unawaited(_onResumed());
     }
-    // `inactive` is ignored on purpose: on iOS it fires for transient things
-    // like the Control Centre or an incoming call banner, which should not
-    // force a re-authentication.
   }
 
   Future<void> _onResumed() async {
+    if (_handlingResume) return;
+    _handlingResume = true;
+    try {
+      await _resumeAfterLifecycleChange();
+    } finally {
+      _handlingResume = false;
+    }
+  }
+
+  Future<void> _resumeAfterLifecycleChange() async {
     final backgroundedAt = _backgroundedAt;
-    _backgroundedAt = null;
 
     // Ignore plain resume events that did not come from a real background
     // transition. Without this, the local_auth sheet can cause an unlock loop
     // on iPhone by generating extra lifecycle churn around the prompt.
-    if (backgroundedAt == null) return;
+    if (backgroundedAt == null) {
+      if (_privacyCover) setState(() => _privacyCover = false);
+      return;
+    }
 
     // Re-read the preference so toggling it in Settings takes effect without
     // an app restart.
     final enabled = await BiometricLockService.isEnabled();
     if (!mounted) return;
+    _backgroundedAt = null;
 
     if (!enabled) {
-      if (_locked) setState(() => _locked = false);
+      setState(() {
+        _locked = false;
+        _privacyCover = false;
+      });
       return;
     }
 
     // Skip the prompt only when we know the app was backgrounded briefly.
     final withinGrace = DateTime.now().difference(backgroundedAt) <
         BiometricLockGate.gracePeriod;
-    if (withinGrace) return;
+    if (withinGrace) {
+      if (_privacyCover) setState(() => _privacyCover = false);
+      return;
+    }
 
-    setState(() => _locked = true);
+    setState(() {
+      _locked = true;
+      _privacyCover = false;
+    });
     await _prompt();
   }
 
@@ -126,7 +153,7 @@ class _BiometricLockGateState extends State<BiometricLockGate>
       fit: StackFit.expand,
       children: [
         widget.child,
-        if (_locked)
+        if (_locked || _privacyCover)
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,

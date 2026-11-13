@@ -7,10 +7,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/build_flags.dart';
 import '../services/biometric_lock_service.dart';
 import '../services/estate_service.dart';
 import '../services/invite_print_service.dart';
 import '../services/payment_service.dart';
+import '../utils/log.dart';
 import 'widgets/about_you_section.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
@@ -48,7 +50,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   }
 
   Future<void> _loadLockState() async {
-    final supported = await BiometricLockService.isSupported();
+    final supported = await BiometricLockService.isDeviceSupported();
     final enabled = await BiometricLockService.isEnabled();
     if (!mounted) return;
     setState(() {
@@ -118,20 +120,21 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   /// Renames the estate. Owner-only: the caller hides the control for
   /// executors, and RLS rejects the write server-side regardless.
   Future<void> _renameEstate(String currentName) async {
-    final controller = TextEditingController(text: currentName);
+    var enteredName = currentName;
 
     final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Estate name'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: currentName,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             hintText: 'e.g. The Pound Estate',
           ),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+          onChanged: (value) => enteredName = value,
+          onFieldSubmitted: (value) => Navigator.of(dialogContext).pop(value),
         ),
         actions: [
           TextButton(
@@ -139,14 +142,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            onPressed: () => Navigator.of(dialogContext).pop(enteredName),
             child: const Text('Save'),
           ),
         ],
       ),
     );
-
-    controller.dispose();
 
     final newName = result?.trim() ?? '';
     if (newName.isEmpty || newName == currentName) return;
@@ -234,12 +235,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   Future<void> _buyInviteUnlock() async {
     setState(() => _buyingInviteUnlock = true);
     final result = await PaymentService.purchaseHandoverUnlock();
+    _logPurchaseDiagnostic('purchase', result);
     if (!mounted) return;
     setState(() => _buyingInviteUnlock = false);
 
     switch (result.outcome) {
       case PurchaseOutcome.purchased:
-        ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invitations unlocked')),
         );
@@ -253,12 +254,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Purchase unavailable'),
-            content: SingleChildScrollView(
-              child: SelectableText(
-                '${result.message ?? 'The purchase could not be completed.'}'
-                '\n\nDiagnostic: ${result.diagnosticCode ?? 'unknown'}'
-                '\nProduct: $handoverProductId',
-              ),
+            content: Text(
+              result.message ?? 'The purchase could not be completed.',
             ),
             actions: [
               TextButton(
@@ -278,12 +275,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   Future<void> _restoreInviteUnlock() async {
     setState(() => _restoringInviteUnlock = true);
     final result = await PaymentService.restoreHandoverUnlock();
+    _logPurchaseDiagnostic('restore', result);
     if (!mounted) return;
     setState(() => _restoringInviteUnlock = false);
 
     switch (result.outcome) {
       case PurchaseOutcome.purchased:
-        ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Previous purchase restored for this session'),
@@ -305,9 +302,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Restore unavailable'),
-            content: SelectableText(
-              '${result.message ?? 'The purchase could not be restored.'}'
-              '\n\nDiagnostic: ${result.diagnosticCode ?? 'unknown'}',
+            content: Text(
+              result.message ?? 'The purchase could not be restored.',
             ),
             actions: [
               TextButton(
@@ -318,6 +314,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           ),
         );
     }
+  }
+
+  void _logPurchaseDiagnostic(String action, PurchaseResult result) {
+    final code = result.diagnosticCode;
+    if (code != null) logDebug('IAP $action diagnosticCode=$code');
   }
 
   /// Opens a support or legal page in the device browser.
@@ -494,7 +495,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   @override
   Widget build(BuildContext context) {
     final asyncRole = ref.watch(estateRoleProvider);
-    final simulatedRole = ref.watch(simulatedRoleProvider);
+    // The simulation is only read when the developer tools are present. A
+    // release build therefore shows the real role even if something had set
+    // the override.
+    final simulatedRole =
+        devToolsEnabled ? ref.watch(simulatedRoleProvider) : null;
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncUser = ref.watch(currentUserProvider);
     final asyncEstateName = ref.watch(estateNameProvider);
@@ -848,66 +853,71 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               ),
             ],
 
-            const SizedBox(height: 16),
+            // Developer tools only exist in a build that opted into them: a
+            // debug build, or a beta build carrying the define. A release
+            // build has nothing here to reach.
+            if (devToolsEnabled) ...[
+              const SizedBox(height: 16),
 
-            // Developer tools: simulate role
-            _SectionCard(
-              title: 'Developer tools',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Simulate executor view to test the read-only UI without '
-                    'changing your database role.',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Act as Executor'),
-                    subtitle: Text(
-                      isSimulating
-                          ? 'Currently simulating executor'
-                          : 'Using your real role ($actualRole)',
-                    ),
-                    value: isSimulating,
-                    onChanged: (value) {
-                      ref.read(simulatedRoleProvider.notifier).state =
-                          value ? 'executor' : null;
-                    },
-                  ),
-                  // Owner-only, because that is who the paywall applies to.
-                  if (actualRole == 'owner') ...[
-                    const Divider(height: 24),
+              // Developer tools: simulate role
+              _SectionCard(
+                title: 'Developer tools',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const Text(
-                      'Put invitations behind the paid handover unlock, so the '
-                      'purchase flow can be tried end to end. Nothing is '
-                      'written to the estate.',
+                      'Simulate executor view to test the read-only UI without '
+                      'changing your database role.',
                       style: TextStyle(fontSize: 13, color: Colors.black54),
                     ),
+                    const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Test Payment Logic'),
+                      title: const Text('Act as Executor'),
                       subtitle: Text(
-                        testPaymentGate
-                            ? (invitesLocked
-                                ? 'Invitations are locked until unlocked by making a test payment'
-                                : 'Invitations are unlocked for this session')
-                            : 'Invitations are free, as today',
+                        isSimulating
+                            ? 'Currently simulating executor'
+                            : 'Using your real role ($actualRole)',
                       ),
-                      value: testPaymentGate,
+                      value: isSimulating,
                       onChanged: (value) {
-                        ref
-                            .read(sessionInvitesUnlockedProvider.notifier)
-                            .state = false;
-                        ref.read(testPaymentGateProvider.notifier).state =
-                            value;
+                        ref.read(simulatedRoleProvider.notifier).state =
+                            value ? 'executor' : null;
                       },
                     ),
+                    // Owner-only, because that is who the paywall applies to.
+                    if (actualRole == 'owner') ...[
+                      const Divider(height: 24),
+                      const Text(
+                        'Put invitations behind the paid handover unlock, so '
+                        'the purchase flow can be tried end to end. Nothing is '
+                        'written to the estate.',
+                        style: TextStyle(fontSize: 13, color: Colors.black54),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Test Payment Logic'),
+                        subtitle: Text(
+                          testPaymentGate
+                              ? (invitesLocked
+                                  ? 'Invitations are locked until unlocked by making a test payment'
+                                  : 'Invitations are unlocked for this session')
+                              : 'Invitations are free, as today',
+                        ),
+                        value: testPaymentGate,
+                        onChanged: (value) {
+                          ref
+                              .read(sessionInvitesUnlockedProvider.notifier)
+                              .state = false;
+                          ref.read(testPaymentGateProvider.notifier).state =
+                              value;
+                        },
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
 
             // Invite executor (owners only)
             if (actualRole == 'owner') ...[
@@ -1290,8 +1300,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 builder: (context, snapshot) {
                   final info = snapshot.data;
                   if (info == null) return const SizedBox.shrink();
+                  // The beta marker is driven by the define rather than by
+                  // the developer tools being available, so a debug build is
+                  // not mistaken for a build testers were handed.
                   return Text(
-                    'UnderCroft ${info.version} (${info.buildNumber})',
+                    'UnderCroft ${info.version} (${info.buildNumber})'
+                    '${enableDevTools ? '  ·  Beta build' : ''}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.black38,
@@ -1498,7 +1512,7 @@ class _SectionCard extends StatelessWidget {
 ///
 /// Only reachable with Test Payment Logic switched on, so the copy can be
 /// blunt about the fact that this is a rehearsal.
-class _UnlockInvitesCard extends StatelessWidget {
+class _UnlockInvitesCard extends StatefulWidget {
   final bool buying;
   final VoidCallback onUnlock;
   final bool restoring;
@@ -1510,6 +1524,19 @@ class _UnlockInvitesCard extends StatelessWidget {
     required this.restoring,
     required this.onRestore,
   });
+
+  @override
+  State<_UnlockInvitesCard> createState() => _UnlockInvitesCardState();
+}
+
+class _UnlockInvitesCardState extends State<_UnlockInvitesCard> {
+  late final Future<String?> _priceLookup;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceLookup = PaymentService.lookupHandoverPrice();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1538,30 +1565,39 @@ class _UnlockInvitesCard extends StatelessWidget {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: buying ? null : onUnlock,
-              icon: buying
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.lock_open),
-              label: Text(
-                buying
-                    ? 'Waiting for the App Store…'
-                    : 'Unlock invites — $handoverPriceLabel',
-              ),
+            child: FutureBuilder<String?>(
+              future: _priceLookup,
+              builder: (context, snapshot) {
+                final price = snapshot.data;
+                return FilledButton.icon(
+                  onPressed: widget.buying ? null : widget.onUnlock,
+                  icon: widget.buying
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.lock_open),
+                  label: Text(
+                    widget.buying
+                        ? 'Waiting for the App Store…'
+                        : price == null
+                            ? 'Unlock invites'
+                            : 'Unlock invites — $price',
+                  ),
+                );
+              },
             ),
           ),
           Align(
             alignment: Alignment.center,
             child: TextButton.icon(
-              onPressed: restoring || buying ? null : onRestore,
-              icon: restoring
+              onPressed:
+                  widget.restoring || widget.buying ? null : widget.onRestore,
+              icon: widget.restoring
                   ? const SizedBox(
                       width: 16,
                       height: 16,
@@ -1569,7 +1605,7 @@ class _UnlockInvitesCard extends StatelessWidget {
                     )
                   : const Icon(Icons.restore),
               label: Text(
-                restoring ? 'Checking purchases…' : 'Restore Purchases',
+                widget.restoring ? 'Checking purchases…' : 'Restore Purchases',
               ),
             ),
           ),

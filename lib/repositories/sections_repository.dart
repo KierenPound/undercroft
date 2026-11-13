@@ -14,6 +14,9 @@ class SectionsRepository {
 
   SectionsRepository(this._client);
 
+  /// Keep attachments within the estate-documents bucket's 50 MiB limit.
+  static const int maxAttachmentBytes = 50 * 1024 * 1024;
+
   /// Signed URLs for the private `estate-documents` bucket, keyed by storage
   /// path, with the moment each one stops being reused.
   ///
@@ -233,6 +236,10 @@ class SectionsRepository {
     required Uint8List bytes,
     required String mimeType,
   }) async {
+    if (bytes.length > maxAttachmentBytes) {
+      throw ArgumentError('Attachment exceeds the maximum file size.');
+    }
+
     final path =
         'estate-documents/$estateId/sections/$sectionId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
 

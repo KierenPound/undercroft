@@ -49,7 +49,8 @@ class AboutYou {
       licenceStoragePath: (json['licence_storage_path'] as String?) ?? '',
       licenceDownloadUrl: (json['licence_download_url'] as String?) ?? '',
       licenceFileSize: (json['licence_file_size'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 
@@ -87,9 +88,10 @@ class AboutYou {
   bool hasDocument(AboutYouDocument doc) =>
       storagePathFor(doc).isNotEmpty && downloadUrlFor(doc).isNotEmpty;
 
-  String downloadUrlFor(AboutYouDocument doc) => doc == AboutYouDocument.passport
-      ? passportDownloadUrl
-      : licenceDownloadUrl;
+  String downloadUrlFor(AboutYouDocument doc) =>
+      doc == AboutYouDocument.passport
+          ? passportDownloadUrl
+          : licenceDownloadUrl;
 
   /// Returns a copy with one document slot replaced (path, URL and size).
   AboutYou withDocument(
@@ -112,17 +114,18 @@ class AboutYou {
   }
 
   /// Returns a copy with one document slot cleared.
-  AboutYou withoutDocument(AboutYouDocument doc) => doc == AboutYouDocument.passport
-      ? copyWith(
-          passportStoragePath: '',
-          passportDownloadUrl: '',
-          passportFileSize: 0,
-        )
-      : copyWith(
-          licenceStoragePath: '',
-          licenceDownloadUrl: '',
-          licenceFileSize: 0,
-        );
+  AboutYou withoutDocument(AboutYouDocument doc) =>
+      doc == AboutYouDocument.passport
+          ? copyWith(
+              passportStoragePath: '',
+              passportDownloadUrl: '',
+              passportFileSize: 0,
+            )
+          : copyWith(
+              licenceStoragePath: '',
+              licenceDownloadUrl: '',
+              licenceFileSize: 0,
+            );
 
   AboutYou copyWith({
     String? fullName,

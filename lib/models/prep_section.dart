@@ -86,7 +86,7 @@ class PrepSection {
     return PrepSection(
       id: json['id'] as String,
       estateId: json['estate_id'] as String,
-      title: json['title'] as String,
+      title: json['title'] as String? ?? '',
       orderIndex: json['order_index'] as int? ?? 0,
       isStandard: json['is_standard'] as bool? ?? false,
       notes: json['notes'] as String? ?? '',
@@ -115,8 +115,10 @@ class PrepSection {
       videoPath: json['video_path'] as String? ?? '',
       videoMime: json['video_mime'] as String? ?? '',
       videoSizeBytes: (json['video_size_bytes'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 
@@ -248,8 +250,7 @@ class PrepSection {
       vetName: vetName ?? this.vetName,
       vetPhone: vetPhone ?? this.vetPhone,
       vetUrl: vetUrl ?? this.vetUrl,
-      petInsuranceCompany:
-          petInsuranceCompany ?? this.petInsuranceCompany,
+      petInsuranceCompany: petInsuranceCompany ?? this.petInsuranceCompany,
       petPolicyNumber: petPolicyNumber ?? this.petPolicyNumber,
       petMicrochipNumber: petMicrochipNumber ?? this.petMicrochipNumber,
       videoPath: videoPath ?? this.videoPath,

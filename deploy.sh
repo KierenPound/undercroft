@@ -4,10 +4,28 @@
 #
 # Run this from Terminal.app rather than the IDE: signing the iOS build needs
 # your login keychain, which the IDE's sandboxed agents cannot reach.
+#
+# Usage: ./deploy.sh [--beta]
+#
+#   --beta   include ENABLE_DEV_TOOLS=true, so the Developer tools section and
+#            the "Beta build" marker appear. Omit it to sanity-check the build
+#            exactly as an App Store release will behave.
 
 set -euo pipefail
 
 cd "$(dirname "$0")"
+
+beta=0
+for arg in "$@"; do
+  case "$arg" in
+    --beta) beta=1 ;;
+    -h|--help)
+      sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) echo "Unknown option: $arg" >&2; exit 1 ;;
+  esac
+done
 
 # Keep Gradle's home on the internal disk. By default it lives at ~/.gradle,
 # which here is a symlink onto the external SSD — and on that volume Gradle's
@@ -34,6 +52,13 @@ defines=(
   "--dart-define=SUPABASE_URL=$(read_config SUPABASE_URL)"
   "--dart-define=SUPABASE_ANON_KEY=$(read_config SUPABASE_ANON_KEY)"
 )
+
+if (( beta )); then
+  echo "Beta build — Developer tools will be visible in Settings."
+  defines+=("--dart-define=ENABLE_DEV_TOOLS=true")
+else
+  echo "Release build — no Developer tools."
+fi
 
 echo "UnderCroft deploy"
 echo "  1) iOS     (iPhone / iPad on the cable)"
@@ -90,6 +115,17 @@ for device in devices:
     echo "(Settings > Privacy & Security > Developer Mode)." >&2
     echo "Note: a phone paired over Wi-Fi only will not be picked up here." >&2
     exit 1
+  fi
+
+  # The iOS build takes its dart-defines from ios/Flutter/Local.xcconfig, not
+  # from the flutter command line: Release.xcconfig includes Generated.xcconfig
+  # and then Local.xcconfig, so Local wins and Xcode exports its DART_DEFINES to
+  # the Dart compile. A stale Local file left over from a previous release would
+  # therefore silently strip the beta flag — regenerate it to match this run.
+  if (( beta )); then
+    zsh scripts/generate_ios_local_xcconfig.sh --dev-tools
+  else
+    zsh scripts/generate_ios_local_xcconfig.sh
   fi
 
   echo "Building for iOS..."

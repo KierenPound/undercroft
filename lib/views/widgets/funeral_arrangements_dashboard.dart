@@ -91,20 +91,21 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
       return;
     }
 
-    final controller = TextEditingController();
+    var arrangementName = '';
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add funeral arrangement'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: arrangementName,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
             labelText: 'Name (e.g. Kieren, Bren)',
             hintText: 'The section will show "Funeral (name)"',
           ),
-          onSubmitted: (value) => Navigator.of(ctx).pop(value),
+          onChanged: (value) => arrangementName = value,
+          onFieldSubmitted: (value) => Navigator.of(ctx).pop(value),
         ),
         actions: [
           TextButton(
@@ -112,7 +113,7 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(arrangementName),
             child: const Text('Add'),
           ),
         ],
@@ -232,7 +233,8 @@ class _ArrangementCard extends ConsumerStatefulWidget {
   ConsumerState<_ArrangementCard> createState() => _ArrangementCardState();
 }
 
-class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
+class _ArrangementCardState extends ConsumerState<_ArrangementCard>
+    with WidgetsBindingObserver {
   static const Color tint = Colors.indigo;
 
   late TextEditingController _nameController;
@@ -245,12 +247,18 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _nameController = TextEditingController(text: widget.entry.name);
     _notesController = TextEditingController(text: widget.entry.notes);
     _prepaidController =
         TextEditingController(text: widget.entry.prepaidDetails);
     _urlController = TextEditingController(text: widget.entry.url);
     _initialized = true;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
   }
 
   @override
@@ -270,7 +278,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _nameController.dispose();
     _notesController.dispose();
     _prepaidController.dispose();
@@ -281,6 +290,13 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
   void _scheduleSave() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), _save);
+  }
+
+  void _flushPendingSave() {
+    if (!(_debounce?.isActive ?? false)) return;
+    _debounce?.cancel();
+    _debounce = null;
+    unawaited(_save());
   }
 
   Future<void> _save() async {
@@ -294,7 +310,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard> {
       url: _urlController.text.trim(),
     );
     await repo.update(updated);
-    ref.invalidate(funeralArrangementsListProvider);
+    if (mounted) ref.invalidate(funeralArrangementsListProvider);
   }
 
   Future<void> _launch(String url) async {

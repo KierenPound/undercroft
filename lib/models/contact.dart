@@ -26,7 +26,8 @@ class Contact {
       name: (json['name'] as String?) ?? '',
       telephone: (json['telephone'] as String?) ?? '',
       email: (json['email'] as String?) ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

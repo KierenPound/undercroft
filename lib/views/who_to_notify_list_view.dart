@@ -200,17 +200,18 @@ class WhoToNotifyListView extends ConsumerWidget {
       return;
     }
 
-    final controller = TextEditingController();
+    var companyName = '';
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add organisation'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: companyName,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Company name'),
-          onSubmitted: (value) => Navigator.of(ctx).pop(value),
+          onChanged: (value) => companyName = value,
+          onFieldSubmitted: (value) => Navigator.of(ctx).pop(value),
         ),
         actions: [
           TextButton(
@@ -218,7 +219,7 @@ class WhoToNotifyListView extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(companyName),
             child: const Text('Add'),
           ),
         ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -425,7 +426,7 @@ Future<MySongTrack?> _fetchSongDetails(String videoId) async {
       'url': 'https://www.youtube.com/watch?v=$videoId',
       'format': 'json',
     });
-    final response = await http.get(uri).timeout(const Duration(seconds: 8));
+    final response = await http.get(uri).timeout(const Duration(seconds: 20));
     if (response.statusCode != 200) return null;
 
     final decoded = jsonDecode(response.body);
@@ -584,6 +585,7 @@ class _MySongsBody extends ConsumerStatefulWidget {
 
 class _MySongsBodyState extends ConsumerState<_MySongsBody> {
   late final YoutubePlayerController _controller;
+  late final StreamSubscription<YoutubePlayerValue> _controllerSubscription;
   final List<int> _playHistory = [];
   final Random _random = Random();
 
@@ -614,7 +616,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
 
     _controller = YoutubePlayerController(params: params);
 
-    _controller.stream.listen((value) {
+    _controllerSubscription = _controller.stream.listen((value) {
       if (!mounted || _tracks.isEmpty) return;
       setState(() {
         switch (value.playerState) {
@@ -647,6 +649,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
 
   @override
   void dispose() {
+    unawaited(_controllerSubscription.cancel());
     _controller.close();
     super.dispose();
   }
@@ -799,212 +802,46 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
   /// Adds a song by pasting a YouTube link. The title and artist are looked up
   /// automatically, but stay editable in case the lookup cannot reach YouTube.
   Future<void> _addSong(PrepSection section) async {
-    final linkController = TextEditingController();
-    final titleController = TextEditingController();
-    final artistController = TextEditingController();
-    var lookingUp = false;
-    var closing = false;
-    String? lookupError;
-
-    final confirmed = await showDialog<bool>(
+    final draft = await showDialog<_AddSongDraft>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          Future<void> lookUp() async {
-            if (closing) return;
-            final id = _extractVideoId(linkController.text);
-            if (id == null) {
-              if (!dialogContext.mounted) return;
-              setDialogState(
-                () => lookupError = 'That does not look like a YouTube link.',
-              );
-              return;
-            }
-
-            if (!dialogContext.mounted) return;
-            setDialogState(() {
-              lookingUp = true;
-              lookupError = null;
-            });
-
-            final details = await _fetchSongDetails(id);
-            if (closing || !dialogContext.mounted) return;
-
-            setDialogState(() {
-              lookingUp = false;
-              if (details == null) {
-                lookupError =
-                    'Could not fetch the details. Enter them below instead.';
-              } else {
-                titleController.text = details.title;
-                artistController.text = details.artist;
-              }
-            });
-          }
-
-          return AlertDialog(
-            title: const Text('Add a song'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: linkController,
-                    autofocus: true,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      labelText: 'YouTube link',
-                      hintText: 'Paste a link or video ID',
-                    ),
-                    onSubmitted: (_) => lookUp(),
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: lookingUp ? null : lookUp,
-                      icon: lookingUp
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.search, size: 18),
-                      label: Text(
-                        lookingUp ? 'Looking up...' : 'Look up details',
-                      ),
-                    ),
-                  ),
-                  TextField(
-                    controller: titleController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Song title'),
-                  ),
-                  TextField(
-                    controller: artistController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Artist'),
-                  ),
-                  if (lookupError != null) ...[
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        lookupError!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  closing = true;
-                  _closeDialog(dialogContext, false);
-                },
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  // Let the lookup fill in the title if it hasn't been yet,
-                  // so pasting a link and pressing Add just works.
-                  if (_extractVideoId(linkController.text) != null &&
-                      titleController.text.trim().isEmpty) {
-                    await lookUp();
-                    if (titleController.text.trim().isEmpty) return;
-                  }
-                  if (closing || !dialogContext.mounted) return;
-                  closing = true;
-                  _closeDialog(dialogContext, true);
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => const _AddSongDialog(),
     );
 
-    final id = _extractVideoId(linkController.text);
-    final title = titleController.text.trim();
-    final artist = artistController.text.trim();
-    linkController.dispose();
-    titleController.dispose();
-    artistController.dispose();
-
-    if (confirmed != true) return;
-    if (id == null || title.isEmpty) {
+    if (draft == null) return;
+    if (draft.videoId == null || draft.title.isEmpty) {
       _showMessage('A YouTube link and a song title are required.');
       return;
     }
-    if (_tracks.any((track) => track.id == id)) {
+    if (_tracks.any((track) => track.id == draft.videoId)) {
       _showMessage('That song is already in the playlist.');
       return;
     }
 
     await _persistTracks(
       section,
-      [..._tracks, MySongTrack(id: id, title: title, artist: artist)],
-      'Added "$title".',
+      [
+        ..._tracks,
+        MySongTrack(
+          id: draft.videoId!,
+          title: draft.title,
+          artist: draft.artist,
+        ),
+      ],
+      'Added "${draft.title}".',
     );
   }
 
   /// Renames a song. The artist is editable too, since the automatic lookup
   /// returns the YouTube channel, which is not always what you want shown.
   Future<void> _editSong(PrepSection section, MySongTrack track) async {
-    final titleController = TextEditingController(text: track.title);
-    final artistController = TextEditingController(text: track.artist);
-
-    final confirmed = await showDialog<bool>(
+    final draft = await showDialog<_EditSongDraft>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit song'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                autofocus: true,
-                maxLines: 2,
-                textAlign: TextAlign.start,
-                textCapitalization: TextCapitalization.words,
-                style: const TextStyle(fontSize: 16),
-                decoration: const InputDecoration(labelText: 'Song title'),
-              ),
-              TextField(
-                controller: artistController,
-                textAlign: TextAlign.start,
-                textCapitalization: TextCapitalization.words,
-                style: const TextStyle(fontSize: 16),
-                decoration: const InputDecoration(labelText: 'Artist'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => _closeDialog(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => _closeDialog(dialogContext, true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (_) => _EditSongDialog(track: track),
     );
 
-    final title = titleController.text.trim();
-    final artist = artistController.text.trim();
-    titleController.dispose();
-    artistController.dispose();
-
-    if (confirmed != true) return;
+    if (draft == null) return;
+    final title = draft.title.trim();
+    final artist = draft.artist.trim();
     if (title.isEmpty) {
       _showMessage('A song title is required.');
       return;
@@ -1624,6 +1461,246 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddSongDraft {
+  final String? videoId;
+  final String title;
+  final String artist;
+
+  const _AddSongDraft({
+    required this.videoId,
+    required this.title,
+    required this.artist,
+  });
+}
+
+class _AddSongDialog extends StatefulWidget {
+  const _AddSongDialog();
+
+  @override
+  State<_AddSongDialog> createState() => _AddSongDialogState();
+}
+
+class _AddSongDialogState extends State<_AddSongDialog> {
+  final _linkController = TextEditingController();
+  final _titleController = TextEditingController();
+  final _artistController = TextEditingController();
+  bool _lookingUp = false;
+  bool _closing = false;
+  String? _lookupError;
+
+  @override
+  void dispose() {
+    _linkController.dispose();
+    _titleController.dispose();
+    _artistController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _lookUp() async {
+    if (_closing) return;
+    final videoId = _extractVideoId(_linkController.text);
+    if (videoId == null) {
+      setState(() => _lookupError = 'That does not look like a YouTube link.');
+      return;
+    }
+
+    setState(() {
+      _lookingUp = true;
+      _lookupError = null;
+    });
+
+    final details = await _fetchSongDetails(videoId);
+    if (!mounted || _closing) return;
+
+    setState(() {
+      _lookingUp = false;
+      if (details == null) {
+        _lookupError = 'Could not fetch the details. Enter them below instead.';
+      } else {
+        _titleController.text = details.title;
+        _artistController.text = details.artist;
+      }
+    });
+  }
+
+  void _close([_AddSongDraft? result]) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add a song'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _linkController,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: 'YouTube link',
+                hintText: 'Paste a link or video ID',
+              ),
+              onSubmitted: (_) => _lookUp(),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _lookingUp ? null : _lookUp,
+                icon: _lookingUp
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.search, size: 18),
+                label: Text(_lookingUp ? 'Looking up...' : 'Look up details'),
+              ),
+            ),
+            TextField(
+              controller: _titleController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Song title'),
+            ),
+            TextField(
+              controller: _artistController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Artist'),
+            ),
+            if (_lookupError != null) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _lookupError!,
+                  style: const TextStyle(fontSize: 13, color: Colors.red),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            _closing = true;
+            _close();
+          },
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            // Let the lookup fill in the title before accepting the link.
+            if (_extractVideoId(_linkController.text) != null &&
+                _titleController.text.trim().isEmpty) {
+              await _lookUp();
+              if (!mounted || _titleController.text.trim().isEmpty) return;
+            }
+            if (_closing || !mounted) return;
+            _closing = true;
+            _close(
+              _AddSongDraft(
+                videoId: _extractVideoId(_linkController.text),
+                title: _titleController.text.trim(),
+                artist: _artistController.text.trim(),
+              ),
+            );
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditSongDraft {
+  final String title;
+  final String artist;
+
+  const _EditSongDraft({required this.title, required this.artist});
+}
+
+class _EditSongDialog extends StatefulWidget {
+  final MySongTrack track;
+
+  const _EditSongDialog({required this.track});
+
+  @override
+  State<_EditSongDialog> createState() => _EditSongDialogState();
+}
+
+class _EditSongDialogState extends State<_EditSongDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _artistController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.track.title);
+    _artistController = TextEditingController(text: widget.track.artist);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _artistController.dispose();
+    super.dispose();
+  }
+
+  void _close([_EditSongDraft? result]) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit song'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              autofocus: true,
+              maxLines: 2,
+              textAlign: TextAlign.start,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 16),
+              decoration: const InputDecoration(labelText: 'Song title'),
+            ),
+            TextField(
+              controller: _artistController,
+              textAlign: TextAlign.start,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 16),
+              decoration: const InputDecoration(labelText: 'Artist'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _close,
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => _close(
+            _EditSongDraft(
+              title: _titleController.text,
+              artist: _artistController.text,
+            ),
+          ),
+          child: const Text('Save'),
         ),
       ],
     );

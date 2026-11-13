@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/photo_cache_service.dart';
+import '../services/supabase_service.dart';
 
 /// Password reset screen.
 ///
@@ -22,10 +25,13 @@ class _PasswordResetViewState extends State<PasswordResetView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  StreamSubscription<AuthState>? _authSubscription;
 
   bool _isLoading = false;
   String? _error;
   String? _info;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   /// True when the recovery session is active (user clicked the email link).
   bool _inRecovery = false;
@@ -41,7 +47,8 @@ class _PasswordResetViewState extends State<PasswordResetView> {
     }
 
     // Listen for the recovery event in case it fires after this screen mounts.
-    Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((state) {
       if (state.event == AuthChangeEvent.passwordRecovery && mounted) {
         setState(() => _inRecovery = true);
       }
@@ -50,6 +57,8 @@ class _PasswordResetViewState extends State<PasswordResetView> {
 
   @override
   void dispose() {
+    final subscription = _authSubscription;
+    if (subscription != null) unawaited(subscription.cancel());
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -75,7 +84,7 @@ class _PasswordResetViewState extends State<PasswordResetView> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'com.undercroft.undercroft://login-callback/',
+        redirectTo: SupabaseService.authRedirectUrl,
       );
       if (mounted) {
         setState(() => _info =
@@ -125,8 +134,7 @@ class _PasswordResetViewState extends State<PasswordResetView> {
     }
 
     try {
-      await Supabase.instance.client
-          .auth
+      await Supabase.instance.client.auth
           .updateUser(UserAttributes(password: password));
       // Sign out so the user signs in fresh with their new password. This also
       // clears the recovery-session flag via the signedOut auth event.
@@ -207,21 +215,48 @@ class _PasswordResetViewState extends State<PasswordResetView> {
                       else ...[
                         TextField(
                           controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
                             labelText: 'New password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              tooltip: _obscurePassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _confirmController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
+                          obscureText: _obscureConfirmPassword,
+                          decoration: InputDecoration(
                             labelText: 'Confirm new password',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              tooltip: _obscureConfirmPassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () => setState(
+                                () => _obscureConfirmPassword =
+                                    !_obscureConfirmPassword,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -268,7 +303,9 @@ class _PasswordResetViewState extends State<PasswordResetView> {
                             ? const CircularProgressIndicator(
                                 color: Colors.white)
                             : Text(
-                                _inRecovery ? 'Update password' : 'Send reset link',
+                                _inRecovery
+                                    ? 'Update password'
+                                    : 'Send reset link',
                                 style: const TextStyle(fontSize: 16),
                               ),
                       ),

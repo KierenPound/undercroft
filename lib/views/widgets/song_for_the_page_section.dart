@@ -138,7 +138,7 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
     final sectionId = widget.sectionId;
     if (sectionId == null) return;
 
-    final linkController = TextEditingController();
+    var youtubeLink = '';
     String? error;
 
     final confirmed = await showDialog<bool>(
@@ -155,14 +155,15 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: linkController,
+              TextFormField(
+                initialValue: youtubeLink,
                 autofocus: true,
                 keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
                   labelText: 'YouTube link',
                   hintText: 'Paste a link or video ID',
                 ),
+                onChanged: (value) => youtubeLink = value,
               ),
               if (error != null) ...[
                 const SizedBox(height: 10),
@@ -183,7 +184,7 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
             ),
             FilledButton(
               onPressed: () {
-                if (_extractVideoId(linkController.text) == null) {
+                if (_extractVideoId(youtubeLink) == null) {
                   setDialogState(
                     () => error = 'That does not look like a YouTube link.',
                   );
@@ -198,8 +199,7 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
       ),
     );
 
-    final videoId = _extractVideoId(linkController.text);
-    linkController.dispose();
+    final videoId = _extractVideoId(youtubeLink);
 
     if (confirmed != true || videoId == null) return;
 
@@ -261,7 +261,8 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
             if (_canReplace)
               TextButton.icon(
                 onPressed: _replaceSong,
-                icon: const Icon(Icons.swap_horiz, size: 18, color: Colors.teal),
+                icon:
+                    const Icon(Icons.swap_horiz, size: 18, color: Colors.teal),
                 label: const Text(
                   'Replace',
                   style: TextStyle(

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/build_flags.dart';
 import 'photo_cache_service.dart';
 
 class EstateContext {
@@ -136,6 +137,14 @@ final testPaymentGateProvider = StateProvider<bool>((ref) => false);
 ///
 /// Clients can read only the estate ID from this table. Grants and store
 /// transaction details are written by trusted backend/admin code.
+///
+/// Before inserting into `estate_handover_entitlements`, backend code must
+/// verify the signed Apple transaction or Google Play purchase token with the
+/// respective store; match the app/package and handover product IDs; confirm
+/// the transaction is paid, valid for the expected store environment, and not
+/// refunded or revoked; enforce transaction-ID uniqueness and idempotency; and
+/// associate the grant with an estate the authenticated purchaser may manage.
+/// Client-reported purchase status or receipt data alone must never grant it.
 final estateHandoverEntitlementProvider = FutureProvider<bool>((ref) async {
   final estateId = await ref.watch(estateIdProvider.future);
   if (estateId.isEmpty) return false;
@@ -171,8 +180,11 @@ final invitesUnlockedProvider = Provider<bool>((ref) {
 /// Whether invitations are currently withheld pending payment.
 ///
 /// False whenever the test gate is off, so the app behaves exactly as it does
-/// today unless a developer has deliberately switched the gate on.
+/// today unless a developer has deliberately switched the gate on. A build
+/// without the developer tools cannot be put into the paywalled state at all,
+/// so in a release build this is always false.
 final invitesLockedProvider = Provider<bool>((ref) {
+  if (!devToolsEnabled) return false;
   final gating = ref.watch(testPaymentGateProvider);
   final unlocked = ref.watch(invitesUnlockedProvider);
   return gating && !unlocked;
@@ -182,10 +194,14 @@ final invitesLockedProvider = Provider<bool>((ref) {
 ///
 /// Respects [simulatedRoleProvider] first so developers can toggle into the
 /// executor view for testing; otherwise reads the real role from Supabase.
+/// The simulation is only consulted when the developer tools are present, so
+/// a release build always reports the role recorded in the database.
 final isOwnerProvider = FutureProvider<bool>((ref) async {
-  final simulated = ref.watch(simulatedRoleProvider);
-  if (simulated != null) {
-    return simulated == 'owner';
+  if (devToolsEnabled) {
+    final simulated = ref.watch(simulatedRoleProvider);
+    if (simulated != null) {
+      return simulated == 'owner';
+    }
   }
   final role = await ref.watch(estateRoleProvider.future);
   return role == 'owner';

@@ -30,7 +30,8 @@ class AdHocData {
       email: (json['email'] as String?) ?? '',
       url: (json['url'] as String?) ?? '',
       notes: (json['notes'] as String?) ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 

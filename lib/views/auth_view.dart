@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/supabase_service.dart';
+import '../utils/log.dart';
+
 class AuthView extends StatefulWidget {
   const AuthView({super.key});
 
@@ -47,7 +50,7 @@ class _AuthViewState extends State<AuthView> {
   @override
   void initState() {
     super.initState();
-    debugPrint('[auth_view] mounted key=${widget.key}');
+    logDebug('[auth_view] mounted');
     _resolveInitialMode();
   }
 
@@ -150,16 +153,18 @@ class _AuthViewState extends State<AuthView> {
       _info = null;
     });
 
-    debugPrint('[auth_view] submit mode=${isSignUp ? 'sign_up' : 'sign_in'} '
-        'email=$email');
+    logDebug('[auth_view] submit mode=${isSignUp ? 'sign_up' : 'sign_in'}');
     try {
       final client = Supabase.instance.client;
       if (isSignUp) {
-        final response =
-            await client.auth.signUp(email: email, password: password);
-        debugPrint('[auth_view] sign_up complete '
-            'sessionUser=${response.session?.user.id} '
-            'currentUser=${client.auth.currentUser?.id}');
+        final response = await client.auth.signUp(
+          email: email,
+          password: password,
+          emailRedirectTo: SupabaseService.authRedirectUrl,
+        );
+        logDebug('[auth_view] sign_up complete '
+            'hasSession=${response.session != null} '
+            'hasCurrentUser=${client.auth.currentUser != null}');
         if (response.user?.emailConfirmedAt == null) {
           if (mounted) {
             setState(() => _info =
@@ -171,20 +176,20 @@ class _AuthViewState extends State<AuthView> {
         if (response.session != null) TextInput.finishAutofillContext();
       } else {
         await client.auth.signInWithPassword(email: email, password: password);
-        debugPrint('[auth_view] sign_in complete '
-            'currentSessionUser=${client.auth.currentSession?.user.id} '
-            'currentUser=${client.auth.currentUser?.id}');
+        logDebug('[auth_view] sign_in complete '
+            'hasCurrentSession=${client.auth.currentSession != null} '
+            'hasCurrentUser=${client.auth.currentUser != null}');
         TextInput.finishAutofillContext();
       }
     } on AuthException catch (e) {
-      debugPrint('[auth_view] auth error=${e.message}');
+      logDebug('[auth_view] auth error');
       if (mounted) {
         setState(
           () => _error = _friendlyAuthError(e.message, isSignUp: isSignUp),
         );
       }
     } catch (e) {
-      debugPrint('[auth_view] unexpected error=$e');
+      logDebug('[auth_view] unexpected error type=${e.runtimeType}');
       if (mounted) {
         setState(() => _error = 'Something went wrong. Please try again.');
       }

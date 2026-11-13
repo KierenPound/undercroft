@@ -13,24 +13,22 @@ class BiometricLockService {
 
   static final LocalAuthentication _auth = LocalAuthentication();
 
-  /// True when the device has biometric hardware AND the user has enrolled
-  /// at least one fingerprint or face. Unsupported platforms (web, desktop)
-  /// return false so the lock silently never engages there.
-  static Future<bool> isSupported() async {
+  /// Whether the device can authenticate using biometrics or its passcode.
+  ///
+  /// This is used to decide whether Settings can enable the lock. It does not
+  /// control whether an already-enabled lock remains active.
+  static Future<bool> isDeviceSupported() async {
     if (kIsWeb) return false;
     try {
-      final canCheck = await _auth.canCheckBiometrics;
-      final deviceSupported = await _auth.isDeviceSupported();
-      return canCheck && deviceSupported;
+      return await _auth.isDeviceSupported();
     } catch (_) {
       return false;
     }
   }
 
-  /// The user's stored preference, forced to false on devices that cannot
-  /// honour it.
+  /// The stored preference remains authoritative if authentication is
+  /// temporarily unavailable, so the app stays covered rather than opening.
   static Future<bool> isEnabled() async {
-    if (!await isSupported()) return false;
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_enabledKey) ?? false;
   }
@@ -46,7 +44,6 @@ class BiometricLockService {
   /// after repeated failures, and without the fallback the user would be
   /// permanently shut out of their own estate records.
   static Future<bool> authenticate() async {
-    if (!await isSupported()) return false;
     try {
       return await _auth.authenticate(
         localizedReason: 'Unlock UnderCroft to view your estate records',

@@ -43,8 +43,19 @@ class LegalDocumentsDashboard extends ConsumerStatefulWidget {
 }
 
 class _LegalDocumentsDashboardState
-    extends ConsumerState<LegalDocumentsDashboard> {
+    extends ConsumerState<LegalDocumentsDashboard> with WidgetsBindingObserver {
   bool _uploading = false;
+
+  void _showFileTooLarge(String fileName) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$fileName is over the 50 MB file limit. Choose a smaller file.',
+        ),
+      ),
+    );
+  }
 
   final _introController = TextEditingController();
   final _introFocusNode = FocusNode();
@@ -63,8 +74,20 @@ class _LegalDocumentsDashboardState
   static const int _maxDeeds = 5;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) _flushPendingSave();
+  }
+
+  @override
   void dispose() {
-    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _flushPendingSave();
     _introFocusNode.dispose();
     _introController.dispose();
     _phoneController.dispose();
@@ -84,6 +107,13 @@ class _LegalDocumentsDashboardState
   void _scheduleSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), _saveContact);
+  }
+
+  void _flushPendingSave() {
+    if (!(_saveTimer?.isActive ?? false)) return;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_saveContact());
   }
 
   Future<void> _saveContact() async {
@@ -114,7 +144,7 @@ class _LegalDocumentsDashboardState
         _lastSavedPhone = phone;
         _lastSavedEmail = email;
         _lastSavedUrl = url;
-        ref.invalidate(sectionProvider(widget.sectionId));
+        if (mounted) ref.invalidate(sectionProvider(widget.sectionId));
       }
     } catch (_) {
       if (mounted) {
@@ -173,9 +203,25 @@ class _LegalDocumentsDashboardState
     for (var i = 0; i < toUpload.length; i++) {
       final file = toUpload[i];
       try {
-        final bytes = file.bytes ??
-            (file.path != null ? await File(file.path!).readAsBytes() : null);
+        if (file.size > SectionsRepository.maxAttachmentBytes) {
+          _showFileTooLarge(file.name);
+          continue;
+        }
+
+        var bytes = file.bytes;
+        if (bytes == null && file.path != null) {
+          final source = File(file.path!);
+          if (await source.length() > SectionsRepository.maxAttachmentBytes) {
+            _showFileTooLarge(file.name);
+            continue;
+          }
+          bytes = await source.readAsBytes();
+        }
         if (bytes == null) continue;
+        if (bytes.length > SectionsRepository.maxAttachmentBytes) {
+          _showFileTooLarge(file.name);
+          continue;
+        }
         await repo.uploadAttachment(
           sectionId: widget.sectionId,
           estateId: widget.estateId,
@@ -264,9 +310,8 @@ class _LegalDocumentsDashboardState
     final attachments =
         ref.watch(attachmentsProvider(widget.sectionId)).valueOrNull ??
             <Attachment>[];
-    final processRegion =
-        ref.watch(estateProcessRegionProvider).valueOrNull ??
-            EstateProcessRegion.scotland;
+    final processRegion = ref.watch(estateProcessRegionProvider).valueOrNull ??
+        EstateProcessRegion.scotland;
     final wills = _filterAttachments(attachments, 'will_');
     final codicils = _filterAttachments(attachments, 'codicil_');
     final deeds = _filterAttachments(attachments, 'deed_');
@@ -613,8 +658,8 @@ class _LegalDocumentsDashboardState
               children: [
                 Text(
                   introText,
-                  style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style:
+                      const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
                 ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
@@ -882,21 +927,33 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
 
   Future<void> _load() async {
     try {
-      final response = await http.get(Uri.parse(widget.attachment.downloadUrl));
+      final response = await http
+          .get(Uri.parse(widget.attachment.downloadUrl))
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
       final doc = await PdfDocument.openData(response.bodyBytes);
+      if (!mounted) {
+        await doc.close();
+        return;
+      }
+      setState(() {
+        _controller = PdfController(document: Future.value(doc));
+        _loading = false;
+      });
+    } on TimeoutException {
       if (mounted) {
         setState(() {
-          _controller = PdfController(document: Future.value(doc));
+          _error =
+              'The request timed out. Check your connection and try again.';
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = 'Please check your connection and try again.';
           _loading = false;
         });
       }
@@ -967,7 +1024,9 @@ class _PdfThumbnailState extends State<_PdfThumbnail> {
 
   Future<void> _render() async {
     try {
-      final response = await http.get(Uri.parse(widget.url));
+      final response = await http
+          .get(Uri.parse(widget.url))
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }

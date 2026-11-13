@@ -12,6 +12,10 @@ class _Store extends Fake implements InAppPurchase {
   bool queried = false;
   bool checkoutStarted = false;
   bool restoreStarted = false;
+  bool pendingCompletion = false;
+  Object? completionError;
+  int completionCount = 0;
+  int streamListenCount = 0;
   Object? availabilityError;
   Object? queryError;
   Object? checkoutError;
@@ -38,7 +42,10 @@ class _Store extends Fake implements InAppPurchase {
   }
 
   @override
-  Stream<List<PurchaseDetails>> get purchaseStream => updates.stream;
+  Stream<List<PurchaseDetails>> get purchaseStream {
+    streamListenCount++;
+    return updates.stream;
+  }
 
   @override
   Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) async {
@@ -46,18 +53,7 @@ class _Store extends Fake implements InAppPurchase {
     expect(purchaseParam.productDetails.id, handoverProductId);
     if (checkoutError != null) throw checkoutError!;
     if (finalStatus != null) {
-      updates.add([
-        PurchaseDetails(
-          productID: handoverProductId,
-          verificationData: PurchaseVerificationData(
-            localVerificationData: '',
-            serverVerificationData: '',
-            source: 'test',
-          ),
-          transactionDate: null,
-          status: finalStatus!,
-        ),
-      ]);
+      updates.add([purchaseDetails(finalStatus!)]);
     }
     return sheetShown;
   }
@@ -67,19 +63,27 @@ class _Store extends Fake implements InAppPurchase {
     restoreStarted = true;
     if (restoreError != null) throw restoreError!;
     if (finalStatus != null) {
-      updates.add([
-        PurchaseDetails(
-          productID: handoverProductId,
-          verificationData: PurchaseVerificationData(
-            localVerificationData: '',
-            serverVerificationData: '',
-            source: 'test',
-          ),
-          transactionDate: null,
-          status: finalStatus!,
-        ),
-      ]);
+      updates.add([purchaseDetails(finalStatus!)]);
     }
+  }
+
+  PurchaseDetails purchaseDetails(PurchaseStatus status) {
+    return PurchaseDetails(
+      productID: handoverProductId,
+      verificationData: PurchaseVerificationData(
+        localVerificationData: '',
+        serverVerificationData: '',
+        source: 'test',
+      ),
+      transactionDate: null,
+      status: status,
+    )..pendingCompletePurchase = pendingCompletion;
+  }
+
+  @override
+  Future<void> completePurchase(PurchaseDetails purchase) async {
+    completionCount++;
+    if (completionError != null) throw completionError!;
   }
 }
 
@@ -99,6 +103,7 @@ void main() {
       store = _Store();
     });
     tearDown(() async {
+      await PaymentService.stopPurchaseListener();
       await store.updates.close();
     });
 
@@ -171,20 +176,20 @@ void main() {
       expect(store.checkoutStarted, isFalse);
     });
 
-    test('failed sheet presentation releases the listener', () async {
+    test('failed sheet presentation keeps the app listener active', () async {
       offerProduct();
       final result = await PaymentService.purchaseHandoverUnlock(store: store);
       expect(result.outcome, PurchaseOutcome.failed);
       expect(result.diagnosticCode, 'checkout_failed');
-      expect(store.updates.hasListener, isFalse);
+      expect(store.updates.hasListener, isTrue);
     });
 
-    test('checkout exception releases the listener', () async {
+    test('checkout exception keeps the app listener active', () async {
       offerProduct();
       store.checkoutError = PlatformException(code: 'sheet_error');
       final result = await PaymentService.purchaseHandoverUnlock(store: store);
       expect(result.diagnosticCode, 'checkout:sheet_error');
-      expect(store.updates.hasListener, isFalse);
+      expect(store.updates.hasListener, isTrue);
     });
 
     test('restore succeeds when the handover product is returned', () async {
@@ -197,7 +202,7 @@ void main() {
 
       expect(result.outcome, PurchaseOutcome.purchased);
       expect(store.restoreStarted, isTrue);
-      expect(store.updates.hasListener, isFalse);
+      expect(store.updates.hasListener, isTrue);
     });
 
     test('restore distinguishes no matching purchase', () async {
@@ -208,7 +213,7 @@ void main() {
 
       expect(result.outcome, PurchaseOutcome.noPurchasesFound);
       expect(result.diagnosticCode, 'restore_no_matching_purchase');
-      expect(store.updates.hasListener, isFalse);
+      expect(store.updates.hasListener, isTrue);
     });
 
     test('restore exception includes the failing stage', () async {
@@ -221,7 +226,7 @@ void main() {
 
       expect(result.outcome, PurchaseOutcome.failed);
       expect(result.diagnosticCode, 'restore:restore_error');
-      expect(store.updates.hasListener, isFalse);
+      expect(store.updates.hasListener, isTrue);
     });
 
     for (final entry in {
@@ -236,8 +241,46 @@ void main() {
             await PaymentService.purchaseHandoverUnlock(store: store);
         expect(result.outcome, entry.value);
         expect(result.diagnosticCode, isNull);
-        expect(store.updates.hasListener, isFalse);
+        expect(store.updates.hasListener, isTrue);
       });
     }
+
+    test('localized price comes from the store product', () async {
+      offerProduct();
+
+      expect(
+        await PaymentService.lookupHandoverPrice(store: store),
+        'GBP 34.99',
+      );
+    });
+
+    test('pending purchase completion errors are contained', () async {
+      offerProduct();
+      store.sheetShown = true;
+      store.finalStatus = PurchaseStatus.purchased;
+      store.pendingCompletion = true;
+      store.completionError = StateError('completion failed');
+
+      final result = await PaymentService.purchaseHandoverUnlock(store: store);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(result.outcome, PurchaseOutcome.purchased);
+      expect(store.completionCount, 1);
+    });
+
+    test('app listener unlock callback handles restored purchases', () async {
+      var unlockCount = 0;
+      await PaymentService.startPurchaseListener(
+        store: store,
+        onHandoverUnlocked: () => unlockCount++,
+      );
+      await PaymentService.startPurchaseListener(store: store);
+      store.updates.add([store.purchaseDetails(PurchaseStatus.restored)]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(unlockCount, 1);
+      expect(store.streamListenCount, 1);
+      expect(store.updates.hasListener, isTrue);
+    });
   }, skip: kIsWeb);
 }

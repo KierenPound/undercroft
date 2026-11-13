@@ -28,7 +28,7 @@
 #   { "ASC_KEY_ID": "ABC123DEFG",
 #     "ASC_ISSUER_ID": "1234abcd-5678-..." }
 #
-# Usage: ./newappios.sh [--no-upload]
+# Usage: ./newappios.sh [--beta] [--no-upload]
 
 set -euo pipefail
 
@@ -45,19 +45,25 @@ readonly APPSTORE_CONFIG="appstore_config.json"
 
 usage() {
   cat <<'EOF'
-Usage: ./newappios.sh [--no-upload]
+Usage: ./newappios.sh [--beta] [--no-upload]
 
   Bumps the pubspec build number, regenerates the Supabase xcconfig, cleans,
   archives the Runner scheme, exports the .ipa and uploads it to App Store
   Connect. After a successful upload, commits only pubspec.yaml.
 
+  --beta        include ENABLE_DEV_TOOLS=true, so the Developer tools section
+                and the "Beta build" marker appear. Use this for TestFlight.
+                Omit it for a build heading for the App Store: a submission
+                must not carry developer tools.
   --no-upload   stop once the .ipa exists; skip upload and the version commit
 EOF
 }
 
+beta=0
 skip_upload=0
 for arg in "$@"; do
   case "$arg" in
+    --beta) beta=1 ;;
     --no-upload) skip_upload=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $arg" >&2; usage >&2; exit 1 ;;
@@ -107,8 +113,15 @@ PY
 # --- 2. Supabase defines --------------------------------------------------
 # The app reads these at compile time, so the release build has to carry them
 # or it starts up with no Supabase host. Release.xcconfig #includes the output.
-echo "Generating ios/Flutter/Local.xcconfig..."
-zsh scripts/generate_ios_local_xcconfig.sh
+# The developer-tools define is added here rather than on the flutter command
+# line for the same reason: this file wins over Generated.xcconfig.
+if (( beta )); then
+  echo "Beta build — Developer tools will be visible in Settings."
+  zsh scripts/generate_ios_local_xcconfig.sh --dev-tools
+else
+  echo "Release build — no Developer tools."
+  zsh scripts/generate_ios_local_xcconfig.sh
+fi
 
 # --- 3. Pub / generated files --------------------------------------------
 # xcodebuild needs Generated.xcconfig and ios/Flutter/ephemeral, which the
