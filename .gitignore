@@ -50,6 +50,9 @@ app.*.map.json
 supabase_config.json
 ios/Flutter/Local.xcconfig
 
+# App Store Connect API key identifiers (local only — never commit)
+appstore_config.json
+
 # Supabase CLI scratch state
 supabase/.temp/
 
