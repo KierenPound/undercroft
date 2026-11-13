@@ -62,5 +62,6 @@ supabase/.temp/
 
 # JVM heap dumps
 *.hprof
-# Word temp files
-~.docx
+# Word temp files — the "~$" owner/lock files Word creates while a document is
+# open. The previous "~.docx" pattern matched no such file.
+~$*.docx
