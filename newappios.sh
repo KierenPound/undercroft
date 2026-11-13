@@ -11,6 +11,7 @@
 #   5. xcodebuild archive               (Product > Archive)
 #   6. xcodebuild -exportArchive        (Distribute App > App Store Connect)
 #   7. xcrun altool --upload-app        (the Upload button)
+#   8. commit pubspec.yaml after a successful upload
 #
 # Run this from Terminal.app rather than the IDE: signing an App Store archive
 # needs your login keychain, which the IDE's sandboxed agents cannot reach.
@@ -48,9 +49,9 @@ Usage: ./newappios.sh [--no-upload]
 
   Bumps the pubspec build number, regenerates the Supabase xcconfig, cleans,
   archives the Runner scheme, exports the .ipa and uploads it to App Store
-  Connect.
+  Connect. After a successful upload, commits only pubspec.yaml.
 
-  --no-upload   stop once the .ipa exists; skip the App Store Connect push
+  --no-upload   stop once the .ipa exists; skip upload and the version commit
 EOF
 }
 
@@ -66,6 +67,18 @@ done
 if [[ ! -f "$SUPABASE_CONFIG" ]]; then
   echo "Cannot find $SUPABASE_CONFIG — the Supabase credentials live there." >&2
   exit 1
+fi
+
+if (( ! skip_upload )); then
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "A real upload must run from a Git working tree so its build number can be committed." >&2
+    exit 1
+  fi
+  if ! git var GIT_AUTHOR_IDENT >/dev/null 2>&1 ||
+     ! git var GIT_COMMITTER_IDENT >/dev/null 2>&1; then
+    echo "Git author/committer identity is not configured; set it before uploading." >&2
+    exit 1
+  fi
 fi
 
 # --- 1. Build number ------------------------------------------------------
@@ -221,12 +234,22 @@ else
     --file "$ipa" \
     --apiKey "$api_key_id" \
     --apiIssuer "$api_issuer_id"
+
+  # App Store Connect has consumed this build number once the upload succeeds.
+  # Commit only pubspec.yaml so unrelated staged changes remain untouched.
+  echo "Committing the uploaded build number..."
+  if git commit --only \
+    -m "Bump iOS build number to ${generated_version}" \
+    -- pubspec.yaml; then
+    echo "  Committed build number ${generated_version}."
+  else
+    echo "Upload succeeded, but Git could not commit pubspec.yaml." >&2
+    echo "The build number remains bumped locally; commit it before the next release." >&2
+    exit 1
+  fi
 fi
 
 echo
 echo "Done."
 echo "  Archive: $ARCHIVE_PATH"
 echo "  IPA:     $ipa"
-echo
-echo "The build number bump is still uncommitted — commit pubspec.yaml before"
-echo "the next release so the version history stays in step with the store."
