@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1163,6 +1164,23 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 ),
               ),
             ],
+
+            const SizedBox(height: 16),
+
+            // The same introduction and glossary the router shows on a first
+            // sign-in, kept reachable here so the terms can be looked up again
+            // later without having to find the original screen.
+            _SectionCard(
+              title: 'Introduction & glossary',
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/introduction'),
+                  icon: const Icon(Icons.menu_book_outlined, size: 18),
+                  label: const Text('Read the introduction'),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 16),
 

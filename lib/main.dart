@@ -5,12 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'repositories/sections_repository.dart';
 import 'services/estate_service.dart';
+import 'services/introduction_service.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 import 'views/ad_hoc_data_view.dart';
 import 'views/auth_view.dart';
 import 'views/biometric_lock_gate.dart';
 import 'views/home_dashboard_view.dart';
+import 'views/introduction_view.dart';
 import 'views/my_songs_view.dart';
 import 'views/onboarding_view.dart';
 import 'views/password_reset_view.dart';
@@ -172,6 +174,15 @@ final _router = GoRouter(
       path: '/settings',
       builder: (context, state) => const SettingsView(),
     ),
+    GoRoute(
+      path: '/introduction',
+      builder: (context, state) => IntroductionView(
+        // The gate below passes first=1, because there is nothing behind the
+        // screen to go back to. Opening it from Settings does not, so that
+        // route keeps its ordinary back button instead.
+        isFirstRun: state.uri.queryParameters['first'] == '1',
+      ),
+    ),
   ],
   redirect: (context, state) {
     final user = _appRouter._user;
@@ -229,6 +240,23 @@ final _router = GoRouter(
           'decision=$decision reason=has_estate');
       return decision;
     }
+
+    // The introduction is shown once, to everyone, the first time they sign in
+    // with an estate. Reading it marks a flag on their account, so this stops
+    // firing afterwards. Checked against the live client rather than the
+    // cached user, so that the flag set when they leave the screen takes
+    // effect straight away.
+    if (!IntroductionService.hasSeenIntroduction()) {
+      // Compared against the path alone: the redirect target carries a query
+      // parameter, and matching on the full location would bounce forever.
+      decision =
+          state.uri.path == '/introduction' ? null : '/introduction?first=1';
+      debugPrint('[router] location=$location user=${user.id} '
+          'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
+          'decision=${decision ?? 'stay'} reason=introduction_not_seen');
+      return decision;
+    }
+
     debugPrint('[router] location=$location user=${user.id} '
         'checked=${_appRouter._checked} estateId=${_appRouter._estateId} '
         'decision=stay reason=allowed');
