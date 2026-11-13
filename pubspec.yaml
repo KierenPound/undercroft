@@ -1,7 +1,7 @@
 name: undercroft
 description: Multi-platform (iOS + Android) estate preparation companion app.
 publish_to: 'none'
-version: 1.0.0+30
+version: 1.0.0+31
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
