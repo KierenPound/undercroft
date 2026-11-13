@@ -865,7 +865,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                   icon: Icons.verified_user,
                   tint: Colors.orange,
                   stepNumber: 2,
-                  title: isEwni ? 'Wait for Tax Clearance' : 'HMRC Stamped C1',
+                  title: isEwni ? 'HMRC IHT Code' : 'HMRC Stamped C1',
                   body: isEwni
                       ? 'Once HMRC receives your paperwork and checks that the '
                           'tax payment from Step 5 has cleared, they will send '
@@ -888,7 +888,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                       ? 'Submit to HMCTS Probate Registry'
                       : 'Submit to the local Sheriff Court',
                   body: isEwni
-                      ? 'Once HMRC issues your tax clearance code, send your '
+                      ? 'Once HMRC issues your IHT code, send your '
                           'final application package to HMCTS Probate Registry:'
                       : 'Lodge the HMRC-stamped Form C1 and the following '
                           'documents with the local Sheriff Court:',

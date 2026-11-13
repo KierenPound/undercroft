@@ -4,10 +4,26 @@ APK SIGNING VERIFICATION EVIDENCE
 Generated : 2026-11-10 (Europe/London)
 Artefact  : undercroft-release.apk
 Location  : /Users/kierenpound/Developer/UnderCroft/undercroft-release.apk
+            (as recorded on 2026-11-10; no longer the location - see below)
 Size      : 61M (64,142,235 bytes)
 Built     : Nov 10 22:05:15 2026
 SHA-256   : 321097fa5dba2bb341d8c6a3079df36a9084cb106da5fb92730e5bdf6215e6f3
 Repo HEAD : 4f92af1ece3c31805d93ee1ebefc3b3dcc0ac51b ("Add APK contents evidence")
+
+HOW TO OBTAIN THE APK (updated 2026-11-13)
+------------------------------------------
+The release APK is a build output and is no longer copied into the repository
+root. Build it, and find it at:
+
+    ./deploy.sh                     (choose Android)
+    flutter build apk --release     -> build/app/outputs/flutter-apk/app-release.apk
+
+Commands below that name undercroft-release.apk refer to where the file sat
+when this record was taken. Substitute the path above to run them today.
+
+The size and SHA-256 above describe that recorded build. They do not describe
+the current one, which carries a later versionCode. The signing identity does
+carry forward, because it comes from the keystore rather than the build.
 
 PURPOSE
 -------
@@ -150,6 +166,8 @@ Logged as a conscious decision point, not an error.
 PART C - HOW TO REPRODUCE
 ================================================================================
 
+    # undercroft-release.apk is a build output, not a repository file: see
+    # "HOW TO OBTAIN THE APK" at the top of this document for its path today.
     export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
     APKSIGNER=/Users/kierenpound/Library/Android/sdk/build-tools/36.0.0/apksigner
 
