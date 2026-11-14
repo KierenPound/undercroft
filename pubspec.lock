@@ -1274,6 +1274,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.0"
+  video_compressor_plus:
+    dependency: "direct main"
+    description:
+      name: video_compressor_plus
+      sha256: f9156266ad9c2019fe94ead9fb7cd509e0a0ea597a7b84802c4616290d602bb7
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   video_player:
     dependency: "direct main"
     description:

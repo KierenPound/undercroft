@@ -20,6 +20,26 @@ class BiometricLockGate extends StatefulWidget {
   /// required. Cold starts always lock, regardless of this value.
   static const Duration gracePeriod = Duration(seconds: 60);
 
+  /// How many system hand-offs — a camera, photo library, or file picker we
+  /// opened — are currently in flight.
+  static int _handOffs = 0;
+
+  /// Runs [action], a call that hands control to system UI such as
+  /// `ImagePicker.pickVideo`, with the privacy cover held back until it
+  /// returns.
+  ///
+  /// Without this the lock screen flashes over the app as the picker takes
+  /// focus, because the cover is painted the moment we stop being the
+  /// foreground app — before the picker has actually covered us.
+  static Future<T> suppressCoverWhile<T>(Future<T> Function() action) async {
+    _handOffs++;
+    try {
+      return await action();
+    } finally {
+      _handOffs--;
+    }
+  }
+
   @override
   State<BiometricLockGate> createState() => _BiometricLockGateState();
 }
@@ -66,7 +86,7 @@ class _BiometricLockGateState extends State<BiometricLockGate>
     if (_prompting) return;
 
     if (state == AppLifecycleState.inactive) {
-      if (!_privacyCover) setState(() => _privacyCover = true);
+      _coverIfNeeded();
       return;
     }
     if (state == AppLifecycleState.hidden ||
@@ -74,12 +94,23 @@ class _BiometricLockGateState extends State<BiometricLockGate>
       // Keep the earliest timestamp if the platform reports a sequence of
       // backgrounding states.
       _backgroundedAt ??= DateTime.now();
-      if (!_privacyCover) setState(() => _privacyCover = true);
+      _coverIfNeeded();
       return;
     }
     if (state == AppLifecycleState.resumed) {
       unawaited(_onResumed());
     }
+  }
+
+  /// Paints the cover that keeps estate records out of the OS app-switcher.
+  ///
+  /// Held back while one of our own pickers is on top: that system UI hides the
+  /// app anyway, so covering here would only flash the lock screen during the
+  /// activity transition. The timestamp above is recorded either way, so the
+  /// grace period and the lock on return still behave as before.
+  void _coverIfNeeded() {
+    if (_privacyCover || BiometricLockGate._handOffs > 0) return;
+    setState(() => _privacyCover = true);
   }
 
   Future<void> _onResumed() async {

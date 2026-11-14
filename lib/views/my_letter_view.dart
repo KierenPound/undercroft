@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -10,6 +11,8 @@ import 'package:video_player/video_player.dart';
 
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import '../services/video_compression_service.dart';
+import 'biometric_lock_gate.dart';
 
 /// "My Letter to You" — a full-page letter the estate owner writes to their
 /// family, with an optional "My Video to You" clip underneath.
@@ -318,6 +321,17 @@ class _VideoToYouSection extends ConsumerStatefulWidget {
 class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
   bool _busy = false;
 
+  /// True while a clip is being compressed, which is separate from [_busy]
+  /// because it has its own progress and a Cancel button.
+  bool _compressing = false;
+
+  /// 0..1 while [_compressing]; 0 means "no reading yet", shown as an
+  /// indeterminate bar.
+  double _compressProgress = 0;
+
+  /// The run currently compressing, so Cancel can reach it.
+  VideoCompressionService? _compressor;
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -326,17 +340,23 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
   }
 
   /// Picks a clip from the camera or the photo library and stores it.
+  ///
+  /// A clip over the small threshold is compressed on the device first, so a
+  /// longer message can still fit the bucket's 50 MB limit — what has to fit is
+  /// the number of bytes that reach Storage, not how long the recording is.
   Future<void> _addVideo(ImageSource source) async {
     final section = ref.read(sectionProvider(widget.sectionId)).valueOrNull;
     if (section == null) return;
 
     XFile? picked;
     try {
-      picked = await ImagePicker().pickVideo(
-        source: source,
-        // A rough ceiling only: the real limit is enforced by size below, and
-        // this just stops someone accidentally recording a 20-minute epic.
-        maxDuration: const Duration(minutes: 5),
+      picked = await BiometricLockGate.suppressCoverWhile(
+        () => ImagePicker().pickVideo(
+          source: source,
+          // A rough ceiling only: size is what actually decides whether a clip
+          // fits, and compression gives a long recording a chance.
+          maxDuration: const Duration(minutes: 10),
+        ),
       );
     } catch (_) {
       _showMessage(
@@ -348,67 +368,116 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
     }
     if (picked == null) return;
 
+    // Measure on disk rather than by reading the clip into memory: reading a
+    // large video just to weigh it would hold the whole thing in RAM for
+    // nothing.
     final int pickedSize;
     try {
-      pickedSize = await picked.length();
+      pickedSize = await File(picked.path).length();
     } catch (_) {
       _showMessage('Could not read that video.');
       return;
     }
     if (!mounted) return;
 
-    if (pickedSize > SectionsRepository.maxVideoBytes) {
-      _showVideoTooLarge(pickedSize);
-      return;
-    }
+    // The picker hands back its own scratch copy: on both iOS and Android the
+    // path it returns already sits in the app's cache/tmp directory, never at
+    // the user's original location. So this file is ours to delete when we are
+    // done, and no second copy is needed.
+    final originalPath = picked.path;
 
-    final Uint8List bytes;
+    VideoCompressionResult? prepared;
     try {
-      bytes = await picked.readAsBytes();
-    } catch (_) {
-      _showMessage('Could not read that video.');
-      return;
-    }
-    if (!mounted) return;
-    if (bytes.length > SectionsRepository.maxVideoBytes) {
-      _showVideoTooLarge(bytes.length);
-      return;
-    }
+      final compressor = VideoCompressionService();
+      setState(() {
+        _compressing = true;
+        _compressProgress = 0;
+        _compressor = compressor;
+      });
 
-    final mimeType = _resolveMimeType(picked);
+      prepared = await compressor.prepare(
+        sourcePath: originalPath,
+        sourceSizeBytes: pickedSize,
+        onProgress: (progress) {
+          if (mounted) setState(() => _compressProgress = progress);
+        },
+      );
 
-    setState(() => _busy = true);
-    try {
-      await ref.read(sectionsRepositoryProvider).uploadSectionVideo(
-            section: section,
-            bytes: bytes,
-            mimeType: mimeType,
-            fileExtension: _resolveExtension(picked, mimeType),
-          );
-      ref.invalidate(sectionProvider(widget.sectionId));
-      _showMessage('Your video has been saved.');
-    } on StorageException catch (error) {
-      if (error.statusCode == '413') {
+      if (!mounted) return;
+      setState(() {
+        _compressing = false;
+        _compressor = null;
+      });
+
+      if (prepared.status == VideoCompressionStatus.cancelled) {
+        _showMessage('Video not saved.');
+        return;
+      }
+
+      if (!prepared.canUpload) {
+        // The "too long" wording belongs to the service, alongside the rule
+        // that produced it.
         _showMessage(
-          'Supabase rejected that video because it is too large. Keep it '
-          'under 50 MB, or try a shorter clip.',
+          prepared.failureMessage ??
+              'Sorry, the video could not be saved. Please try again.',
         );
-      } else {
+        return;
+      }
+
+      // Only the file that is actually going up is read into memory.
+      final finalFile = XFile(prepared.path);
+      final Uint8List bytes;
+      try {
+        bytes = await finalFile.readAsBytes();
+      } catch (_) {
+        _showMessage('Could not read that video.');
+        return;
+      }
+      if (!mounted) return;
+
+      final mimeType = _resolveMimeType(finalFile);
+
+      setState(() => _busy = true);
+      try {
+        await ref.read(sectionsRepositoryProvider).uploadSectionVideo(
+              section: section,
+              bytes: bytes,
+              mimeType: mimeType,
+              fileExtension: _resolveExtension(finalFile, mimeType),
+            );
+        ref.invalidate(sectionProvider(widget.sectionId));
+        _showMessage('Your video has been saved.');
+      } on StorageException catch (error) {
+        if (error.statusCode == '413') {
+          _showMessage(
+            'Supabase rejected that video because it is too large. Keep it '
+            'under 50 MB, or try a shorter clip.',
+          );
+        } else {
+          _showMessage('Sorry, the video could not be saved. Please try again.');
+        }
+      } catch (_) {
         _showMessage('Sorry, the video could not be saved. Please try again.');
       }
-    } catch (_) {
-      _showMessage('Sorry, the video could not be saved. Please try again.');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      // Whatever happened — saved, failed, too long or cancelled — the picked
+      // copy and any compressed output are of no further use.
+      await _deleteQuietly(originalPath);
+      final outputPath = prepared?.path;
+      if (prepared != null && prepared.compressed && outputPath != null) {
+        await _deleteQuietly(outputPath);
+      }
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _compressing = false;
+          _compressor = null;
+        });
+      }
     }
   }
 
-  void _showVideoTooLarge(int bytes) {
-    _showMessage(
-      'That video is ${_formatSize(bytes)}. The limit is 50 MB; choose a '
-      'shorter clip or a lower-resolution video.',
-    );
-  }
+  void _cancelCompression() => _compressor?.cancel();
 
   Future<void> _removeVideo() async {
     final section = ref.read(sectionProvider(widget.sectionId)).valueOrNull;
@@ -513,6 +582,43 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
               );
             },
           ),
+          if (_compressing)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      // 0 means the platform has not reported anything yet;
+                      // an indeterminate bar is more honest than a stuck 0%.
+                      value: _compressProgress > 0
+                          ? _compressProgress.clamp(0.0, 1.0)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Making your video smaller so it fits...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _cancelCompression,
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           if (_busy)
             const Padding(
               padding: EdgeInsets.only(top: 12),
@@ -522,7 +628,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
             const SizedBox(height: 16),
             _VideoButtons(
               hasVideo: hasVideo,
-              busy: _busy,
+              busy: _busy || _compressing,
               onRecord: () => _addVideo(ImageSource.camera),
               onChoose: () => _addVideo(ImageSource.gallery),
               onRemove: _removeVideo,
@@ -557,7 +663,7 @@ class _VideoNote extends StatelessWidget {
               'Say something in your own voice. Record a short message, or '
               'choose one from this device — it stays private with your '
               'estate, so your family can watch it alongside your letter. '
-              'Up to 50 MB; aim for about a minute.',
+              'Up to 50 MB; maybe 5 minutes if sitting still.',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.45,
@@ -790,10 +896,12 @@ class _VideoFrame extends StatelessWidget {
   }
 }
 
-String _formatSize(int bytes) {
-  final megabytes = bytes / (1024 * 1024);
-  if (megabytes >= 1) return '${megabytes.toStringAsFixed(1)} MB';
-  return '${(bytes / 1024).toStringAsFixed(0)} KB';
+/// Cleanup must never surface as the failure the user sees, and the file may
+/// already be gone.
+Future<void> _deleteQuietly(String path) async {
+  try {
+    await File(path).delete();
+  } catch (_) {}
 }
 
 /// Normalises whatever the picker reports into a content type the bucket
