@@ -1,7 +1,7 @@
 name: undercroft
 description: Multi-platform (iOS + Android) estate preparation companion app.
 publish_to: 'none'
-version: 1.0.0+37
+version: 1.0.0+38
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -42,6 +42,11 @@ dependencies:
 
   # Playback of the "My Video to You" clip (Supabase signed URL)
   video_player: ^2.9.2
+
+  # On-device compression for the "My Video to You" clip, so a longer message
+  # can still fit the bucket's 50 MB limit. Fork of video_compress that adds
+  # Swift Package Manager support, which this project needs (it has no Podfile).
+  video_compressor_plus: ^4.1.0
 
   # Apple/Google in-app purchase for the one-off handover unlock
   in_app_purchase: ^3.2.0
