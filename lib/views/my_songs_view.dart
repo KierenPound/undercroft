@@ -596,6 +596,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
   bool _shuffleOn = false;
   bool _uploading = false;
 
+  /// Video IDs that failed to play since the last successful playback. Skipping
+  /// them stops a run of unplayable videos from looping forever.
+  final Set<String> _failedVideoIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -622,6 +626,9 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
         switch (value.playerState) {
           case PlayerState.playing:
             _isPlaying = true;
+            // Something played, so forget earlier failures: a one-off error
+            // should not permanently exclude a song.
+            _failedVideoIds.clear();
             break;
           case PlayerState.paused:
             _isPlaying = false;
@@ -641,7 +648,11 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
             value.error == YoutubeError.sameAsNotEmbeddable ||
             value.error == YoutubeError.videoNotFound ||
             value.error == YoutubeError.cannotFindVideo) {
-          _advance();
+          // React once per unplayable track. Without this, shuffle plus a
+          // broken video raced through the rest of the list in a burst.
+          if (_failedVideoIds.add(_currentTrack.id)) {
+            _advance(dueToError: true);
+          }
         }
       });
     });
@@ -677,6 +688,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     _playHistory
       ..clear()
       ..add(0);
+    _failedVideoIds.clear();
 
     if (mounted) {
       setState(() {
@@ -926,6 +938,11 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     }
   }
 
+  void _toggleShuffle() {
+    setState(() => _shuffleOn = !_shuffleOn);
+  }
+
+  /// A user-requested jump: any track will do, so the failed list is ignored.
   int _randomNextIndex() {
     if (_tracks.length <= 1) return 0;
     int next;
@@ -935,19 +952,44 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     return next;
   }
 
-  void _toggleShuffle() {
-    setState(() => _shuffleOn = !_shuffleOn);
-  }
-
-  void _advance() {
+  /// Moves to the next track. Tracks that have already failed are skipped, and
+  /// once nothing playable is left the player stops with a message instead of
+  /// looping — the missing stop is what used to make shuffle race through the
+  /// whole list after an error.
+  void _advance({bool dueToError = false}) {
     if (_tracks.isEmpty) return;
+
+    if (dueToError) _failedVideoIds.add(_currentTrack.id);
+
+    final candidates = <int>[
+      for (var i = 0; i < _tracks.length; i++)
+        if (i != _currentIndex && !_failedVideoIds.contains(_tracks[i].id)) i,
+    ];
+
+    int? nextIndex;
     if (_shuffleOn) {
-      _playIndex(_randomNextIndex());
-    } else if (_currentIndex < _tracks.length - 1) {
-      _playIndex(_currentIndex + 1);
+      if (candidates.isNotEmpty) {
+        nextIndex = candidates[_random.nextInt(candidates.length)];
+      }
     } else {
-      setState(() => _isPlaying = false);
+      for (final candidate in candidates) {
+        if (candidate > _currentIndex) {
+          nextIndex = candidate;
+          break;
+        }
+      }
     }
+
+    if (nextIndex == null) {
+      _failedVideoIds.clear();
+      setState(() => _isPlaying = false);
+      if (dueToError) {
+        _showMessage('None of the remaining songs can be played.');
+      }
+      return;
+    }
+
+    _playIndex(nextIndex);
   }
 
   void _playIndex(int index) {
@@ -975,6 +1017,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     if (_playHistory.length <= 1) return;
     _playHistory.removeLast();
     final previousIndex = _playHistory.last;
+    _failedVideoIds.clear();
     setState(() {
       _currentIndex = previousIndex;
       _isPlaying = true;
@@ -984,6 +1027,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
 
   void _next() {
     if (_tracks.isEmpty) return;
+    _failedVideoIds.clear();
     if (_shuffleOn) {
       _playIndex(_randomNextIndex());
     } else if (_currentIndex < _tracks.length - 1) {
@@ -1398,7 +1442,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               final track = _tracks[index];
               final isCurrent = index == _currentIndex;
               return ListTile(
-                onTap: () => _playIndex(index),
+                onTap: () {
+                  _failedVideoIds.clear();
+                  _playIndex(index);
+                },
                 leading: Container(
                   width: 36,
                   height: 36,
