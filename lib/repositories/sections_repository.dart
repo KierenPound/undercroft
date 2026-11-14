@@ -482,7 +482,7 @@ const List<SectionConfig> allSectionConfigs = [
   SectionConfig(
     title: 'Legal Documents',
     orderIndex: 2,
-    youtubeUrl: 'https://www.youtube.com/watch?v=GaZp4fJVHmQ',
+    youtubeUrl: 'https://www.youtube.com/watch?v=xaqNFoTvRBs',
     infoText: 'This page is for the important legal paperwork people may need '
         'to find after your death, such as wills, insurance, pensions and '
         'anything else official. The aim is simply to make those documents '

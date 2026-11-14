@@ -45,7 +45,7 @@ const List<DefaultSection> defaultSections = [
   DefaultSection(
     title: 'Legal Documents',
     orderIndex: 2,
-    youtubeUrl: 'https://www.youtube.com/watch?v=GaZp4fJVHmQ',
+    youtubeUrl: 'https://www.youtube.com/watch?v=xaqNFoTvRBs',
     checklistItems: [
       'Locate the last will and testament documents',
       'Contact the lawyer to inform them, as they can help you when you need advice',
