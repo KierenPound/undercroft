@@ -618,6 +618,22 @@ Future<String> inviteOwner({
   return code;
 }
 
+/// Thrown when an account's storage files were removed but the account itself
+/// was not, leaving the deletion unfinished.
+///
+/// Retrying is safe and is simply another call to [deleteMyAccount]: the
+/// storage step walks the folder again and finds nothing to remove, so the
+/// second attempt proceeds straight to the database delete.
+class AccountDeletionIncompleteException implements Exception {
+  const AccountDeletionIncompleteException(this.message);
+
+  /// User-facing explanation, safe to show directly in the UI.
+  final String message;
+
+  @override
+  String toString() => 'AccountDeletionIncompleteException: $message';
+}
+
 /// Deletes the signed-in user's account and everything held against it.
 ///
 /// The database side is a single delete of the auth user: every public table
@@ -628,6 +644,12 @@ Future<String> inviteOwner({
 /// the Storage API. That order matters: the delete policy authorises via
 /// `get_allowed_estate_ids()`, which stops matching once the estate rows are
 /// gone. Anything missed here would be billed for and permanently unreachable.
+///
+/// Because the files go first, a failure between the two steps leaves the
+/// account half-deleted. That case raises
+/// [AccountDeletionIncompleteException] instead of the raw error, so the UI
+/// can tell the user the deletion did not finish and that a retry will
+/// complete it.
 Future<void> deleteMyAccount() async {
   final client = Supabase.instance.client;
   final userId = client.auth.currentUser?.id;
@@ -637,11 +659,27 @@ Future<void> deleteMyAccount() async {
 
   final owned =
       await client.from('estates').select('id').eq('owner_id', userId);
+
+  // Counted across every owned estate, so a partial failure is reported even
+  // when only some of the folders had anything left in them.
+  var removedFiles = 0;
   for (final row in owned) {
-    await _deleteEstateFiles(row['id'] as String);
+    removedFiles += await _deleteEstateFiles(row['id'] as String);
   }
 
-  await client.rpc('delete_my_account');
+  try {
+    await client.rpc('delete_my_account');
+  } catch (error) {
+    if (removedFiles > 0) {
+      // Files are gone but the account is not, so say so plainly rather than
+      // reporting a bare failure the user cannot act on.
+      throw const AccountDeletionIncompleteException(
+        'Your files were removed, but your account could not be deleted, so '
+        'the deletion did not finish. Please try again to complete it.',
+      );
+    }
+    rethrow;
+  }
 
   // The auth user no longer exists, so clear the dead session locally and let
   // the router send the user back to sign-in.
@@ -652,7 +690,10 @@ Future<void> deleteMyAccount() async {
 }
 
 /// Empties `estate-documents/<estateId>/`, including nested utility folders.
-Future<void> _deleteEstateFiles(String estateId) async {
+///
+/// Returns how many objects were removed. A folder that is already empty
+/// returns 0 without error, so a retry after a partial deletion is safe.
+Future<int> _deleteEstateFiles(String estateId) async {
   final storage = Supabase.instance.client.storage.from('estate-documents');
 
   // A Storage "folder" is just a path prefix with no object behind it, so the
@@ -677,4 +718,5 @@ Future<void> _deleteEstateFiles(String estateId) async {
     final end = i + chunkSize > paths.length ? paths.length : i + chunkSize;
     await storage.remove(paths.sublist(i, end));
   }
+  return paths.length;
 }

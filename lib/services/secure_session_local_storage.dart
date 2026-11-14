@@ -16,26 +16,51 @@ class SecureSessionLocalStorage extends LocalStorage {
     ),
   );
 
+  /// Records that this install has already been through [_prepareSessionStorage].
+  ///
+  /// Held in SharedPreferences rather than secure storage because it has to be
+  /// deleted along with the app — it is precisely what distinguishes a fresh
+  /// install from a resumed one.
+  static const String _installMarkerKey = 'install_marker';
+
   final String persistSessionKey;
   final FlutterSecureStorage _storage;
   Future<void>? _initialization;
 
   @override
-  Future<void> initialize() =>
-      _initialization ??= _migrateSharedPreferencesSession();
+  Future<void> initialize() => _initialization ??= _prepareSessionStorage();
 
-  Future<void> _migrateSharedPreferencesSession() async {
+  Future<void> _prepareSessionStorage() async {
     final preferences = await SharedPreferences.getInstance();
-    final legacySession = preferences.getString(persistSessionKey);
-    if (legacySession == null) return;
 
-    // Keep an existing secure session if one is present. Remove the old copy
-    // only after the secure write has succeeded.
-    final secureSession = await _storage.read(key: persistSessionKey);
-    if (secureSession == null) {
-      await _storage.write(key: persistSessionKey, value: legacySession);
+    // A previous run of this build already settled the install state, so there
+    // is nothing left to check or clean up.
+    if (preferences.getBool(_installMarkerKey) ?? false) return;
+
+    final legacySession = preferences.getString(persistSessionKey);
+
+    if (legacySession == null) {
+      // Fresh install. iOS keeps Keychain items after the app is uninstalled,
+      // so a session left behind by a previous install would otherwise sign
+      // the new install straight in as the old user. Nothing legitimate can
+      // exist before the first sign-in here, so clear it before anything
+      // reads it.
+      await _storage.delete(key: persistSessionKey);
+    } else {
+      // An install from the SharedPreferences era. Keep an existing secure
+      // session if one is present, and remove the plaintext copy only after
+      // the secure write has succeeded.
+      final secureSession = await _storage.read(key: persistSessionKey);
+      if (secureSession == null) {
+        await _storage.write(key: persistSessionKey, value: legacySession);
+      }
+      await preferences.remove(persistSessionKey);
     }
-    await preferences.remove(persistSessionKey);
+
+    // Written last on purpose: if the work above throws, the marker stays
+    // unset and the next launch retries instead of treating this install as
+    // already handled.
+    await preferences.setBool(_installMarkerKey, true);
   }
 
   @override

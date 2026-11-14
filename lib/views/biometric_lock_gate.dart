@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/biometric_lock_service.dart';
 
@@ -29,6 +30,8 @@ class _BiometricLockGateState extends State<BiometricLockGate>
   bool _locked = true;
   bool _privacyCover = false;
   bool _prompting = false;
+  bool _signingOut = false;
+  bool _confirmingSignOut = false;
   bool _handlingResume = false;
   DateTime? _backgroundedAt;
 
@@ -141,6 +144,37 @@ class _BiometricLockGateState extends State<BiometricLockGate>
     }
   }
 
+  /// Escape hatch for a device whose prompt can never succeed — for example
+  /// once the passcode has been removed, which makes [authenticate] fail
+  /// forever. Signs the user out, turns the lock off, and opens the gate, so
+  /// the lock screen is not a dead end. The session is rebuilt by signing in
+  /// again, so no records are lost.
+  ///
+  /// Confirmation is drawn inside the overlay rather than with [showDialog]:
+  /// this gate sits above the router's Navigator, so it has no Navigator in
+  /// scope to show a route on.
+  Future<void> _signOut() async {
+    setState(() {
+      _confirmingSignOut = false;
+      _signingOut = true;
+    });
+
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {
+      // The gate is still covering the app, so there is nowhere to report
+      // this. Carrying on is deliberate: the lock is turned off below either
+      // way, leaving the user able to sign in again rather than stuck.
+    }
+    await BiometricLockService.setEnabled(false);
+    if (!mounted) return;
+    setState(() {
+      _signingOut = false;
+      _locked = false;
+      _privacyCover = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Until the preference has loaded, show a blank cover rather than the
@@ -160,7 +194,14 @@ class _BiometricLockGateState extends State<BiometricLockGate>
               onTap: () {},
               child: _LockOverlay(
                 prompting: _prompting,
+                signingOut: _signingOut,
+                confirmingSignOut: _confirmingSignOut,
                 onUnlock: _prompt,
+                onRequestSignOut: () =>
+                    setState(() => _confirmingSignOut = true),
+                onCancelSignOut: () =>
+                    setState(() => _confirmingSignOut = false),
+                onConfirmSignOut: _signOut,
               ),
             ),
           ),
@@ -170,10 +211,23 @@ class _BiometricLockGateState extends State<BiometricLockGate>
 }
 
 class _LockOverlay extends StatelessWidget {
-  const _LockOverlay({required this.prompting, required this.onUnlock});
+  const _LockOverlay({
+    required this.prompting,
+    required this.signingOut,
+    required this.confirmingSignOut,
+    required this.onUnlock,
+    required this.onRequestSignOut,
+    required this.onCancelSignOut,
+    required this.onConfirmSignOut,
+  });
 
   final bool prompting;
+  final bool signingOut;
+  final bool confirmingSignOut;
   final VoidCallback onUnlock;
+  final VoidCallback onRequestSignOut;
+  final VoidCallback onCancelSignOut;
+  final VoidCallback onConfirmSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -208,33 +262,86 @@ class _LockOverlay extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Unlock to view your estate records.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.black54),
-          ),
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: prompting ? null : onUnlock,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF5B7C6A),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 14,
-              ),
+          if (confirmingSignOut) ...[
+            const Text(
+              'You will need your email and password to sign back in. The app '
+              'lock will also be turned off on this device.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.black54),
             ),
-            icon: prompting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: signingOut ? null : onCancelSignOut,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF5B7C6A),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: signingOut ? null : onConfirmSignOut,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF5B7C6A),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 14,
                     ),
-                  )
-                : const Icon(Icons.fingerprint),
-            label: const Text('Unlock'),
-          ),
+                  ),
+                  child: signingOut
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Sign out'),
+                ),
+              ],
+            ),
+          ] else ...[
+            const Text(
+              'Unlock to view your estate records.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: prompting ? null : onUnlock,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF5B7C6A),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
+              ),
+              icon: prompting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.fingerprint),
+              label: const Text('Unlock'),
+            ),
+            const SizedBox(height: 12),
+            // A way out if the prompt can never succeed, such as when the
+            // device passcode has been removed.
+            TextButton(
+              onPressed: (prompting || signingOut) ? null : onRequestSignOut,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF5B7C6A),
+              ),
+              child: const Text('Sign out'),
+            ),
+          ],
         ],
       ),
     );

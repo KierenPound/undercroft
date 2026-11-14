@@ -39,6 +39,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   bool _updatingProcessRegion = false;
   bool _updatingReviewReminders = false;
   bool _deletingAccount = false;
+  String? _deleteAccountError;
 
   /// Read once and reused, so the footer doesn't refetch on every rebuild.
   late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
@@ -393,55 +394,50 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   /// Irreversible, so it is confirmed before anything is touched. What the
   /// user is told depends on whether they own the estate: an owner's deletion
   /// takes the whole estate and everyone's access with it.
+  ///
+  /// The confirmation itself is [_DeleteAccountConfirmDialog], which requires
+  /// the user to type DELETE, so a stray tap cannot trigger it.
   Future<void> _confirmDeleteAccount({required bool ownsEstate}) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete your account?'),
-        content: Text(
-          ownsEstate
-              ? 'This permanently deletes your estate and everything in it — '
-                  'account numbers, legal documents, photos, contacts, '
-                  'tradespeople and more.\n\nAnyone you have invited will lose '
-                  'access as well.\n\nThis cannot be undone.'
-              : 'This permanently deletes your account and removes your access '
-                  'to this estate. The estate itself is not affected, and '
-                  'nothing you can see now will be lost.\n\n'
-                  'This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Keep my account'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete everything'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) =>
+          _DeleteAccountConfirmDialog(ownsEstate: ownsEstate),
     );
 
     if (confirmed != true || !mounted) return;
 
-    setState(() => _deletingAccount = true);
+    // Clear any previous failure so the card does not show a stale error while
+    // the new attempt is running.
+    setState(() {
+      _deletingAccount = true;
+      _deleteAccountError = null;
+    });
     try {
       await deleteMyAccount();
       // The session is now dead, so the router's redirect takes over and
       // returns to sign-in without any navigation from here.
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      setState(() => _deletingAccount = false);
+      final message = _deleteAccountErrorMessage(error);
+      // Always drop out of the spinner: a stuck "Deleting…" would leave the
+      // user unable to retry or to sign out.
+      setState(() {
+        _deletingAccount = false;
+        _deleteAccountError = message;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not delete your account. Please try again.'),
-        ),
+        SnackBar(content: Text(message)),
       );
     }
+  }
+
+  /// Turns a failed deletion into the wording shown to the user.
+  ///
+  /// A half-finished deletion is reported in its own words, because the user
+  /// has to retry rather than treat it as a transient glitch.
+  String _deleteAccountErrorMessage(Object error) {
+    if (error is AccountDeletionIncompleteException) return error.message;
+    return 'Could not delete your account. Please try again.';
   }
 
   Widget _buildInvites(
@@ -1288,6 +1284,31 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       ),
                     ),
                   ),
+                  // Persistent failure state, so the outcome is still visible
+                  // after the SnackBar has gone. Cleared when a retry starts.
+                  if (_deleteAccountError != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _deleteAccountError!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1317,6 +1338,104 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Confirmation for the irreversible account deletion.
+///
+/// The destructive action stays disabled until the user types DELETE, so it
+/// cannot be triggered by a stray tap. The dialog owns its own
+/// [TextEditingController] and disposes it, rather than the caller disposing
+/// it after `showDialog` returns.
+class _DeleteAccountConfirmDialog extends StatefulWidget {
+  const _DeleteAccountConfirmDialog({required this.ownsEstate});
+
+  /// Whether the user owns the estate, which decides what is being deleted.
+  final bool ownsEstate;
+
+  @override
+  State<_DeleteAccountConfirmDialog> createState() =>
+      _DeleteAccountConfirmDialogState();
+}
+
+class _DeleteAccountConfirmDialogState
+    extends State<_DeleteAccountConfirmDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _canDelete = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    // Case-insensitive, and forgiving of spaces around the word.
+    final canDelete = value.trim().toUpperCase() == 'DELETE';
+    if (canDelete != _canDelete) {
+      setState(() => _canDelete = canDelete);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    return AlertDialog(
+      title: const Text('Delete your account?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.ownsEstate
+                ? 'This permanently deletes your estate and everything in it — '
+                    'account numbers, legal documents, photos, contacts, '
+                    'tradespeople and more.\n\nAnyone you have invited will lose '
+                    'access as well.\n\nThis cannot be undone.'
+                : 'This permanently deletes your account and removes your access '
+                    'to this estate. The estate itself is not affected, and '
+                    'nothing you can see now will be lost.\n\n'
+                    'This cannot be undone.',
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Type DELETE to confirm.',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'DELETE',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+            onChanged: _onChanged,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Keep my account'),
+        ),
+        FilledButton(
+          onPressed: _canDelete ? () => Navigator.of(context).pop(true) : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: errorColor,
+            foregroundColor: Colors.white,
+            // Explicit disabled colours: without them the red background would
+            // still apply while the button is disabled, making the guarded
+            // state look armed.
+            disabledBackgroundColor: errorColor.withValues(alpha: 0.4),
+            disabledForegroundColor: Colors.white70,
+          ),
+          child: const Text('Delete everything'),
+        ),
+      ],
     );
   }
 }
