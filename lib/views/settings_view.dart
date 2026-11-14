@@ -1408,6 +1408,7 @@ class _DeleteAccountConfirmDialogState
           TextField(
             controller: _controller,
             autofocus: true,
+            textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(
               hintText: 'DELETE',
               isDense: true,
