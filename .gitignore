@@ -61,3 +61,6 @@ supabase/.temp/
 # Word temp files — the "~$" owner/lock files Word creates while a document is
 # open. The previous "~.docx" pattern matched no such file.
 ~$*.docx
+
+# Repomix output — temporary context bundle for external tooling, never committed
+repomix-output.xml

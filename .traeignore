@@ -1,0 +1,7 @@
+build/
+ios/build/
+DerivedData/
+.dart_tool/
+.git/
+tmp_*
+*.tmp
