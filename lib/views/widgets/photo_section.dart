@@ -1,5 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -7,6 +7,7 @@ import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
 import '../../services/photo_cache_service.dart';
+import '../biometric_lock_gate.dart';
 import 'attachments_section.dart';
 
 /// A reusable photo section that can be added to any section.
@@ -64,11 +65,13 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked == null) return;
 
@@ -140,8 +143,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
     // neutral placeholder instead of painting an image about to be replaced.
     var resolving = !asyncRole.hasValue;
     if (asyncRole.hasValue && hasRole) {
-      final asyncAttachments =
-          ref.watch(attachmentsProvider(widget.sectionId));
+      final asyncAttachments = ref.watch(attachmentsProvider(widget.sectionId));
       // Keep previously-loaded data during background re-fetches so a stored
       // photo doesn't momentarily fall back to the default (flicker).
       if (asyncAttachments.hasValue) {
@@ -153,81 +155,89 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          title: 'Memory',
-          icon: Icons.photo_library,
-          tint: Colors.blue,
-        ),
-        const SizedBox(height: 14),
-        _card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () => _viewFullscreen(photoAttachment),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: AspectRatio(
-                      aspectRatio: 4 / 3,
-                      child: resolving
-                          ? const MemoryPhotoPlaceholder()
-                          : _photoImage(photoAttachment),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(Icons.open_in_full,
-                        size: 14, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Text(
-                      resolving
-                          ? ''
-                          : photoAttachment != null
-                              ? 'Tap to expand'
-                              : '${widget.sectionTitle} photograph',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.blue.shade700),
-                    ),
-                  ],
-                ),
-                if (widget.isOwner) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _uploading ? null : _pickImage,
-                      icon: _uploading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.edit),
-                      label: Text(
-                          _uploading ? 'Uploading...' : 'Replace photo'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionHeader(
+                title: 'Memory',
+                icon: Icons.photo_library,
+                tint: Colors.blue,
+              ),
+              const SizedBox(height: 14),
+              _card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _viewFullscreen(photoAttachment),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(11),
+                          child: AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: resolving
+                                ? const MemoryPhotoPlaceholder()
+                                : _photoImage(photoAttachment),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.open_in_full,
+                              size: 14, color: Colors.blue),
+                          const SizedBox(width: 4),
+                          Text(
+                            resolving
+                                ? ''
+                                : photoAttachment != null
+                                    ? 'Tap to expand'
+                                    : '${widget.sectionTitle} photograph',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.blue.shade700),
+                          ),
+                        ],
+                      ),
+                      if (widget.isOwner) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _uploading ? null : _pickImage,
+                            icon: _uploading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.edit),
+                            label: Text(
+                                _uploading ? 'Uploading...' : 'Replace photo'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 

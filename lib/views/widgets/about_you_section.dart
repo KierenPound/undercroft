@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/about_you.dart';
 import '../../repositories/about_you_repository.dart';
+import '../biometric_lock_gate.dart';
 
 /// Uppercases as the user types, so an NI number reads the same way it is
 /// stored. Uppercasing never changes the length, so the caret stays put.
@@ -272,11 +273,13 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
 
   Future<void> _pickDocument(AboutYouDocument doc) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked == null) return;
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -133,8 +133,8 @@ class _Header extends StatelessWidget {
             color: ContactsSection.tint.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(Icons.contacts,
-              color: ContactsSection.tint, size: 20),
+          child:
+              const Icon(Icons.contacts, color: ContactsSection.tint, size: 20),
         ),
         const SizedBox(width: 10),
         const Expanded(
@@ -452,8 +452,8 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
                 onPressed: _confirmDelete,
                 icon: const Icon(Icons.delete_outline,
                     size: 18, color: Colors.red),
-                label: const Text('Delete',
-                    style: TextStyle(color: Colors.red)),
+                label:
+                    const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),

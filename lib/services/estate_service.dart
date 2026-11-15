@@ -694,7 +694,8 @@ Future<void> deleteMyAccount() async {
 /// Returns how many objects were removed. A folder that is already empty
 /// returns 0 without error, so a retry after a partial deletion is safe.
 Future<int> _deleteEstateFiles(String estateId) async {
-  final storage = Supabase.instance.client.storage.from('estate-documents');
+  const bucket = 'estate-documents';
+  final storage = Supabase.instance.client.storage.from(bucket);
 
   // A Storage "folder" is just a path prefix with no object behind it, so the
   // tree has to be walked by hand to find the real files.
@@ -712,7 +713,10 @@ Future<int> _deleteEstateFiles(String estateId) async {
     return paths;
   }
 
-  final paths = await walk(estateId);
+  // Uploads are keyed by their full path, bucket name included, so the objects
+  // sit under `estate-documents/<estateId>/…`. Starting the walk at the bare
+  // estate id matches nothing and removes no files at all.
+  final paths = await walk('$bucket/$estateId');
   const chunkSize = 100;
   for (var i = 0; i < paths.length; i += chunkSize) {
     final end = i + chunkSize > paths.length ? paths.length : i + chunkSize;

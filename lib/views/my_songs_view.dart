@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -13,6 +13,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/prep_section.dart';
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import 'biometric_lock_gate.dart';
 
 /// A single track in My Songs.
 class MySongTrack {
@@ -708,10 +709,12 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
   }
 
   Future<void> _pickCsv(PrepSection section) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-      withData: true,
+    final result = await BiometricLockGate.suppressCoverWhile(
+      () => FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        withData: true,
+      ),
     );
     if (result == null || result.files.isEmpty) return;
 
@@ -914,11 +917,13 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
     try {
       final csv =
           await rootBundle.loadString('assets/data/test_video_list.csv');
-      final savedPath = await FilePicker.platform.saveFile(
-        fileName: 'example_playlist.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-        bytes: Uint8List.fromList(utf8.encode(csv)),
+      final savedPath = await BiometricLockGate.suppressCoverWhile(
+        () => FilePicker.platform.saveFile(
+          fileName: 'example_playlist.csv',
+          type: FileType.custom,
+          allowedExtensions: ['csv'],
+          bytes: Uint8List.fromList(utf8.encode(csv)),
+        ),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

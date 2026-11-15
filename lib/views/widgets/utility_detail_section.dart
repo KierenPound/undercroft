@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/utility_detail.dart';
 import '../../repositories/utility_details_repository.dart';
+import '../biometric_lock_gate.dart';
 
 /// One utility card on the Running the House page — Gas meter, Electric meter
 /// or Stopcock.
@@ -68,11 +69,13 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked == null) return;
 

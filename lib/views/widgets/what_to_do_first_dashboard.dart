@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+import '../biometric_lock_gate.dart';
 import 'attachments_section.dart';
 import 'photo_section.dart';
 import 'song_for_the_page_section.dart';
@@ -385,11 +386,13 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
 
   Future<void> _pickMemoryImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked == null) return;
 
@@ -461,11 +464,13 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
 
   Future<void> _pickPetImage() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked == null) return;
 
@@ -1949,10 +1954,12 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
     }
 
     final picker = ImagePicker();
-    final picked = await picker.pickMultiImage(
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 80,
+    final picked = await BiometricLockGate.suppressCoverWhile(
+      () => picker.pickMultiImage(
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 80,
+      ),
     );
     if (picked.isEmpty) return;
 

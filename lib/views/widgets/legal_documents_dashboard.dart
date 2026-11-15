@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdfx/pdfx.dart';
@@ -13,6 +13,7 @@ import '../../models/attachment.dart';
 import '../../models/prep_section.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+import '../biometric_lock_gate.dart';
 import 'attachments_section.dart';
 import 'song_for_the_page_section.dart';
 
@@ -187,10 +188,12 @@ class _LegalDocumentsDashboardState
       return;
     }
 
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      allowMultiple: true,
+    final result = await BiometricLockGate.suppressCoverWhile(
+      () => FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: true,
+      ),
     );
     if (result == null || result.files.isEmpty) return;
 

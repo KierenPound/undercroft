@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -454,7 +454,8 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
             'under 50 MB, or try a shorter clip.',
           );
         } else {
-          _showMessage('Sorry, the video could not be saved. Please try again.');
+          _showMessage(
+              'Sorry, the video could not be saved. Please try again.');
         }
       } catch (_) {
         _showMessage('Sorry, the video could not be saved. Please try again.');

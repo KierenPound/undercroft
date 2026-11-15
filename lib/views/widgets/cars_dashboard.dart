@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Cars rich-content dashboard.
 ///
@@ -382,7 +382,8 @@ class CarsDashboard extends StatelessWidget {
                   title: 'Send to DVLA:',
                   text: 'Post the main part of the V5C Logbook and your '
                       'covering letter to:',
-                  trailingBlock: 'Sensitive Casework Team\nDVLA\nSwansea\nSA99 1ZZ',
+                  trailingBlock:
+                      'Sensitive Casework Team\nDVLA\nSwansea\nSA99 1ZZ',
                 ),
                 const SizedBox(height: 22),
                 const Divider(height: 1),
