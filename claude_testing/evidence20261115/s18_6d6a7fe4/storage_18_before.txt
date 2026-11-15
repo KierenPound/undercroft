@@ -1,0 +1,26 @@
+[2026-11-15 19:27:19] S18 snapshot 'before'  estate 6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0
+
+STORAGE  objects: 4   subfolders: ['about-you', 'sections', 'utilities']
+  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/about-you/bca3b08b-e988-4e1a-accf-9949d2d1466c/passport_1794770157641.jpg  (144757 bytes)
+  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/7278cb6f-f7e1-4a9f-a6db-ed9fbb914e76/video_1794770312605.mov  (34310450 bytes)
+  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/e4467c32-8c12-46eb-acbf-6d0b0d4ddff7/1794770244313_will_1_UnderCroft-build-21-follow-up.pdf  (79397 bytes)
+  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/utilities/gas_meter/1794770218542_image.jpg  (277120 bytes)
+
+DATABASE  estate row exists: True
+  rows per table: sections=9, attachments=1, about_you=1, utility_details=1, documents=0
+  rows that reference a storage path: 4
+    sections.video_path  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/7278cb6f-f7e1-4a9f-a6db-ed9fbb914e76/video_1794770312605.mov
+    attachments.storage_path  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/e4467c32-8c12-46eb-acbf-6d0b0d4ddff7/1794770244313_will_1_UnderCroft-build-21-follow-up.pdf
+    about_you.passport_storage_path  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/about-you/bca3b08b-e988-4e1a-accf-9949d2d1466c/passport_1794770157641.jpg
+    utility_details.storage_path  estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/utilities/gas_meter/1794770218542_image.jpg
+
+Objects with no database row: none
+Database rows with no object: none
+
+CHECKS
+  [PASS] Objects present
+  [PASS] All required subfolders present ['about-you', 'sections', 'utilities']
+  [PASS] Database rows reference storage paths
+  [PASS] Every object has a database row (no orphan objects)
+  [PASS] Every database row has an object (no dangling rows)
+Stage result: PASS

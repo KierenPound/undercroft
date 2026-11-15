@@ -1,0 +1,4 @@
+[19:30:43] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/bad-20261115-192925.zip
+  -> HTTP 400  {"statusCode":"415","error":"invalid_mime_type","message":"mime type application/zip is not supported","code":"InvalidMimeType"}
+[19:30:43] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/bad-20261115-192925.docx
+  -> HTTP 400  {"statusCode":"415","error":"invalid_mime_type","message":"mime type application/vnd.openxmlformats-officedocument.wordprocessingml.document is not supported","code":"InvalidMimeType"}

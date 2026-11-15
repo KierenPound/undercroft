@@ -1,0 +1,4 @@
+Accounts: A, B, C signed in via password grant (identities from env vars).
+Estate under test: 6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0
+storage-test-20261115-192925.pdf  size=4315  sha256=59d716e3667da94fb387d74cf020815268da4e3e157b75b80dd339faa7a4d7e9
+v2 of the file            size=4328  sha256=2c1d4d0862da1ccb010c23f81e052fc55de41927fe7fffd32342ca906f156eb5

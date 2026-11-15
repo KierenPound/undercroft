@@ -1,0 +1,1 @@
+GET https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/public/estate-documents/estate-documents/8fe55a85-0bd7-4cc3-b35c-50ba1c57c5bc/sections/ee08d326-e27f-497a-89ec-8229d90b2014/1794744168371_will_1_kieren_tom_insolvency.pdf (no auth) -> HTTP 400 {"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}

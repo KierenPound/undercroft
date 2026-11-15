@@ -1,0 +1,5 @@
+[19:29:29] B: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf
+  -> HTTP 200  {"signedURL":"/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf?token=eyJraWQiOiIxYjQ0MTM0Zi0zOTlkLTQyZmEtODE5OC05NzI0Zjc0M2QyOGIiLCJhbGciOiJIUzUxMiJ9.eyJ1cmwiOiJlc3RhdGUtZG9jdW1lbnRzL2VzdGF0ZS1kb2N1bWVudHMvNmQ2YTdmZTQtMjhkMy00ZjUzLWI2YTgtYTYxNDVmNmY5MGEwL3N0b3JhZ2UtdGVzdC0yMDI2MTExNS0xOTI5MjUucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdC
+[19:29:29] B: GET https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf?token=<redacted>
+  -> HTTP 200  <4315 bytes>
+SHA-256 match=True

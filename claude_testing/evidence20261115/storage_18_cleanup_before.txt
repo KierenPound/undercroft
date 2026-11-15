@@ -1,0 +1,8 @@
+[2026-11-15 18:04:31] S18 listing (before) for prefix estate-documents/2e205cc0-22b4-48a2-8603-1176ec760c88
+Objects found: 4
+Subfolders present: ['about-you', 'sections', 'utilities']
+
+  estate-documents/2e205cc0-22b4-48a2-8603-1176ec760c88/about-you/99e1ca0c-e4d5-4362-9b19-4f36aa794f91/passport_1794765607611.jpg  (144757 bytes)
+  estate-documents/2e205cc0-22b4-48a2-8603-1176ec760c88/sections/6a2b6d1b-5048-438d-a222-6ba33b97ff7a/1794765575935_will_1_UnderCroft-complete-independent-review.pdf  (533293 bytes)
+  estate-documents/2e205cc0-22b4-48a2-8603-1176ec760c88/sections/aeacff77-5265-468b-a3c2-336ea4ab646d/video_1794765416077.mp4  (47799340 bytes)
+  estate-documents/2e205cc0-22b4-48a2-8603-1176ec760c88/utilities/gas_meter/1794765775400_image.jpg  (567647 bytes)

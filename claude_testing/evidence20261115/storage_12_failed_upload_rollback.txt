@@ -1,0 +1,8 @@
+[19:30:43] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/oversize-20261115-192925.pdf
+  -> HTTP 400  {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}
+[19:30:43] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/bad-20261115-192925.zip
+  -> HTTP 400  {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}
+[19:30:44] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/bad-20261115-192925.docx
+  -> HTTP 400  {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}
+Objects left behind by the rejected uploads: none
+NOTE: the DB-row half of the rollback (F8) must be shown through the app - see manual steps.

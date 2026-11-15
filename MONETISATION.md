@@ -84,19 +84,64 @@ Decided: testers who set up an estate and complete their handover during the bet
 keep it, and are not charged when the gate ships.
 
 This is fair rather than generous. They did the work of testing, and reaching the
-end of the setup flow is the clearest signal we could ask for. Two consequences to
+end of the setup flow is the clearest signal we could ask for. Three consequences to
 hold in mind:
 
 - The gate is checked when an invite is created. Invites already `accepted`
   during the beta stay accepted, so those handovers cannot be re-gated later.
-- Sandbox purchases do **not** carry into production. A tester who buys the
-  unlock in TestFlight would have to buy it again on the live app, so nobody
-  should be asked to purchase during the beta.
+- Testers **can** rehearse the purchase, and should. The Sandbox flow works end to
+  end and *Restore* sits on the same card, so the checkout is worth exercising and
+  testers should not be told to avoid it.
+- What a Sandbox purchase or a restore does **not** do is persist. Both set the
+  in-session unlock only (`sessionInvitesUnlockedProvider`), so a tester who buys the
+  unlock in TestFlight still meets the paywall on the live app. That is expected
+  behaviour, not a defect, and the beta description should say so before a tester
+  reports it as one.
 - If a beta tester does try a Sandbox purchase, record any permanent beta
   access as `beta_free`, not as an `app_store` payment. The Sandbox transaction
   is useful for checking checkout, but it is not a real charge and does not
-  automatically create the durable entitlement row. Beta grants are made by
-  trusted admin/backend code.
+  automatically create the durable entitlement row.
+
+### Granting `beta_free`
+
+Beta grants are made by trusted admin/backend code, and **nothing in the repo writes
+one yet**. The table is `service_role` only — an authenticated client can read
+`estate_id` and nothing else — so every beta estate that should keep the handover needs
+a row inserted by hand. Until that happens, the promise above is not real for that
+tester.
+
+Preview which estates are missing a grant:
+
+```sql
+SELECT e.id, e.name, ent.source
+FROM public.estates e
+LEFT JOIN public.estate_handover_entitlements ent ON ent.estate_id = e.id
+WHERE ent.estate_id IS NULL
+ORDER BY e.name;
+```
+
+Grant `beta_free` to every estate that has no row:
+
+```sql
+INSERT INTO public.estate_handover_entitlements (estate_id, source)
+SELECT e.id, 'beta_free'
+FROM public.estates e
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.estate_handover_entitlements ent
+    WHERE ent.estate_id = e.id
+)
+ON CONFLICT (estate_id) DO NOTHING;
+```
+
+That reaches every estate, including scratch and test estates. To keep it to named
+testers, add `AND e.name IN ('...')` to the inner select.
+
+Granting early is harmless: the client-side gate only closes when the Developer tools
+section has put it there, so a release build ignores these rows until the paywall is
+switched on for real.
+
+Testers reachable at the time of writing: 10 estates exist, 1 has a `beta_free` row
+(Demo Estate, granted 2026-11-12), 9 do not.
 
 If that ever needs revisiting, the honest lever is a free unlock for a named list
 of beta estates, not a change to the price.

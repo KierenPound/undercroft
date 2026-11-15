@@ -1,0 +1,6 @@
+[19:29:28] anon: GET https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/public/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf
+  -> HTTP 400  {"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}
+[19:29:28] anon: GET https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf
+  -> HTTP 400  {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}
+[19:29:28] anon: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/sign/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/storage-test-20261115-192925.pdf
+  -> HTTP 400  {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}

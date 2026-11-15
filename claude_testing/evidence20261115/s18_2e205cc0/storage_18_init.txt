@@ -1,0 +1,16 @@
+[2026-11-15 18:42:17] S18 snapshot 'init'  estate 2e205cc0-22b4-48a2-8603-1176ec760c88
+
+STORAGE  objects: 0   subfolders: none
+
+DATABASE  estate row exists: False
+  rows per table: sections=0, attachments=0, about_you=0, utility_details=0, documents=0
+  rows that reference a storage path: 0
+
+Objects with no database row: none
+Database rows with no object: none
+
+CHECKS
+  [PASS] No objects under the estate prefix
+  [PASS] No database rows reference a storage path
+  [FAIL] Estate row exists
+Stage result: FAIL

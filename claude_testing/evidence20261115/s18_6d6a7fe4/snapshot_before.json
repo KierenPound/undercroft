@@ -1,0 +1,63 @@
+{
+  "label": "before",
+  "time": "2026-11-15 19:27:19",
+  "estate": "6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0",
+  "objects": [
+    {
+      "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/about-you/bca3b08b-e988-4e1a-accf-9949d2d1466c/passport_1794770157641.jpg",
+      "size": 144757
+    },
+    {
+      "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/7278cb6f-f7e1-4a9f-a6db-ed9fbb914e76/video_1794770312605.mov",
+      "size": 34310450
+    },
+    {
+      "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/e4467c32-8c12-46eb-acbf-6d0b0d4ddff7/1794770244313_will_1_UnderCroft-build-21-follow-up.pdf",
+      "size": 79397
+    },
+    {
+      "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/utilities/gas_meter/1794770218542_image.jpg",
+      "size": 277120
+    }
+  ],
+  "subfolders": [
+    "about-you",
+    "sections",
+    "utilities"
+  ],
+  "db": {
+    "estate_exists": true,
+    "counts": {
+      "sections": 9,
+      "attachments": 1,
+      "about_you": 1,
+      "utility_details": 1,
+      "documents": 0
+    },
+    "refs": [
+      {
+        "source": "sections.video_path",
+        "id": "7278cb6f-f7e1-4a9f-a6db-ed9fbb914e76",
+        "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/7278cb6f-f7e1-4a9f-a6db-ed9fbb914e76/video_1794770312605.mov"
+      },
+      {
+        "source": "attachments.storage_path",
+        "id": "5b50a6b7-2a8f-4be9-ab39-133f58e7b5e4",
+        "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/sections/e4467c32-8c12-46eb-acbf-6d0b0d4ddff7/1794770244313_will_1_UnderCroft-build-21-follow-up.pdf"
+      },
+      {
+        "source": "about_you.passport_storage_path",
+        "id": "bca3b08b-e988-4e1a-accf-9949d2d1466c",
+        "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/about-you/bca3b08b-e988-4e1a-accf-9949d2d1466c/passport_1794770157641.jpg"
+      },
+      {
+        "source": "utility_details.storage_path",
+        "id": "1d04788d-6336-4ffc-964f-52a8bd062220",
+        "path": "estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/utilities/gas_meter/1794770218542_image.jpg"
+      }
+    ],
+    "errors": []
+  },
+  "objects_without_row": [],
+  "rows_without_object": []
+}

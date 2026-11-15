@@ -1,0 +1,2 @@
+[19:30:43] A: POST https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/oversize-20261115-192925.pdf
+  -> HTTP 400  {"statusCode":"413","error":"Payload too large","message":"The object exceeded the maximum allowed size","code":"EntityTooLarge"}

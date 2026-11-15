@@ -1,0 +1,2 @@
+[19:31:51] service: GET https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/bucket/estate-documents
+  -> HTTP 200  {"id":"estate-documents","name":"estate-documents","owner":"","public":false,"versioning_status":"DISABLED","file_size_limit":52428800,"allowed_mime_types":["application/pdf","image/jpeg","image/png","image/heic","text/plain","video/mp4","video/quicktime","video/x-m4v","video/3gpp","video/webm"],"created_at":"2026-10-06T15:52:09.580Z","updated_at":"2026-10-06T15:52:09.580Z"}

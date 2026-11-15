@@ -1,0 +1,21 @@
+{
+  "label": "after",
+  "time": "2026-11-15 19:41:57",
+  "estate": "6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0",
+  "objects": [],
+  "subfolders": [],
+  "db": {
+    "estate_exists": false,
+    "counts": {
+      "sections": 0,
+      "attachments": 0,
+      "about_you": 0,
+      "utility_details": 0,
+      "documents": 0
+    },
+    "refs": [],
+    "errors": []
+  },
+  "objects_without_row": [],
+  "rows_without_object": []
+}

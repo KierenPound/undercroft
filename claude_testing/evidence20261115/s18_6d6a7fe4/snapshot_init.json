@@ -1,0 +1,21 @@
+{
+  "label": "init",
+  "time": "2026-11-15 18:45:49",
+  "estate": "6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0",
+  "objects": [],
+  "subfolders": [],
+  "db": {
+    "estate_exists": true,
+    "counts": {
+      "sections": 9,
+      "attachments": 0,
+      "about_you": 0,
+      "utility_details": 0,
+      "documents": 0
+    },
+    "refs": [],
+    "errors": []
+  },
+  "objects_without_row": [],
+  "rows_without_object": []
+}

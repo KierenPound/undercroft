@@ -1,0 +1,2 @@
+[19:31:51] A: DELETE https://mpsygpgaakdtlgjzmbtr.supabase.co/storage/v1/object/estate-documents/estate-documents/6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0/expiry-20261115-192925.pdf
+  -> HTTP 200  {"message":"Successfully deleted"}

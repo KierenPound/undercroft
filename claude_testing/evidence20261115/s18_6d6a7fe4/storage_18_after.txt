@@ -1,0 +1,18 @@
+[2026-11-15 19:41:57] S18 snapshot 'after'  estate 6d6a7fe4-28d3-4f53-b6a8-a6145f6f90a0
+
+STORAGE  objects: 0   subfolders: none
+
+DATABASE  estate row exists: False
+  rows per table: sections=0, attachments=0, about_you=0, utility_details=0, documents=0
+  rows that reference a storage path: 0
+
+Objects with no database row: none
+Database rows with no object: none
+
+CHECKS
+  [PASS] No objects under the estate prefix
+  [PASS] No subfolders remain
+  [PASS] Estate row gone
+  [PASS] No database rows remain in any table
+Stage result: PASS
+Objects from 'before' still present: none
