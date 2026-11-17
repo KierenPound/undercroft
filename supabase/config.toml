@@ -1,0 +1,13 @@
+[functions.send-ticket-email]
+# Called by the AFTER INSERT trigger on public.support_tickets, which sends no
+# Authorization header of its own.
+verify_jwt = false
+
+[functions.artwork-request-email]
+# Called by the AFTER INSERT trigger on public.requests, which sends no
+# Authorization header of its own.
+verify_jwt = false
+
+[functions.send-estate-review-reminders]
+# Scheduled calls authenticate with x-cron-secret in the handler.
+verify_jwt = false

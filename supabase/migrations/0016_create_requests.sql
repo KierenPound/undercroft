@@ -1,6 +1,10 @@
 -- ============================================================================
 -- CrabKing's Lair — 3D artwork requests
--- Table for the artwork-request form on the CrabKing's Lair website.
+--
+-- This table now lives in the UnderCroft project. The CrabKing's Lair site
+-- (index.html, artwork-request.html, buy-token.html) inserts here with the
+-- publishable key, and the password-protected View Requests page reads it
+-- through the Cloudflare Pages Function in the CrabKingsLair repository.
 -- ============================================================================
 
 create table if not exists public.requests (
@@ -10,6 +14,7 @@ create table if not exists public.requests (
   email         text,
   mobile        text,
   artwork_type  text not null check (artwork_type in ('Full', 'Half', 'Not sure')),
+  notes         text,
   created_at    timestamptz not null default now(),
 
   -- The form asks for "name, email or mobile" — require at least one way to reply.
@@ -18,28 +23,30 @@ create table if not exists public.requests (
         or nullif(btrim(coalesce(mobile, '')), '') is not null)
 );
 
+-- Installations created before the notes column existed still need it.
+alter table public.requests add column if not exists notes text;
+
 alter table public.requests enable row level security;
 
--- The website submits with the anon (publishable) key: insert only.
+-- Table-level privileges. The website inserts with the publishable (anon) key;
+-- the View Requests page reads via the Cloudflare Pages Function using the
+-- service_role key.
+grant insert on public.requests to anon, authenticated;
+grant select, insert on public.requests to service_role;
+
+-- The website submits with the publishable key: insert only.
+-- There is deliberately no read policy — the View Requests page is served by a
+-- Cloudflare Pages Function that uses the secret key, so contact details never
+-- leave the server.
+drop policy if exists "Anyone can submit a request" on public.requests;
+drop policy if exists "requests: public read" on public.requests;
 drop policy if exists "requests: anyone can submit" on public.requests;
+
 create policy "requests: anyone can submit"
   on public.requests
   for insert
   to anon, authenticated
   with check (true);
-
--- Read-only feed for the "View Requests" page.
-drop policy if exists "requests: public read" on public.requests;
-create policy "requests: public read"
-  on public.requests
-  for select
-  to anon, authenticated
-  using (true);
-
--- Contact details stay private: the anon key can only read these columns.
-revoke select on public.requests from anon, authenticated;
-grant select (id, card_name, name, artwork_type, created_at)
-  on public.requests to anon, authenticated;
 
 create index if not exists requests_created_at_idx
   on public.requests (created_at desc);

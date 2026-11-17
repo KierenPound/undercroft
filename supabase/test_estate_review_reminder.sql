@@ -1,6 +1,6 @@
 -- UnderCroft database test. Run sections 1-3 here, then let the
--- CrabKingsLair-hosted daily cron job run at 09:00 UTC. Run section 4 in
--- UnderCroft after that scheduled run.
+-- UnderCroft-hosted daily cron job run at 09:00 UTC. Run section 4 after that
+-- scheduled run.
 -- In the app, first enable Settings > Annual email reminder for your owner.
 -- The job sends to every owner currently due, so inspect section 3 and make
 -- sure only your test account appears before the next scheduled run.

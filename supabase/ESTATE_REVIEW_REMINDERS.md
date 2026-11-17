@@ -1,11 +1,10 @@
 # Annual Estate Review Reminders
 
-Reminder state and the send queue live in the UnderCroft database. The
-reminder Edge Function and daily scheduler are hosted in CrabKingsLair, beside
-its existing Brevo integration. Only accepted estate owners are eligible.
-The Readiness section contains the review action and last-reviewed date;
-Settings contains the separate annual email preference. Email copy does not
-mention estate contents.
+Everything for this feature now lives in the UnderCroft project: reminder state,
+the send queue, the Edge Function and the daily scheduler. Only accepted estate
+owners are eligible. The Readiness section contains the review action and
+last-reviewed date; Settings contains the separate annual email preference.
+Email copy does not mention estate contents.
 
 Existing owners are first due one year after migration 0036 is applied. New
 owners are first due one year after the reminder queue initializes their row.
@@ -13,31 +12,54 @@ owners are first due one year after the reminder queue initializes their row.
 ## Setup
 
 1. Apply `migrations/0036_estate_review_reminders.sql` to the UnderCroft
-   database.
-2. In the CrabKingsLair repository, follow
-   `supabase/ESTATE_REVIEW_REMINDERS.md` to configure its reminder function
-   secrets, deploy the function, add the CrabKingsLair scheduler credentials
-   to CrabKingsLair Vault, and create the daily 09:00 UTC cron job.
-3. The CrabKingsLair function needs the UnderCroft project URL and the
-   UnderCroft `sb_secret_...` key as Edge Function secrets. Do not put key
-   values in this repository. The sender must be verified in Brevo, and
-   `APP_URL` must point to the real UnderCroft app destination.
+   database. Keep the UnderCroft app changes that show the review action in
+   Readiness and the annual email preference in Settings.
+2. Add these Edge Function secrets in the UnderCroft project without putting
+   their values in source control:
 
-The scheduler must be created in the CrabKingsLair database, not UnderCroft.
-The UnderCroft database only stores review records and reminder send statuses.
-Use only the CrabKingsLair function and scheduler files; do not deploy or run
-older UnderCroft-local copies of those deployment files.
+   - `BREVO_API_KEY`: shared with the `send-ticket-email` function
+   - `CRON_SECRET`: a long, random value
+   - `REMINDER_FROM_EMAIL`: `contact@crabkingslair.com`, the verified Brevo
+     sender already used by the support email function
 
-## Testing
+   The recipient sees this address with the sender name **UnderCroft**.
+   The email directs owners to Readiness and the **I have checked my details**
+   button. No app URL or deep-link setup is required; the email tells owners
+   to open UnderCroft on their device.
 
-Enable **Settings > Annual email reminder** for the test owner. Run sections
-1-3 of [`test_estate_review_reminder.sql`](test_estate_review_reminder.sql) in
-the UnderCroft SQL Editor, then confirm that the due-owner list contains only
-the test account. Let the CrabKingsLair job run at 09:00 UTC and run section 4
-afterwards to check the send status. The email goes to the owner's Supabase
-sign-in address. A claimed reminder advances the next due date by a year.
-Developer tools are unrelated to this test.
+   `SUPABASE_URL` and the secret key arrive automatically, so no
+   `UNDERCROFT_SUPABASE_...` variables are needed any more.
+3. Deploy from the UnderCroft repository:
 
-The send queue records provider failures for retry. A rare timeout after
-Brevo accepts an email but before UnderCroft records success could result in
-a duplicate on retry.
+   ```sh
+   supabase functions deploy send-estate-review-reminders \
+     --project-ref mpsygpgaakdtlgjzmbtr
+   ```
+
+   The handler checks `CRON_SECRET`; the checked-in `config.toml` disables the
+   platform's legacy JWT check for both functions in this repository.
+4. In the UnderCroft database, enable `pg_cron` and `pg_net`. Add these three
+   values to UnderCroft Vault:
+
+   - `undercroft_project_url`: `https://mpsygpgaakdtlgjzmbtr.supabase.co`
+   - `undercroft_secret_key`: the UnderCroft `sb_secret_...` key
+   - `estate_review_cron_secret`: the same value configured as `CRON_SECRET`
+
+   They authorize the scheduled call to the function. If needed, create Vault
+   entries in SQL Editor with `vault.create_secret(secret, name, description)`;
+   do not commit real secret values or retain them in SQL Editor history.
+5. Run `supabase/schedule_estate_review_reminders.sql` in the UnderCroft SQL
+   Editor. It creates a daily 09:00 UTC job that calls the function.
+
+## Test
+
+Enable **Settings > Annual email reminder** for the test owner. Run sections 1-3
+of [`test_estate_review_reminder.sql`](test_estate_review_reminder.sql) in the
+UnderCroft SQL Editor and confirm that the due-owner list contains only the test
+account. After the 09:00 UTC run, run section 4 to check the send row. The
+message goes to the owner's sign-in email.
+
+The first reminder for existing owners is one year after the migration.
+Confirm the verified sender before enabling a real test send. A rare timeout
+after Brevo accepts an email but before the send status is recorded could
+result in a duplicate on retry.
