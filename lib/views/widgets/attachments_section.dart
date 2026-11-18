@@ -58,7 +58,7 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '$fileName is over the 50 MB file limit. Choose a smaller file.',
+          '$fileName is over the 150 MB file limit. Choose a smaller file.',
         ),
       ),
     );

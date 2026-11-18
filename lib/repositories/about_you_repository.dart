@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/about_you.dart';
+import '../models/media_storage_path.dart';
 import '../services/estate_service.dart';
+import '../services/media_storage_service.dart';
 
 class AboutYouRepository {
   final SupabaseClient _client;
+  final MediaStorageService _mediaStorage;
 
-  AboutYouRepository(this._client);
+  AboutYouRepository(this._client, this._mediaStorage);
 
   Future<List<AboutYou>> fetchAll(String estateId) async {
     final data = await _client
@@ -27,7 +30,7 @@ class AboutYouRepository {
         try {
           entry = entry.copyWith(
             passportDownloadUrl:
-                await _signedUrl(entry.passportStoragePath),
+                await _mediaStorage.getDownloadUrl(entry.passportStoragePath),
           );
         } catch (_) {}
       }
@@ -35,7 +38,8 @@ class AboutYouRepository {
       if (entry.licenceStoragePath.isNotEmpty) {
         try {
           entry = entry.copyWith(
-            licenceDownloadUrl: await _signedUrl(entry.licenceStoragePath),
+            licenceDownloadUrl:
+                await _mediaStorage.getDownloadUrl(entry.licenceStoragePath),
           );
         } catch (_) {}
       }
@@ -62,7 +66,10 @@ class AboutYouRepository {
         .eq('about_you_id', entry.aboutYouId)
         .select()
         .single();
-    return AboutYou.fromJson(data);
+    return AboutYou.fromJson(data).copyWith(
+      passportDownloadUrl: entry.passportDownloadUrl,
+      licenceDownloadUrl: entry.licenceDownloadUrl,
+    );
   }
 
   /// Removes the record and any scanned images it owns.
@@ -71,41 +78,42 @@ class AboutYouRepository {
       entry.passportStoragePath,
       entry.licenceStoragePath,
     ]);
-    await _client.from('about_you').delete().eq('about_you_id', entry.aboutYouId);
+    await _client
+        .from('about_you')
+        .delete()
+        .eq('about_you_id', entry.aboutYouId);
   }
 
   /// Uploads a replacement scan into the given slot.
   ///
   /// The row is updated with the new path *before* the bytes go up, and rolled
-  /// back if the upload fails — the same ordering used for section
-  /// attachments, so the bucket can never end up holding a file that no row
-  /// points at. The previous object is removed once the new one lands.
+  /// back if the upload fails. The previous R2 object is removed once the new
+  /// one lands.
   Future<AboutYou> uploadDocument({
     required AboutYou entry,
     required AboutYouDocument doc,
     required Uint8List bytes,
     required String mimeType,
   }) async {
-    final previousPath = entry.storagePathFor(doc);
-    final path = 'estate-documents/${entry.estateId}/about-you/'
-        '${entry.aboutYouId}/${doc.name}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-    final downloadUrl =
-        _client.storage.from('estate-documents').getPublicUrl(path);
+    final previousPath = normalizeMediaStoragePath(entry.storagePathFor(doc));
+    final relativePath = 'about-you/${entry.aboutYouId}/'
+        '${doc.name}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = '${entry.estateId}/$relativePath';
 
     final updated = await update(entry.withDocument(
       doc,
       storagePath: path,
-      downloadUrl: downloadUrl,
+      downloadUrl: '',
       fileSize: bytes.length,
     ));
 
     try {
-      await _client.storage.from('estate-documents').uploadBinary(
-            path,
-            bytes,
-            fileOptions: FileOptions(contentType: mimeType, upsert: true),
-          );
+      await _mediaStorage.uploadBytes(
+        estateId: entry.estateId,
+        relativePath: relativePath,
+        contentType: mimeType,
+        bytes: bytes,
+      );
     } catch (_) {
       try {
         await update(entry);
@@ -117,7 +125,10 @@ class AboutYouRepository {
       await _deleteObjects([previousPath]);
     }
 
-    final signedUrl = await _signedUrl(path);
+    var signedUrl = '';
+    try {
+      signedUrl = await _mediaStorage.getDownloadUrl(path);
+    } catch (_) {}
     return doc == AboutYouDocument.passport
         ? updated.copyWith(passportDownloadUrl: signedUrl)
         : updated.copyWith(licenceDownloadUrl: signedUrl);
@@ -135,22 +146,21 @@ class AboutYouRepository {
   }
 
   Future<void> _deleteObjects(List<String> paths) async {
-    final targets = paths.where((p) => p.isNotEmpty).toList();
+    final targets = paths
+        .where((path) => path.isNotEmpty && !isLegacySupabaseStoragePath(path))
+        .toList();
     if (targets.isEmpty) return;
     try {
-      await _client.storage.from('estate-documents').remove(targets);
+      await _mediaStorage.deleteKeys(targets);
     } catch (_) {}
-  }
-
-  Future<String> _signedUrl(String storagePath) {
-    return _client.storage
-        .from('estate-documents')
-        .createSignedUrl(storagePath, 3600);
   }
 }
 
 final aboutYouRepositoryProvider = Provider<AboutYouRepository>((ref) {
-  return AboutYouRepository(Supabase.instance.client);
+  return AboutYouRepository(
+    Supabase.instance.client,
+    ref.watch(mediaStorageServiceProvider),
+  );
 });
 
 final aboutYouListProvider =

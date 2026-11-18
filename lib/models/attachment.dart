@@ -1,3 +1,5 @@
+import 'media_storage_path.dart';
+
 enum AttachmentType { photo, pdf, unknown }
 
 const _attachmentMonthAbbreviations = <String>[
@@ -37,6 +39,8 @@ class Attachment {
   });
 
   factory Attachment.fromJson(Map<String, dynamic> json) {
+    final storagePath =
+        normalizeMediaStoragePath(json['storage_path'] as String?);
     final typeStr = (json['type'] as String? ?? 'unknown').toLowerCase();
     AttachmentType type;
     switch (typeStr) {
@@ -55,9 +59,9 @@ class Attachment {
       sectionId: json['section_id'] as String,
       fileName: json['file_name'] as String? ?? '',
       type: type,
-      storagePath: json['storage_path'] as String? ?? '',
-      downloadUrl: json['download_url'] as String? ?? '',
-      fileSize: json['file_size'] as int? ?? 0,
+      storagePath: storagePath,
+      downloadUrl: '',
+      fileSize: storagePath.isEmpty ? 0 : json['file_size'] as int? ?? 0,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -69,7 +73,7 @@ class Attachment {
       'file_name': fileName,
       'type': type.name,
       'storage_path': storagePath,
-      'download_url': downloadUrl,
+      'download_url': '',
       'file_size': fileSize,
     };
   }

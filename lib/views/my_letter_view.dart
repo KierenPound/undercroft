@@ -6,7 +6,6 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
 import '../repositories/sections_repository.dart';
@@ -23,8 +22,7 @@ import 'biometric_lock_gate.dart';
 /// handwriting font and scrollable inside its own box, since a letter can run
 /// to several thousand characters.
 ///
-/// The video is stored as a file in the private `estate-documents` bucket and
-/// referenced from the same row, so it inherits the letter's access rules.
+/// The video is stored in R2 and referenced from the same row.
 class MyLetterView extends ConsumerWidget {
   final SectionConfig config;
 
@@ -342,8 +340,8 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
   /// Picks a clip from the camera or the photo library and stores it.
   ///
   /// A clip over the small threshold is compressed on the device first, so a
-  /// longer message can still fit the bucket's 50 MB limit — what has to fit is
-  /// the number of bytes that reach Storage, not how long the recording is.
+  /// longer message can still fit the 100 MB limit — what has to fit is the
+  /// number of bytes that reach storage, not how long the recording is.
   Future<void> _addVideo(ImageSource source) async {
     final section = ref.read(sectionProvider(widget.sectionId)).valueOrNull;
     if (section == null) return;
@@ -447,16 +445,10 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
             );
         ref.invalidate(sectionProvider(widget.sectionId));
         _showMessage('Your video has been saved.');
-      } on StorageException catch (error) {
-        if (error.statusCode == '413') {
-          _showMessage(
-            'Supabase rejected that video because it is too large. Keep it '
-            'under 50 MB, or try a shorter clip.',
-          );
-        } else {
-          _showMessage(
-              'Sorry, the video could not be saved. Please try again.');
-        }
+      } on ArgumentError {
+        _showMessage(
+          'That video exceeds the 150 MB limit. Try recording a shorter clip.',
+        );
       } catch (_) {
         _showMessage('Sorry, the video could not be saved. Please try again.');
       }
@@ -664,7 +656,7 @@ class _VideoNote extends StatelessWidget {
               'Say something in your own voice. Record a short message, or '
               'choose one from this device — it stays private with your '
               'estate, so your family can watch it alongside your letter. '
-              'Up to 50 MB; maybe 5 minutes if sitting still.',
+              'Up to 150 MB; maybe 10 minutes if sitting still.',
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.45,

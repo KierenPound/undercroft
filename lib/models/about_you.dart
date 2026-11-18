@@ -1,3 +1,5 @@
+import 'media_storage_path.dart';
+
 /// Which scanned identity document a slot holds.
 enum AboutYouDocument { passport, licence }
 
@@ -5,8 +7,7 @@ enum AboutYouDocument { passport, licence }
 /// identify and administer that person's affairs.
 ///
 /// Each estate can hold one record per owner. Alongside the text fields, each
-/// record carries a scanned image of the owner's passport and driving licence,
-/// stored in the `estate-documents` bucket under an `about-you/` prefix.
+/// record carries R2 object keys for the owner's passport and driving licence.
 class AboutYou {
   final String aboutYouId;
   final String estateId;
@@ -37,18 +38,26 @@ class AboutYou {
   });
 
   factory AboutYou.fromJson(Map<String, dynamic> json) {
+    final passportPath =
+        normalizeMediaStoragePath(json['passport_storage_path'] as String?);
+    final licencePath =
+        normalizeMediaStoragePath(json['licence_storage_path'] as String?);
     return AboutYou(
       aboutYouId: json['about_you_id'] as String,
       estateId: json['estate_id'] as String,
       fullName: (json['full_name'] as String?) ?? '',
       niNumber: (json['ni_number'] as String?) ?? '',
       chiNumber: (json['chi_number'] as String?) ?? '',
-      passportStoragePath: (json['passport_storage_path'] as String?) ?? '',
-      passportDownloadUrl: (json['passport_download_url'] as String?) ?? '',
-      passportFileSize: (json['passport_file_size'] as num?)?.toInt() ?? 0,
-      licenceStoragePath: (json['licence_storage_path'] as String?) ?? '',
-      licenceDownloadUrl: (json['licence_download_url'] as String?) ?? '',
-      licenceFileSize: (json['licence_file_size'] as num?)?.toInt() ?? 0,
+      passportStoragePath: passportPath,
+      passportDownloadUrl: '',
+      passportFileSize: passportPath.isEmpty
+          ? 0
+          : (json['passport_file_size'] as num?)?.toInt() ?? 0,
+      licenceStoragePath: licencePath,
+      licenceDownloadUrl: '',
+      licenceFileSize: licencePath.isEmpty
+          ? 0
+          : (json['licence_file_size'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -69,10 +78,10 @@ class AboutYou {
       'ni_number': niNumber,
       'chi_number': chiNumber,
       'passport_storage_path': passportStoragePath,
-      'passport_download_url': passportDownloadUrl,
+      'passport_download_url': '',
       'passport_file_size': passportFileSize,
       'licence_storage_path': licenceStoragePath,
-      'licence_download_url': licenceDownloadUrl,
+      'licence_download_url': '',
       'licence_file_size': licenceFileSize,
     };
   }

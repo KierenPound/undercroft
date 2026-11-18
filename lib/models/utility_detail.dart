@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'media_storage_path.dart';
+
 /// The three utilities shown on the Running the House page.
 enum UtilityKind {
   gasMeter(
@@ -52,12 +54,14 @@ class UtilityDetail {
   });
 
   factory UtilityDetail.fromJson(Map<String, dynamic> json) {
+    final storagePath =
+        normalizeMediaStoragePath(json['storage_path'] as String?);
     return UtilityDetail(
       utilityDetailId: json['utility_detail_id'] as String,
       estateId: json['estate_id'] as String,
       kind: UtilityKind.fromDb((json['kind'] as String?) ?? ''),
       notes: (json['notes'] as String?) ?? '',
-      storagePath: (json['storage_path'] as String?) ?? '',
+      storagePath: storagePath,
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
           DateTime.now(),
     );

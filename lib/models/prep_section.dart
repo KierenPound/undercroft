@@ -1,5 +1,6 @@
 import 'attachment.dart';
 import 'checklist_item.dart';
+import 'media_storage_path.dart';
 
 class PrepSection {
   static const String defaultSolicitorIntro =
@@ -34,8 +35,7 @@ class PrepSection {
   final String petPolicyNumber;
   final String petMicrochipNumber;
 
-  /// Storage object path of the "My Video to You" clip in the private
-  /// `estate-documents` bucket. Empty means no video has been added.
+  /// R2 object key of the "My Video to You" clip. Empty means no video exists.
   final String videoPath;
   final String videoMime;
   final int videoSizeBytes;
@@ -83,6 +83,7 @@ class PrepSection {
   });
 
   factory PrepSection.fromJson(Map<String, dynamic> json) {
+    final videoPath = normalizeMediaStoragePath(json['video_path'] as String?);
     return PrepSection(
       id: json['id'] as String,
       estateId: json['estate_id'] as String,
@@ -112,9 +113,11 @@ class PrepSection {
       petInsuranceCompany: json['pet_insurance_company'] as String? ?? '',
       petPolicyNumber: json['pet_policy_number'] as String? ?? '',
       petMicrochipNumber: json['pet_microchip_number'] as String? ?? '',
-      videoPath: json['video_path'] as String? ?? '',
-      videoMime: json['video_mime'] as String? ?? '',
-      videoSizeBytes: (json['video_size_bytes'] as num?)?.toInt() ?? 0,
+      videoPath: videoPath,
+      videoMime: videoPath.isEmpty ? '' : json['video_mime'] as String? ?? '',
+      videoSizeBytes: videoPath.isEmpty
+          ? 0
+          : (json['video_size_bytes'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??

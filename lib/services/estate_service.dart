@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/build_flags.dart';
+import 'media_storage_service.dart';
 import 'photo_cache_service.dart';
 
 class EstateContext {
@@ -618,12 +619,12 @@ Future<String> inviteOwner({
   return code;
 }
 
-/// Thrown when an account's storage files were removed but the account itself
-/// was not, leaving the deletion unfinished.
+/// Thrown when R2 files were removed but the account itself was not, leaving
+/// the deletion unfinished.
 ///
 /// Retrying is safe and is simply another call to [deleteMyAccount]: the
-/// storage step walks the folder again and finds nothing to remove, so the
-/// second attempt proceeds straight to the database delete.
+/// R2 deletion is idempotent, so the second attempt proceeds to database
+/// deletion even if the estate prefix is already empty.
 class AccountDeletionIncompleteException implements Exception {
   const AccountDeletionIncompleteException(this.message);
 
@@ -640,10 +641,11 @@ class AccountDeletionIncompleteException implements Exception {
 /// cascades from it, so an estate owner's estate and all of its content go with
 /// it, while an executor merely loses their access.
 ///
-/// If the caller owns an estate, its storage folder is emptied first, through
-/// the Storage API. That order matters: the delete policy authorises via
+/// If the caller owns an estate, its R2 prefix is emptied first. That order
+/// matters: the delete function authorises via
 /// `get_allowed_estate_ids()`, which stops matching once the estate rows are
 /// gone. Anything missed here would be billed for and permanently unreachable.
+/// Legacy Supabase Storage objects are not migrated or deleted by this flow.
 ///
 /// Because the files go first, a failure between the two steps leaves the
 /// account half-deleted. That case raises
@@ -661,10 +663,16 @@ Future<void> deleteMyAccount() async {
       await client.from('estates').select('id').eq('owner_id', userId);
 
   // Counted across every owned estate, so a partial failure is reported even
-  // when only some of the folders had anything left in them.
+  // when only some prefixes had files in them.
   var removedFiles = 0;
-  for (final row in owned) {
-    removedFiles += await _deleteEstateFiles(row['id'] as String);
+  final mediaStorage = MediaStorageService(client: client);
+  try {
+    for (final row in owned) {
+      removedFiles +=
+          await mediaStorage.deleteAllForEstate(row['id'] as String);
+    }
+  } finally {
+    mediaStorage.dispose();
   }
 
   try {
@@ -687,40 +695,4 @@ Future<void> deleteMyAccount() async {
     await clearEstatePhotoCache();
     await client.auth.signOut();
   } catch (_) {}
-}
-
-/// Empties `estate-documents/<estateId>/`, including nested utility folders.
-///
-/// Returns how many objects were removed. A folder that is already empty
-/// returns 0 without error, so a retry after a partial deletion is safe.
-Future<int> _deleteEstateFiles(String estateId) async {
-  const bucket = 'estate-documents';
-  final storage = Supabase.instance.client.storage.from(bucket);
-
-  // A Storage "folder" is just a path prefix with no object behind it, so the
-  // tree has to be walked by hand to find the real files.
-  Future<List<String>> walk(String prefix) async {
-    final entries = await storage.list(path: prefix);
-    final paths = <String>[];
-    for (final entry in entries) {
-      final child = '$prefix/${entry.name}';
-      if (entry.id == null) {
-        paths.addAll(await walk(child));
-      } else {
-        paths.add(child);
-      }
-    }
-    return paths;
-  }
-
-  // Uploads are keyed by their full path, bucket name included, so the objects
-  // sit under `estate-documents/<estateId>/…`. Starting the walk at the bare
-  // estate id matches nothing and removes no files at all.
-  final paths = await walk('$bucket/$estateId');
-  const chunkSize = 100;
-  for (var i = 0; i < paths.length; i += chunkSize) {
-    final end = i + chunkSize > paths.length ? paths.length : i + chunkSize;
-    await storage.remove(paths.sublist(i, end));
-  }
-  return paths.length;
 }

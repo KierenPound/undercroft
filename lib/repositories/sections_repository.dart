@@ -6,31 +6,28 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/seed_data.dart';
 import '../models/attachment.dart';
 import '../models/checklist_item.dart';
+import '../models/media_storage_path.dart';
 import '../models/prep_section.dart';
 import '../services/estate_service.dart';
+import '../services/media_storage_service.dart';
+
+String _safeObjectFileName(String value) {
+  var name = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  name = name.replaceAll('..', '_').replaceAll(RegExp(r'^\.+'), '');
+  if (name.isEmpty || name == '.') return 'file';
+  return name.length <= 180 ? name : name.substring(0, 180);
+}
+
+String _safeVideoExtension(String value) =>
+    RegExp(r'^\.[A-Za-z0-9]{1,8}$').hasMatch(value) ? value : '.mp4';
 
 class SectionsRepository {
   final SupabaseClient _client;
+  final MediaStorageService _mediaStorage;
 
-  SectionsRepository(this._client);
+  SectionsRepository(this._client, this._mediaStorage);
 
-  /// Keep attachments within the estate-documents bucket's 50 MiB limit.
-  static const int maxAttachmentBytes = 50 * 1024 * 1024;
-
-  /// Signed URLs for the private `estate-documents` bucket, keyed by storage
-  /// path, with the moment each one stops being reused.
-  ///
-  /// Supabase mints a fresh token on every signing call, so the URL string for
-  /// the same object changes between fetches. Flutter's ImageCache is keyed by
-  /// URL, so an unstable URL means every visit to a section re-downloads the
-  /// photo. Handing back the same string while it is still valid lets repeat
-  /// visits come straight from the in-memory image cache.
-  final Map<String, ({String url, DateTime reuseUntil})> _signedUrls = {};
-
-  static const Duration _signedUrlTtl = Duration(seconds: 3600);
-
-  /// Re-mint this long before expiry, so a URL already in flight never 400s.
-  static const Duration _signedUrlRenewMargin = Duration(minutes: 5);
+  static const int maxAttachmentBytes = 150 * 1024 * 1024;
 
   Future<PrepSection> getOrCreateSection({
     required String estateId,
@@ -193,39 +190,21 @@ class SectionsRepository {
         .eq('section_id', sectionId)
         .order('created_at', ascending: true);
 
-    final attachments =
-        (data as List).map((e) => Attachment.fromJson(e)).toList();
+    final attachments = (data as List)
+        .map((e) => Attachment.fromJson(e))
+        .where((attachment) => attachment.storagePath.isNotEmpty)
+        .toList();
 
     for (var i = 0; i < attachments.length; i++) {
       final a = attachments[i];
-      if (a.storagePath.isNotEmpty) {
-        try {
-          attachments[i] =
-              a.copyWith(downloadUrl: await _signedUrl(a.storagePath));
-        } catch (_) {}
-      }
+      try {
+        attachments[i] = a.copyWith(
+          downloadUrl: await _mediaStorage.getDownloadUrl(a.storagePath),
+        );
+      } catch (_) {}
     }
 
     return attachments;
-  }
-
-  /// A stable signed URL for [storagePath], reused until shortly before it
-  /// expires (see [_signedUrls]).
-  Future<String> _signedUrl(String storagePath) async {
-    final cached = _signedUrls[storagePath];
-    final now = DateTime.now();
-    if (cached != null && now.isBefore(cached.reuseUntil)) {
-      return cached.url;
-    }
-
-    final url = await _client.storage
-        .from('estate-documents')
-        .createSignedUrl(storagePath, _signedUrlTtl.inSeconds);
-    _signedUrls[storagePath] = (
-      url: url,
-      reuseUntil: now.add(_signedUrlTtl - _signedUrlRenewMargin),
-    );
-    return url;
   }
 
   Future<Attachment> uploadAttachment({
@@ -240,16 +219,11 @@ class SectionsRepository {
       throw ArgumentError('Attachment exceeds the maximum file size.');
     }
 
-    final path =
-        'estate-documents/$estateId/sections/$sectionId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+    final relativePath = 'sections/$sectionId/'
+        '${DateTime.now().millisecondsSinceEpoch}_${_safeObjectFileName(fileName)}';
+    final path = '$estateId/$relativePath';
 
-    final downloadUrl =
-        _client.storage.from('estate-documents').getPublicUrl(path);
-
-    // Record the row *before* uploading the bytes. If the upload then fails we
-    // delete the row again, so this flow can never leave a file sitting in the
-    // bucket that no row points at: an orphan is still billed for, yet no API
-    // can ever reach it, because the Storage API works from the rows.
+    // Record the row first and remove it again if the R2 upload fails.
     final data = await _client
         .from('attachments')
         .insert({
@@ -257,18 +231,19 @@ class SectionsRepository {
           'file_name': fileName,
           'type': type.name,
           'storage_path': path,
-          'download_url': downloadUrl,
+          'download_url': '',
           'file_size': bytes.length,
         })
         .select()
         .single();
 
     try {
-      await _client.storage.from('estate-documents').uploadBinary(
-            path,
-            bytes,
-            fileOptions: FileOptions(contentType: mimeType, upsert: true),
-          );
+      await _mediaStorage.uploadBytes(
+        estateId: estateId,
+        relativePath: relativePath,
+        contentType: mimeType,
+        bytes: bytes,
+      );
     } catch (_) {
       try {
         await _client
@@ -279,42 +254,40 @@ class SectionsRepository {
       rethrow;
     }
 
-    return Attachment.fromJson(data);
+    var downloadUrl = '';
+    try {
+      downloadUrl = await _mediaStorage.getDownloadUrl(path);
+    } catch (_) {}
+    return Attachment.fromJson(data).copyWith(downloadUrl: downloadUrl);
   }
 
   Future<void> deleteAttachment(Attachment attachment) async {
-    if (attachment.storagePath.isNotEmpty) {
+    if (attachment.storagePath.isNotEmpty &&
+        !isLegacySupabaseStoragePath(attachment.storagePath)) {
       try {
-        await _client.storage
-            .from('estate-documents')
-            .remove([attachment.storagePath]);
+        await _mediaStorage.deleteKeys([attachment.storagePath]);
       } catch (_) {}
     }
     await _client.from('attachments').delete().eq('id', attachment.id);
   }
 
-  /// Largest "My Video to You" clip the app will accept, in bytes.
-  ///
-  /// Mirrors the `estate-documents` bucket's `file_size_limit` (see migration
-  /// 0034). Checked before reading the file into memory or starting the upload.
-  static const int maxVideoBytes = 50 * 1024 * 1024;
+  static const int maxVideoBytes = 150 * 1024 * 1024;
 
   /// Uploads the "My Video to You" clip and points the section row at it.
   ///
-  /// Follows the same row-first-then-bytes order as [uploadAttachment]: the
-  /// row is moved to the new path, and only then are the bytes written. If the
-  /// upload fails the row is put back, so the bucket never ends up holding a
-  /// file that no row references. On success the superseded clip is deleted so
-  /// the estate is only billed for the one it actually shows.
+  /// The row is moved to the new R2 key before upload, then restored if the
+  /// upload fails. On success the superseded R2 object is deleted.
   Future<PrepSection> uploadSectionVideo({
     required PrepSection section,
     required Uint8List bytes,
     required String mimeType,
     required String fileExtension,
   }) async {
-    final path = 'estate-documents/${section.estateId}/sections/${section.id}/'
-        'video_${DateTime.now().millisecondsSinceEpoch}$fileExtension';
-    final previousPath = section.videoPath;
+    final relativePath = 'sections/${section.id}/'
+        'video_${DateTime.now().millisecondsSinceEpoch}'
+        '${_safeVideoExtension(fileExtension)}';
+    final path = '${section.estateId}/$relativePath';
+    final previousPath = normalizeMediaStoragePath(section.videoPath);
 
     await _client.from('sections').update({
       'video_path': path,
@@ -324,11 +297,12 @@ class SectionsRepository {
     }).eq('id', section.id);
 
     try {
-      await _client.storage.from('estate-documents').uploadBinary(
-            path,
-            bytes,
-            fileOptions: FileOptions(contentType: mimeType, upsert: true),
-          );
+      await _mediaStorage.uploadBytes(
+        estateId: section.estateId,
+        relativePath: relativePath,
+        contentType: mimeType,
+        bytes: bytes,
+      );
     } catch (_) {
       try {
         await _client.from('sections').update({
@@ -342,11 +316,10 @@ class SectionsRepository {
 
     if (previousPath.isNotEmpty && previousPath != path) {
       try {
-        await _client.storage.from('estate-documents').remove([previousPath]);
+        await _mediaStorage.deleteKeys([previousPath]);
       } catch (_) {}
     }
 
-    _signedUrls.remove(previousPath);
     return section.copyWith(
       videoPath: path,
       videoMime: mimeType,
@@ -365,22 +338,20 @@ class SectionsRepository {
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', section.id);
 
-    if (path.isNotEmpty) {
+    if (path.isNotEmpty && !isLegacySupabaseStoragePath(path)) {
       try {
-        await _client.storage.from('estate-documents').remove([path]);
+        await _mediaStorage.deleteKeys([path]);
       } catch (_) {}
-      _signedUrls.remove(path);
     }
 
     return section.copyWith(videoPath: '', videoMime: '', videoSizeBytes: 0);
   }
 
-  /// A stable signed URL for the section's clip, or an empty string when there
-  /// is none. Reuses the same cache as attachments so re-opening the page does
-  /// not re-sign (and re-download) the same video.
+  /// Resolves a signed URL for the section clip, or returns empty when absent.
   Future<String> signedVideoUrl(String storagePath) async {
     if (storagePath.isEmpty) return '';
-    return _signedUrl(storagePath);
+    if (isLegacySupabaseStoragePath(storagePath)) return '';
+    return _mediaStorage.getDownloadUrl(storagePath);
   }
 
   /// Seeds a freshly created estate with the default sections and their
@@ -414,7 +385,10 @@ class SectionsRepository {
 }
 
 final sectionsRepositoryProvider = Provider<SectionsRepository>((ref) {
-  return SectionsRepository(Supabase.instance.client);
+  return SectionsRepository(
+    Supabase.instance.client,
+    ref.watch(mediaStorageServiceProvider),
+  );
 });
 
 final sectionProvider = FutureProvider.autoDispose

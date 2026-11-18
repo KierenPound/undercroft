@@ -3,43 +3,25 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/media_storage_path.dart';
 import '../models/utility_detail.dart';
 import '../services/estate_service.dart';
+import '../services/media_storage_service.dart';
 
 /// Photos of the Gas meter, Electric meter and Stopcock, plus the note that
 /// explains where each one is and how to read it.
 ///
-/// Photos live in the private `estate-documents` bucket under
-/// `utilities/{kind}/`, so the existing storage policies already allow reads
-/// for anyone linked to the estate and writes for owners only.
+/// Photos use R2 keys under `utilities/{kind}/`.
 class UtilityDetailsRepository {
   final SupabaseClient _client;
+  final MediaStorageService _mediaStorage;
 
-  UtilityDetailsRepository(this._client);
+  UtilityDetailsRepository(this._client, this._mediaStorage);
 
-  static const String _bucket = 'estate-documents';
   static const String _table = 'utility_details';
 
-  /// Signed URLs for the private bucket, keyed by storage path and reused
-  /// until shortly before they expire.
-  ///
-  /// Supabase mints a fresh token on every signing call, so the URL string for
-  /// the same object changes between fetches. Flutter's ImageCache is keyed by
-  /// URL, so an unstable URL means every visit re-downloads the photo. Handing
-  /// back the same string while it is still valid lets repeat visits come
-  /// straight from the in-memory image cache.
-  final Map<String, ({String url, DateTime reuseUntil})> _signedUrls = {};
-
-  static const Duration _signedUrlTtl = Duration(seconds: 3600);
-
-  /// Re-mint this long before expiry, so a URL already in flight never 400s.
-  static const Duration _signedUrlRenewMargin = Duration(minutes: 5);
-
   Future<List<UtilityDetail>> fetchAll(String estateId) async {
-    final data = await _client
-        .from(_table)
-        .select()
-        .eq('estate_id', estateId);
+    final data = await _client.from(_table).select().eq('estate_id', estateId);
 
     final details =
         (data as List).map((e) => UtilityDetail.fromJson(e)).toList();
@@ -49,7 +31,7 @@ class UtilityDetailsRepository {
       if (detail.storagePath.isEmpty) continue;
       try {
         details[i] = detail.copyWith(
-          imageUrl: await _signedUrl(detail.storagePath),
+          imageUrl: await _mediaStorage.getDownloadUrl(detail.storagePath),
         );
       } catch (_) {}
     }
@@ -75,8 +57,7 @@ class UtilityDetailsRepository {
     );
   }
 
-  /// Replaces the photo for [kind], removing the one it supersedes so the
-  /// bucket never accumulates orphans.
+  /// Replaces the photo for [kind], removing the R2 object it supersedes.
   Future<void> uploadImage({
     required String estateId,
     required UtilityKind kind,
@@ -90,13 +71,17 @@ class UtilityDetailsRepository {
         .eq('kind', kind.dbValue)
         .maybeSingle();
 
-    final superseded = (existing?['storage_path'] as String?) ?? '';
-    final supersededSize = (existing?['file_size'] as int?) ?? 0;
+    final superseded =
+        normalizeMediaStoragePath(existing?['storage_path'] as String?);
+    final supersededSize =
+        superseded.isEmpty ? 0 : (existing?['file_size'] as int?) ?? 0;
 
-    final path = '$_bucket/$estateId/utilities/${kind.dbValue}/'
+    final relativePath = 'utilities/${kind.dbValue}/'
         '${DateTime.now().millisecondsSinceEpoch}_image.jpg';
+    final path = '$estateId/$relativePath';
 
-    Future<void> writePath(String value, int size) => _client.from(_table).upsert(
+    Future<void> writePath(String value, int size) =>
+        _client.from(_table).upsert(
           {
             'estate_id': estateId,
             'kind': kind.dbValue,
@@ -107,18 +92,16 @@ class UtilityDetailsRepository {
           onConflict: 'estate_id,kind',
         );
 
-    // Point the row at the new photo *before* uploading it, so a failed upload
-    // can leave a row without a file but never a file without a row. An orphan
-    // is still billed for and no API can ever reach it, because the Storage API
-    // works from the rows.
+    // Point the row at the new key first; restore the old key if upload fails.
     await writePath(path, bytes.length);
 
     try {
-      await _client.storage.from(_bucket).uploadBinary(
-            path,
-            bytes,
-            fileOptions: FileOptions(contentType: mimeType, upsert: true),
-          );
+      await _mediaStorage.uploadBytes(
+        estateId: estateId,
+        relativePath: relativePath,
+        contentType: mimeType,
+        bytes: bytes,
+      );
     } catch (_) {
       try {
         await writePath(superseded, supersededSize);
@@ -126,37 +109,21 @@ class UtilityDetailsRepository {
       rethrow;
     }
 
-    // Only once the replacement is safely uploaded do we drop the old photo.
+    // Only once the replacement is safely uploaded do we drop the old object.
     if (superseded.isNotEmpty && superseded != path) {
       try {
-        await _client.storage.from(_bucket).remove([superseded]);
+        await _mediaStorage.deleteKeys([superseded]);
       } catch (_) {}
     }
-  }
-
-  /// A stable signed URL for [storagePath], reused until shortly before it
-  /// expires (see [_signedUrls]).
-  Future<String> _signedUrl(String storagePath) async {
-    final cached = _signedUrls[storagePath];
-    final now = DateTime.now();
-    if (cached != null && now.isBefore(cached.reuseUntil)) {
-      return cached.url;
-    }
-
-    final url = await _client.storage
-        .from(_bucket)
-        .createSignedUrl(storagePath, _signedUrlTtl.inSeconds);
-    _signedUrls[storagePath] = (
-      url: url,
-      reuseUntil: now.add(_signedUrlTtl - _signedUrlRenewMargin),
-    );
-    return url;
   }
 }
 
 final utilityDetailsRepositoryProvider =
     Provider<UtilityDetailsRepository>((ref) {
-  return UtilityDetailsRepository(Supabase.instance.client);
+  return UtilityDetailsRepository(
+    Supabase.instance.client,
+    ref.watch(mediaStorageServiceProvider),
+  );
 });
 
 final utilityDetailsProvider =

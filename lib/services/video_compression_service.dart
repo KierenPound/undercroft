@@ -68,8 +68,8 @@ class VideoCompressionResult {
       status == VideoCompressionStatus.compressed;
 }
 
-/// Fits a picked clip inside the `estate-documents` bucket's 50 MB limit by
-/// compressing it on the device.
+/// Fits a picked clip inside the 150 MiB R2 upload limit by compressing it on
+/// the device.
 ///
 /// The size thresholds are plain Dart so they can be reasoned about and tested
 /// on their own; the compression itself is injected through [VideoCompressor].
@@ -78,9 +78,7 @@ class VideoCompressionService {
   /// already fits spends quality for nothing.
   static const int compressThresholdBytes = 25 * 1024 * 1024;
 
-  /// The ceiling the uploaded file has to fit. Mirrors the bucket's
-  /// `file_size_limit` (migration 0034), which would reject anything larger, so
-  /// it is checked here rather than relied on.
+  /// The ceiling the uploaded file has to fit. Checked here before upload.
   static const int maxUploadBytes = SectionsRepository.maxVideoBytes;
 
   /// Shown when even the lowest quality is still over [maxUploadBytes].
