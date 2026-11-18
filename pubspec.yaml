@@ -43,6 +43,9 @@ dependencies:
   # Playback of the "My Video to You" clip (Supabase signed URL)
   video_player: ^2.9.2
 
+  # Controls and fullscreen for the "My Video to You" clip
+  chewie: ^1.8.5
+
   # On-device compression for the "My Video to You" clip, so a longer message
   # can still fit the bucket's 50 MB limit. Fork of video_compress that adds
   # Swift Package Manager support, which this project needs (it has no Podfile).

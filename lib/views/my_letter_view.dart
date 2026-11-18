@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:chewie/chewie.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -755,7 +756,8 @@ class _VideoPlayerBox extends ConsumerStatefulWidget {
 }
 
 class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
-  VideoPlayerController? _controller;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
   bool _loading = true;
   bool _failed = false;
 
@@ -776,14 +778,30 @@ class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
         return;
       }
 
-      final controller = VideoPlayerController.networkUrl(Uri.parse(url));
-      await controller.initialize();
+      final videoController =
+          VideoPlayerController.networkUrl(Uri.parse(url));
+      await videoController.initialize();
       if (!mounted) {
-        await controller.dispose();
+        await videoController.dispose();
         return;
       }
+      final chewieController = ChewieController(
+        videoPlayerController: videoController,
+        autoPlay: false,
+        looping: false,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.white,
+          handleColor: Colors.white,
+          backgroundColor: Colors.white24,
+          bufferedColor: Colors.white54,
+        ),
+      );
       setState(() {
-        _controller = controller;
+        _videoController = videoController;
+        _chewieController = chewieController;
         _loading = false;
       });
     } catch (_) {
@@ -798,21 +816,14 @@ class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     super.dispose();
-  }
-
-  void _togglePlayback() {
-    final controller = _controller;
-    if (controller == null) return;
-    setState(() {
-      controller.value.isPlaying ? controller.pause() : controller.play();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
+    final controller = _chewieController;
 
     if (_loading) {
       return const _VideoFrame(
@@ -840,35 +851,7 @@ class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
       );
     }
 
-    return _VideoFrame(
-      child: GestureDetector(
-        onTap: _togglePlayback,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            VideoPlayer(controller),
-            ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: controller,
-              builder: (context, value, child) {
-                return AnimatedOpacity(
-                  opacity: value.isPlaying ? 0 : 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black38,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    child: const Icon(Icons.play_arrow,
-                        color: Colors.white, size: 28),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    return _VideoFrame(child: Chewie(controller: controller));
   }
 }
 
