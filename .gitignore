@@ -64,3 +64,6 @@ supabase/.temp/
 
 # Repomix output — temporary context bundle for external tooling, never committed
 repomix-output.xml
+
+# local R2 credential notes — never commit
+r2storage

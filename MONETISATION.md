@@ -140,8 +140,9 @@ Granting early is harmless: the client-side gate only closes when the Developer 
 section has put it there, so a release build ignores these rows until the paywall is
 switched on for real.
 
-Testers reachable at the time of writing: 10 estates exist, 1 has a `beta_free` row
-(Demo Estate, granted 2026-11-12), 9 do not.
+Current state (verified 2026-11-15): all 10 estates hold a `beta_free` row. Demo Estate
+was granted on 2026-11-12; the other 9 were granted on 2026-11-15 by running the
+statement above, which left the earlier row untouched.
 
 If that ever needs revisiting, the honest lever is a free unlock for a named list
 of beta estates, not a change to the price.
