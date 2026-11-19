@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   local_auth_windows
   pdfx
   printing
+  sentry_flutter
   url_launcher_windows
   share_plus
 )

@@ -169,6 +169,20 @@ xcodebuild archive \
   -archivePath "$ARCHIVE_PATH" \
   -allowProvisioningUpdates
 
+# --- 5b. Debug symbols ----------------------------------------------------
+# Without this, Sentry stack traces for release builds are raw addresses. The
+# archive carries the dSYMs, including App.framework.dSYM, which covers the
+# Dart frames too. Uses the Sentry CLI's stored login; set SENTRY_AUTH_TOKEN to
+# run this from CI. A failure here is not fatal to the release.
+if command -v sentry >/dev/null 2>&1; then
+  echo "Uploading debug symbols to Sentry..."
+  SENTRY_ORG=undercroft SENTRY_PROJECT=undercroft-flutter \
+    sentry debug-files upload "$ARCHIVE_PATH/dSYMs" ||
+    echo "  Symbol upload failed; the release is unaffected but crash traces will be unsymbolicated."
+else
+  echo "Skipping Sentry symbol upload — the sentry CLI is not on PATH."
+fi
+
 # --- 6. Export ------------------------------------------------------------
 # Written to build/ rather than committed: it is generated per release and the
 # team ID lives in the script. manageAppVersionAndBuildNumber stays false so

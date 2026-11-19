@@ -66,6 +66,10 @@ dependencies:
   flutter_secure_storage: ^10.3.4
 
   material_ui: any
+
+  # Crash reporting. Errors are forwarded from lib/main.dart's error handlers
+  # via CrashReportingService; the DSN is supplied at build time.
+  sentry_flutter: ^10.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

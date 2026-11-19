@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:chewie/chewie.dart';
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -548,31 +548,31 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              // The clip sits on the right in the shape phone cameras use
-              // (portrait), with the note beside it on the left. Sharing one
-              // row keeps the block short, so more of the letter above stays
-              // in view. A floor keeps the player watchable on a narrow
-              // phone; a ceiling stops it dominating a desktop window.
-              final videoWidth =
-                  (constraints.maxWidth * 0.34).clamp(110.0, 180.0);
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Expanded(child: _VideoNote()),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: videoWidth,
-                    child: AspectRatio(
-                      aspectRatio: 9 / 16,
-                      child: hasVideo
-                          ? _VideoPlayerBox(
-                              key: ValueKey(videoPath),
-                              storagePath: videoPath,
-                            )
-                          : const _EmptyVideoBox(),
-                    ),
+              // A larger square player, centred and capped so it stays easy
+              // to see and reach without dominating a desktop window. The
+              // note sits directly beneath it at the same width, so the
+              // whole block reads as one column.
+              final frameWidth = constraints.maxWidth.clamp(0.0, 320.0);
+              return Center(
+                child: SizedBox(
+                  width: frameWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 1,
+                        child: hasVideo
+                            ? _VideoPlayerBox(
+                                key: ValueKey(videoPath),
+                                storagePath: videoPath,
+                              )
+                            : const _EmptyVideoBox(),
+                      ),
+                      const SizedBox(height: 12),
+                      const _VideoNote(),
+                    ],
                   ),
-                ],
+                ),
               );
             },
           ),
@@ -620,12 +620,17 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
             ),
           if (widget.isOwner) ...[
             const SizedBox(height: 16),
-            _VideoButtons(
-              hasVideo: hasVideo,
-              busy: _busy || _compressing,
-              onRecord: () => _addVideo(ImageSource.camera),
-              onChoose: () => _addVideo(ImageSource.gallery),
-              onRemove: _removeVideo,
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: _VideoButtons(
+                  hasVideo: hasVideo,
+                  busy: _busy || _compressing,
+                  onRecord: () => _addVideo(ImageSource.camera),
+                  onChoose: () => _addVideo(ImageSource.gallery),
+                  onRemove: _removeVideo,
+                ),
+              ),
             ),
           ],
         ],
@@ -634,7 +639,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
   }
 }
 
-/// The explanatory note beside the "My Video to You" clip.
+/// The explanatory note beneath the "My Video to You" clip.
 class _VideoNote extends StatelessWidget {
   const _VideoNote();
 
@@ -688,28 +693,71 @@ class _VideoButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.end,
-      spacing: 8,
-      runSpacing: 8,
+    return Row(
       children: [
-        FilledButton.tonalIcon(
-          onPressed: busy ? null : onRecord,
-          icon: const Icon(Icons.videocam_outlined, size: 18),
-          label: Text(hasVideo ? 'Replace video' : 'Record video'),
-        ),
-        OutlinedButton.icon(
-          onPressed: busy ? null : onChoose,
-          icon: const Icon(Icons.video_library_outlined, size: 18),
-          label: const Text('Choose video'),
-        ),
-        if (hasVideo)
-          TextButton.icon(
-            onPressed: busy ? null : onRemove,
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Remove'),
+        Expanded(
+          child: _VideoActionButton(
+            label: hasVideo ? 'Replace' : 'Record',
+            icon: hasVideo ? Icons.refresh_outlined : Icons.videocam_outlined,
+            onPressed: busy ? null : onRecord,
           ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _VideoActionButton(
+            label: 'Choose',
+            icon: Icons.video_library_outlined,
+            onPressed: busy ? null : onChoose,
+          ),
+        ),
+        if (hasVideo) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: _VideoActionButton(
+              label: 'Remove',
+              icon: Icons.delete_outline,
+              danger: true,
+              onPressed: busy ? null : onRemove,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// One of the "My Video to You" actions. Matches the standard outlined
+/// button style used elsewhere (e.g. the Support button in settings) so
+/// the row feels native — only the destructive "remove" action is tinted
+/// red. Labels are kept short so they render at the default label size
+/// instead of being scaled down to fit three across the frame.
+class _VideoActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool danger;
+  final VoidCallback? onPressed;
+
+  const _VideoActionButton({
+    required this.label,
+    required this.icon,
+    this.danger = false,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: danger ? error : null,
+        side: danger
+            ? BorderSide(color: error.withValues(alpha: 0.5))
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      icon: Icon(icon, size: 18),
+      label: Text(label),
     );
   }
 }
@@ -785,6 +833,15 @@ class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
         await videoController.dispose();
         return;
       }
+      // Desktop and web users have a mouse, so keep the clip clean by
+      // leaving the play/scrub overlay hidden until the pointer is over the
+      // video. Touch devices have no hover, so there the controls stay on
+      // from the outset.
+      final target = defaultTargetPlatform;
+      final hasPointer = target == TargetPlatform.macOS ||
+          target == TargetPlatform.windows ||
+          target == TargetPlatform.linux;
+
       final chewieController = ChewieController(
         videoPlayerController: videoController,
         autoPlay: false,
@@ -792,6 +849,10 @@ class _VideoPlayerBoxState extends ConsumerState<_VideoPlayerBox> {
         allowFullScreen: true,
         allowMuting: true,
         showControls: true,
+        showControlsOnInitialize: !hasPointer,
+        hideControlsTimer: hasPointer
+            ? const Duration(milliseconds: 1200)
+            : ChewieController.defaultHideControlsTimer,
         materialProgressColors: ChewieProgressColors(
           playedColor: Colors.white,
           handleColor: Colors.white,

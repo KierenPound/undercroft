@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'repositories/sections_repository.dart';
+import 'services/crash_reporting_service.dart';
 import 'services/estate_service.dart';
 import 'services/introduction_service.dart';
 import 'services/payment_service.dart';
@@ -30,6 +31,9 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      // Initialise crash reporting before anything that can fail, so startup
+      // problems are captured too. A missing DSN leaves it inert.
+      await CrashReportingService.initialize();
       _installErrorHandlers();
 
       if (!SupabaseService.isConfigured) {
@@ -39,8 +43,8 @@ void main() {
 
       try {
         await SupabaseService.initialize();
-      } catch (error) {
-        _debugReportError('startup', error);
+      } catch (error, stackTrace) {
+        _debugReportError('startup', error, stackTrace);
         runApp(const StartupFallbackApp());
         return;
       }
@@ -53,24 +57,27 @@ void main() {
         ),
       );
     },
-    (error, _) => _debugReportError('uncaught', error),
+    (error, stackTrace) => _debugReportError('uncaught', error, stackTrace),
   );
 }
 
 void _installErrorHandlers() {
   FlutterError.onError = (details) {
-    _debugReportError('flutter', details.exception);
+    _debugReportError('flutter', details.exception, details.stack);
   };
 
-  PlatformDispatcher.instance.onError = (error, _) {
-    _debugReportError('platform', error);
+  PlatformDispatcher.instance.onError = (error, stackTrace) {
+    _debugReportError('platform', error, stackTrace);
     return true;
   };
 }
 
-void _debugReportError(String source, Object error) {
+/// The single sink for every error channel. The console line stays terse
+/// (type only) so debug logs never carry user text; the full error and stack
+/// trace go to Sentry, where CrashReportingService redacts them first.
+void _debugReportError(String source, Object error, [StackTrace? stackTrace]) {
   logDebug('[$source] errorType=${error.runtimeType}');
-  // TODO(crash-reporting): Forward errors to Crashlytics or Sentry.
+  unawaited(CrashReportingService.reportError(source, error, stackTrace));
 }
 
 class StartupFallbackApp extends StatelessWidget {

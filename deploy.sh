@@ -46,12 +46,26 @@ read_config() {
     "$CONFIG" "$1"
 }
 
+# Same as read_config, but returns an empty string for a key that is absent, so
+# optional settings (SENTRY_DSN) do not abort the build.
+read_config_optional() {
+  python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' \
+    "$CONFIG" "$1"
+}
+
 # The app reads these at compile time, so every build has to carry them or it
 # starts up with no Supabase host.
 defines=(
   "--dart-define=SUPABASE_URL=$(read_config SUPABASE_URL)"
   "--dart-define=SUPABASE_ANON_KEY=$(read_config SUPABASE_ANON_KEY)"
 )
+
+sentry_dsn="$(read_config_optional SENTRY_DSN)"
+if [[ -n "$sentry_dsn" ]]; then
+  defines+=("--dart-define=SENTRY_DSN=$sentry_dsn")
+else
+  echo "No SENTRY_DSN in $CONFIG — crash reporting will be off in this build."
+fi
 
 if (( beta )); then
   echo "Beta build — Developer tools will be visible in Settings."

@@ -52,7 +52,13 @@ permission the app uses.
 
 YOUTUBE CONTENT
 "Song for the page" plays a public YouTube video through the official embed. It needs a
-network connection and is the only third-party content in the app.
+network connection and is the only third-party *content* in the app.
+
+CRASH REPORTING
+Unhandled errors are sent to Sentry (EU region) so faults can be traced and fixed. A report
+carries the error type, its message (with email addresses and opaque tokens redacted), the
+stack trace, and the device/OS/app version. No account identity, estate content, IP address
+or navigation history is sent.
 
 CONTENT AND SHARING
 All content is private to the account that created it. Nothing is public, and there is no
@@ -78,6 +84,7 @@ A short demo guide is linked in-app under Settings > "Demo guide".
 | Demo account email + password | Sign-up requires email confirmation ([auth_view.dart](file:///Users/kierenpound/Developer/UnderCroft/lib/views/auth_view.dart#L168-L173)), so a reviewer cannot create a working account themselves. Guideline 2.1 rejection risk. |
 | A populated estate on that demo account | The notes say every screen has content. Needs to actually be true, or the claim should be dropped. |
 | Whether `Test Payment Logic` ships enabled | The notes above assume it is **off** by default. If you ship it on, the invite card appears locked to a reviewer with no way past it. |
+| App Privacy answers in App Store Connect | Crash reporting adds Sentry as a data processor, so "Crash Data" / "Diagnostics" must now be declared, and the [privacy policy](https://crabkingslair.com/privacy) should name Sentry. |
 
 Two things I could not confirm from the code and did not assert:
 

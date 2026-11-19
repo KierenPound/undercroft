@@ -49,6 +49,11 @@ defines = [
     f"SUPABASE_ANON_KEY={config['SUPABASE_ANON_KEY']}",
 ]
 
+# Optional: crash reporting stays off when the key is absent.
+sentry_dsn = (config.get("SENTRY_DSN") or "").strip()
+if sentry_dsn:
+    defines.append(f"SENTRY_DSN={sentry_dsn}")
+
 if os.environ.get("UNDERCROFT_DEV_TOOLS") == "1":
     defines.append("ENABLE_DEV_TOOLS=true")
 

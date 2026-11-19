@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/build_flags.dart';
 import '../services/biometric_lock_service.dart';
+import '../services/crash_reporting_service.dart';
 import '../services/estate_service.dart';
 import '../services/invite_print_service.dart';
 import '../services/payment_service.dart';
@@ -910,6 +911,34 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         },
                       ),
                     ],
+                    const Divider(height: 24),
+                    const Text(
+                      'Send a harmless event to Sentry to confirm crash '
+                      'reporting works end to end. Nothing user-visible '
+                      'happens.',
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await CrashReportingService.reportTestEvent();
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                CrashReportingService.isEnabled
+                                    ? 'Test event sent.'
+                                    : 'Crash reporting is off in this build.',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.bug_report_outlined),
+                        label: const Text('Send test crash'),
+                      ),
+                    ),
                   ],
                 ),
               ),
