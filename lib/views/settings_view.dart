@@ -649,8 +649,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 children: [
                   const Text(
                     'Choose whether this estate should follow the Scotland '
-                    'process or the England, Wales and Northern Ireland '
-                    'process. This is saved to the estate and shared with '
+                    'process or the England & Wales process. This is saved '
+                    'to the estate and shared with '
                     'everyone who has access.',
                     style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
@@ -700,7 +700,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         Text(
                           processRegion == EstateProcessRegion.scotland
                               ? 'Using the Scotland-specific wording and steps.'
-                              : 'Using the England, Wales and Northern Ireland process.',
+                              : 'Using the England & Wales process.',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.black54,

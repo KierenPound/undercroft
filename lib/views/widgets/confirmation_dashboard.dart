@@ -497,9 +497,13 @@ class ConfirmationDashboard extends ConsumerWidget {
                           ),
                           SizedBox(height: 3),
                           Text(
-                            'You must get a formal, written valuation from a '
-                            'chartered surveyor or a local estate agent for the '
-                            'open-market value of all the properties',
+                            'Provide a realistic open-market value for each '
+                            'property as of the date of death. You can usually '
+                            'estimate straightforward properties yourself using '
+                            'recent local sold prices, though a formal valuation '
+                            'from a surveyor or estate agent is advisable if '
+                            'Inheritance Tax may apply, the property is unusual, '
+                            'or family disagreements are possible.',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
@@ -716,11 +720,15 @@ class ConfirmationDashboard extends ConsumerWidget {
                     tint: Colors.blue,
                     icon: Icons.info_outline,
                     title: 'Note for smaller estates',
-                    body: 'In England, Wales and Northern Ireland, if the '
-                        'estate is non-taxable (an "Excepted Estate"), you '
-                        'often do not need to fill in IHT400 or get an IHT '
-                        'reference number upfront. Instead, the values are '
-                        'often reported directly inside the probate application.',
+                    body: 'In England, Wales and Northern Ireland, estates that '
+                        'qualify as an "Excepted Estate" under HMRC reporting '
+                        'rules usually do not need a full IHT400 form or an IHT '
+                        'reference number upfront—instead, estate values are '
+                        'reported directly in the probate application. However, '
+                        'having no Inheritance Tax to pay does not automatically '
+                        'make an estate "excepted"; certain gifts, trusts, '
+                        'foreign assets, or higher gross values can still require '
+                        'full HMRC reporting.',
                   ),
                 ],
                 const SizedBox(height: 12),

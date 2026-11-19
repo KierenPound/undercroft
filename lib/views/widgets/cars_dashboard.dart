@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../services/estate_service.dart';
+
 /// Cars rich-content dashboard.
 ///
 /// Cloned from the FamilyPrep (iOS) `CarsDashboardView`, containing the
@@ -7,14 +9,20 @@ import 'package:material_ui/material_ui.dart';
 /// between the Memory photo (handled by [PhotoSection]) and the Song for the
 /// page (handled by [SongForThePageSection]).
 class CarsDashboard extends StatelessWidget {
-  const CarsDashboard({super.key});
+  final EstateProcessRegion processRegion;
+
+  const CarsDashboard({super.key, required this.processRegion});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDvlaSection(),
+        _buildDvlaSection(
+          grantName: processRegion == EstateProcessRegion.scotland
+              ? 'Confirmation'
+              : 'Probate',
+        ),
       ],
     );
   }
@@ -60,39 +68,6 @@ class CarsDashboard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: child,
-    );
-  }
-
-  Widget _infoCallout({
-    required IconData icon,
-    required Color tint,
-    required String text,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tint.withValues(alpha: 0.25), width: 0.6),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: tint, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF2C2C2E),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -266,7 +241,7 @@ class CarsDashboard extends StatelessWidget {
 
   // MARK: - DVLA Vehicle Transfer & Insurance Rules
 
-  Widget _buildDvlaSection() {
+  Widget _buildDvlaSection({required String grantName}) {
     const tint = Colors.red;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,11 +259,14 @@ class CarsDashboard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Intro paragraphs
-                const Text(
+                Text(
                   'A motor vehicle is a personal possession. You do not have '
-                  'to wait for Confirmation to transfer or sell any of the '
+                  'to wait for $grantName to transfer or sell any of the '
                   'cars.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF2C2C2E),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 const Text(
@@ -296,16 +274,6 @@ class CarsDashboard extends StatelessWidget {
                   'and the logbook.',
                   style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
                 ),
-                const SizedBox(height: 22),
-
-                // Info callout: V5 in black folder
-                _infoCallout(
-                  icon: Icons.info,
-                  tint: Colors.blue,
-                  text: 'The physical V5 documents are in the black folder '
-                      'in the sitting room.',
-                ),
-                const SizedBox(height: 22),
                 const Divider(height: 1),
                 const SizedBox(height: 22),
 

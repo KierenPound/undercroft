@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/build_flags.dart';
 import '../models/who_to_notify.dart';
 import '../repositories/sections_repository.dart';
 import '../repositories/who_to_notify_repository.dart';
@@ -30,6 +31,8 @@ class WhoToNotifyListView extends ConsumerWidget {
     final config = sectionConfigByTitle('Who to Notify');
     final asyncEstateId = ref.watch(estateIdProvider);
     final asyncIsOwner = ref.watch(isOwnerProvider);
+    final simulatedRole =
+        devToolsEnabled ? ref.watch(simulatedRoleProvider) : null;
 
     return asyncEstateId.when(
       loading: () => const Scaffold(
@@ -46,7 +49,9 @@ class WhoToNotifyListView extends ConsumerWidget {
         }
         final asyncEntries = ref.watch(whoToNotifyListProvider);
         final asyncSection = ref.watch(wtnSectionProvider(estateId));
-        final isOwner = asyncIsOwner.valueOrNull ?? true;
+        final isOwner = simulatedRole == null
+            ? asyncIsOwner.valueOrNull ?? false
+            : simulatedRole == 'owner';
 
         return Scaffold(
           appBar: AppBar(
@@ -135,15 +140,25 @@ class WhoToNotifyListView extends ConsumerWidget {
                       data: (entries) {
                         if (entries.isEmpty) {
                           return _EmptyState(
-                            onAdd: () => _showAddDialog(context, ref, estateId),
+                            onAdd: isOwner
+                                ? () => _showAddDialog(
+                                      context,
+                                      ref,
+                                      estateId,
+                                    )
+                                : null,
                           );
                         }
                         return Column(
                           children: [
-                            _AddOrganisationButton(
-                              onAdd: () =>
-                                  _showAddDialog(context, ref, estateId),
-                            ),
+                            if (isOwner)
+                              _AddOrganisationButton(
+                                onAdd: () => _showAddDialog(
+                                  context,
+                                  ref,
+                                  estateId,
+                                ),
+                              ),
                             ...entries.map((entry) => _EntryCard(
                                   entry: entry,
                                   onTap: () => context.push(
@@ -192,7 +207,21 @@ class WhoToNotifyListView extends ConsumerWidget {
   }
 
   Future<void> _showAddDialog(
-      BuildContext context, WidgetRef ref, String estateId) async {
+    BuildContext context,
+    WidgetRef ref,
+    String estateId,
+  ) async {
+    final simulatedRole =
+        devToolsEnabled ? ref.read(simulatedRoleProvider) : null;
+    final canAdd = simulatedRole == null
+        ? await ref.read(isOwnerProvider.future)
+        : simulatedRole == 'owner';
+    final currentSimulatedRole =
+        devToolsEnabled ? ref.read(simulatedRoleProvider) : null;
+    if (!canAdd ||
+        (currentSimulatedRole != null && currentSimulatedRole != 'owner')) {
+      return;
+    }
     if (estateId.isEmpty && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No estate found. Create one first.')),
@@ -761,7 +790,7 @@ class _Step extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
 
   const _EmptyState({required this.onAdd});
 
@@ -783,15 +812,19 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add companies to notify about the estate.',
+            onAdd == null
+                ? 'The estate owner can add organisations here.'
+                : 'Add companies to notify about the estate.',
             style: TextStyle(color: Colors.grey.shade500),
           ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add),
-            label: const Text('Add organisation'),
-          ),
+          if (onAdd != null) ...[
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Add organisation'),
+            ),
+          ],
         ],
       ),
     );

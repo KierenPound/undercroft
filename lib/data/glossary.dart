@@ -10,7 +10,7 @@
 /// restating a statute.
 ///
 /// Where a term means different things under Scots law and the law of
-/// England, Wales and Northern Ireland, it carries a [GlossaryEntry.jurisdiction]
+/// England and Wales, it carries a [GlossaryEntry.jurisdiction]
 /// so the reader is not misled. Null means it means the same thing UK-wide.
 library;
 
@@ -53,7 +53,7 @@ class GlossarySection {
 }
 
 const String _scotland = 'Scotland';
-const String _ewni = 'England, Wales & NI';
+const String _ewni = 'England & Wales';
 const String _northernIreland = 'Northern Ireland';
 
 const List<GlossarySection> glossary = [
@@ -256,8 +256,8 @@ const List<GlossarySection> glossary = [
     ),
     GlossaryEntry(
       'Process region',
-      'Whether the estate is being handled in Scotland, or in England, Wales & '
-          'Northern Ireland. It decides which legal steps the app shows.',
+      'Whether the estate is being handled in Scotland or in England & Wales. '
+          'It decides which legal steps the app shows.',
     ),
     GlossaryEntry(
       'Legal process',

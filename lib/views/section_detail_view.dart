@@ -24,8 +24,8 @@ class SectionDetailView extends ConsumerWidget {
 
   Widget _jurisdictionNotice(EstateProcessRegion processRegion) {
     final text = processRegion == EstateProcessRegion.ewni
-        ? 'You are currently viewing England, Wales & NI jurisdiction. You can switch to Scotland in Settings.'
-        : 'You are currently viewing Scotland jurisdiction. You can switch to England, Wales & NI in Settings.';
+        ? 'You are currently viewing the England & Wales process. You can switch to Scotland in Settings.'
+        : 'You are currently viewing the Scotland process. You can switch to England & Wales in Settings.';
 
     return Text(
       text,
@@ -238,7 +238,7 @@ class SectionDetailView extends ConsumerWidget {
                         sectionTitle: section.title,
                       ),
                       const SizedBox(height: 28),
-                      const CarsDashboard(),
+                      CarsDashboard(processRegion: processRegion),
                       const SizedBox(height: 28),
                       SongForThePageSection(
                         youtubeUrl: section.youtubeUrl,

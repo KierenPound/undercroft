@@ -56,7 +56,7 @@ enum EstateProcessRegion {
       case EstateProcessRegion.scotland:
         return 'Scotland';
       case EstateProcessRegion.ewni:
-        return 'England, Wales & Northern Ireland';
+        return 'England & Wales';
     }
   }
 
