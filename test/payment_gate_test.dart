@@ -5,6 +5,63 @@ import 'package:undercroft/services/estate_service.dart';
 import 'package:undercroft/services/payment_service.dart';
 
 void main() {
+  group('handover invitation gate policy', () {
+    test('production iOS requires a verified entitlement', () {
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: false,
+          isIos: true,
+          testGateEnabled: false,
+          unlocked: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: false,
+          isIos: true,
+          testGateEnabled: false,
+          unlocked: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('production Android remains free until Play verification exists', () {
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: false,
+          isIos: false,
+          testGateEnabled: true,
+          unlocked: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('developer builds only lock after the rehearsal toggle is enabled',
+        () {
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: true,
+          isIos: true,
+          testGateEnabled: false,
+          unlocked: false,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: true,
+          isIos: false,
+          testGateEnabled: true,
+          unlocked: false,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   test('invitations remain free until the test gate is enabled', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);

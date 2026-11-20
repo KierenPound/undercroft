@@ -11,3 +11,6 @@ verify_jwt = false
 [functions.send-estate-review-reminders]
 # Scheduled calls authenticate with x-cron-secret in the handler.
 verify_jwt = false
+
+[functions.verify-app-store-handover]
+verify_jwt = true

@@ -231,9 +231,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   }
 
   /// Runs the real store purchase for the handover unlock.
-  ///
-  /// Only reachable while the test gate is on. The store result remains
-  /// session-only until trusted backend verification grants a durable row.
   Future<void> _buyInviteUnlock() async {
     setState(() => _buyingInviteUnlock = true);
     final result = await PaymentService.purchaseHandoverUnlock();
@@ -246,12 +243,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invitations unlocked')),
         );
+        break;
       case PurchaseOutcome.noPurchasesFound:
         break;
       case PurchaseOutcome.cancelled:
         break;
       case PurchaseOutcome.unavailable:
       case PurchaseOutcome.failed:
+      case PurchaseOutcome.verificationFailed:
         await showDialog<void>(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -270,10 +269,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     }
   }
 
-  /// Restores a handover purchase from the platform store.
-  ///
-  /// A restored transaction opens the gate for this session. Permanent access
-  /// still comes from the trusted estate entitlement record.
+  /// Restores and re-verifies a handover purchase with the trusted backend.
   Future<void> _restoreInviteUnlock() async {
     setState(() => _restoringInviteUnlock = true);
     final result = await PaymentService.restoreHandoverUnlock();
@@ -288,6 +284,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             content: Text('Previous purchase restored for this session'),
           ),
         );
+        break;
       case PurchaseOutcome.noPurchasesFound:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -296,10 +293,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             ),
           ),
         );
+        break;
       case PurchaseOutcome.cancelled:
         break;
       case PurchaseOutcome.unavailable:
       case PurchaseOutcome.failed:
+      case PurchaseOutcome.verificationFailed:
         await showDialog<void>(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -948,8 +947,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             if (actualRole == 'owner') ...[
               const SizedBox(height: 16),
 
-              // Rehearses the paid gate. Shown only while it is closed, which
-              // can only happen with Test Payment Logic switched on.
+              // Shown whenever the active platform gate is closed.
               if (invitesLocked) ...[
                 _UnlockInvitesCard(
                   buying: _buyingInviteUnlock,
@@ -1657,10 +1655,7 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-/// The paywall shown while invitations are withheld.
-///
-/// Only reachable with Test Payment Logic switched on, so the copy can be
-/// blunt about the fact that this is a rehearsal.
+/// The purchase card shown while invitations are withheld.
 class _UnlockInvitesCard extends StatefulWidget {
   final bool buying;
   final VoidCallback onUnlock;
@@ -1695,21 +1690,22 @@ class _UnlockInvitesCardState extends State<_UnlockInvitesCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Bringing an executor or a co-owner into this estate is a one-off '
+            'Bringing an executor or a co-estate owner into this estate is a one-off '
             'purchase. Everything else in UnderCroft stays free.',
             style: TextStyle(fontSize: 13, color: Colors.black54),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             kIsWeb
-                ? 'Browser preview only. You can check the invitation lock '
-                    'here, but Apple purchases require the iOS app. The unlock '
-                    'button will report that the store is unavailable.'
-                : 'Use TestFlight or an Apple sandbox test account to test '
-                    'without being charged. This toggle does not select the '
-                    'store environment. Restored purchases are checked against '
-                    'the same store account.',
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+                ? 'Browser preview only. Purchases require the installed app.'
+                : devToolsEnabled
+                    ? 'Use TestFlight or an Apple sandbox test account to test '
+                        'without being charged. This toggle does not select '
+                        'the store environment.'
+                    : 'Your purchase is verified and saved to this estate. '
+                        'Use Restore Purchases to check your Apple account '
+                        'again on this device.',
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
           const SizedBox(height: 12),
           SizedBox(

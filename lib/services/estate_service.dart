@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -180,16 +181,29 @@ final invitesUnlockedProvider = Provider<bool>((ref) {
 
 /// Whether invitations are currently withheld pending payment.
 ///
-/// False whenever the test gate is off, so the app behaves exactly as it does
-/// today unless a developer has deliberately switched the gate on. A build
-/// without the developer tools cannot be put into the paywalled state at all,
-/// so in a release build this is always false.
+/// Developer builds use the explicit rehearsal toggle. Production iOS builds
+/// use the persisted store entitlement; Android remains free until Play
+/// purchase verification is available.
 final invitesLockedProvider = Provider<bool>((ref) {
-  if (!devToolsEnabled) return false;
   final gating = ref.watch(testPaymentGateProvider);
   final unlocked = ref.watch(invitesUnlockedProvider);
-  return gating && !unlocked;
+  return shouldLockHandoverInvites(
+    hasDevTools: devToolsEnabled,
+    isIos: !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS,
+    testGateEnabled: gating,
+    unlocked: unlocked,
+  );
 });
+
+bool shouldLockHandoverInvites({
+  required bool hasDevTools,
+  required bool isIos,
+  required bool testGateEnabled,
+  required bool unlocked,
+}) {
+  if (hasDevTools) return testGateEnabled && !unlocked;
+  return isIos && !unlocked;
+}
 
 /// Whether the current user should be treated as an estate owner.
 ///

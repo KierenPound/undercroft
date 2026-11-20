@@ -70,6 +70,7 @@ class _Store extends Fake implements InAppPurchase {
   PurchaseDetails purchaseDetails(PurchaseStatus status) {
     return PurchaseDetails(
       productID: handoverProductId,
+      purchaseID: '12345',
       verificationData: PurchaseVerificationData(
         localVerificationData: '',
         serverVerificationData: '',
@@ -99,8 +100,12 @@ ProductDetails _product(String id) => ProductDetails(
 void main() {
   group('native store diagnostics', () {
     late _Store store;
-    setUp(() {
+    setUp(() async {
       store = _Store();
+      await PaymentService.startPurchaseListener(
+        store: store,
+        verifyHandoverPurchase: (_) async => true,
+      );
     });
     tearDown(() async {
       await PaymentService.stopPurchaseListener();
@@ -272,7 +277,10 @@ void main() {
       var unlockCount = 0;
       await PaymentService.startPurchaseListener(
         store: store,
-        onHandoverUnlocked: () => unlockCount++,
+        verifyHandoverPurchase: (_) async {
+          unlockCount++;
+          return true;
+        },
       );
       await PaymentService.startPurchaseListener(store: store);
       store.updates.add([store.purchaseDetails(PurchaseStatus.restored)]);
@@ -281,6 +289,23 @@ void main() {
       expect(unlockCount, 1);
       expect(store.streamListenCount, 1);
       expect(store.updates.hasListener, isTrue);
+    });
+
+    test('successful store purchase fails closed when verification rejects it',
+        () async {
+      offerProduct();
+      store.sheetShown = true;
+      store.finalStatus = PurchaseStatus.purchased;
+      await PaymentService.startPurchaseListener(
+        store: store,
+        verifyHandoverPurchase: (_) async => false,
+      );
+
+      final result = await PaymentService.purchaseHandoverUnlock(store: store);
+
+      expect(result.outcome, PurchaseOutcome.verificationFailed);
+      expect(result.diagnosticCode, 'verification_failed');
+      expect(result.message, contains('Restore Purchases'));
     });
   }, skip: kIsWeb);
 }

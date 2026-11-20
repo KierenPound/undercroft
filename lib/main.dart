@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/build_flags.dart';
 import 'repositories/sections_repository.dart';
 import 'services/crash_reporting_service.dart';
 import 'services/estate_service.dart';
@@ -452,9 +453,37 @@ class _PurchaseStreamHostState extends ConsumerState<_PurchaseStreamHost> {
     super.initState();
     unawaited(
       PaymentService.startPurchaseListener(
-        onHandoverUnlocked: () {
-          if (!mounted) return;
-          ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
+        verifyHandoverPurchase: (purchase) async {
+          if (purchase.verificationData.source != 'app_store') {
+            if (!devToolsEnabled || !mounted) return false;
+            ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
+            return true;
+          }
+
+          final transactionId = purchase.purchaseID;
+          if (transactionId == null || transactionId.isEmpty) return false;
+
+          try {
+            final response = await Supabase.instance.client.functions.invoke(
+              'verify-app-store-handover',
+              body: {'transactionId': transactionId},
+            );
+            final data = response.data;
+            if (response.status < 200 ||
+                response.status >= 300 ||
+                data is! Map ||
+                data['granted'] != true) {
+              return false;
+            }
+
+            if (!mounted) return true;
+            ref.invalidate(estateHandoverEntitlementProvider);
+            ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
+            return true;
+          } catch (error) {
+            logDebug('IAP server verification errorType=${error.runtimeType}');
+            return false;
+          }
         },
       ),
     );

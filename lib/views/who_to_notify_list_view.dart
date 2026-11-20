@@ -216,13 +216,15 @@ class WhoToNotifyListView extends ConsumerWidget {
     final canAdd = simulatedRole == null
         ? await ref.read(isOwnerProvider.future)
         : simulatedRole == 'owner';
+    if (!context.mounted) return;
+
     final currentSimulatedRole =
         devToolsEnabled ? ref.read(simulatedRoleProvider) : null;
     if (!canAdd ||
         (currentSimulatedRole != null && currentSimulatedRole != 'owner')) {
       return;
     }
-    if (estateId.isEmpty && context.mounted) {
+    if (estateId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No estate found. Create one first.')),
       );
@@ -254,6 +256,7 @@ class WhoToNotifyListView extends ConsumerWidget {
         ],
       ),
     );
+    if (!context.mounted) return;
 
     if (result != null && result.trim().isNotEmpty) {
       final repo = ref.read(whoToNotifyRepositoryProvider);
@@ -263,6 +266,7 @@ class WhoToNotifyListView extends ConsumerWidget {
         companyName: result.trim(),
         createdAt: DateTime.now(),
       ));
+      if (!context.mounted) return;
       ref.invalidate(whoToNotifyListProvider);
     }
   }

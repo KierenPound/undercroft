@@ -31,6 +31,9 @@ enum PurchaseOutcome {
 
   /// The store refused the payment.
   failed,
+
+  /// The store completed it, but the trusted verifier did not grant access.
+  verificationFailed,
 }
 
 /// Failure details deliberately exclude receipts, account data and raw errors.
@@ -42,27 +45,29 @@ class PurchaseResult {
   final String? diagnosticCode;
 }
 
+typedef HandoverPurchaseVerifier = Future<bool> Function(
+    PurchaseDetails purchase);
+
 /// The platform store, for the single "Complete the Handover" product.
 ///
-/// The listener reports store transactions to the app for a session-only
-/// unlock. Trusted backend code must verify transactions and grant durable
-/// access through `estate_handover_entitlements`.
+/// A store transaction only unlocks invitations after the supplied verifier
+/// confirms it with trusted backend code.
 class PaymentService {
   static StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
   static InAppPurchase? _listeningStore;
-  static void Function()? _onHandoverUnlocked;
+  static HandoverPurchaseVerifier? _verifyHandoverPurchase;
   static Completer<PurchaseOutcome>? _pendingOutcome;
 
   /// Starts the app-lifetime listener. Repeated calls for the same store reuse
   /// the subscription rather than adding another listener.
   static Future<void> startPurchaseListener({
     InAppPurchase? store,
-    void Function()? onHandoverUnlocked,
+    HandoverPurchaseVerifier? verifyHandoverPurchase,
   }) async {
     final iap = store ?? InAppPurchase.instance;
     if (identical(_listeningStore, iap) && _purchaseSubscription != null) {
-      if (onHandoverUnlocked != null) {
-        _onHandoverUnlocked = onHandoverUnlocked;
+      if (verifyHandoverPurchase != null) {
+        _verifyHandoverPurchase = verifyHandoverPurchase;
       }
       return;
     }
@@ -71,13 +76,13 @@ class PaymentService {
       await stopPurchaseListener();
     } else {
       _listeningStore = null;
-      _onHandoverUnlocked = null;
+      _verifyHandoverPurchase = null;
     }
     _listeningStore = iap;
-    _onHandoverUnlocked = onHandoverUnlocked;
+    _verifyHandoverPurchase = verifyHandoverPurchase;
     try {
       _purchaseSubscription = iap.purchaseStream.listen(
-        (purchases) => _handlePurchaseUpdates(iap, purchases),
+        (purchases) => unawaited(_handlePurchaseUpdates(iap, purchases)),
         onError: (Object error) {
           logDebug('IAP purchase stream errorType=${error.runtimeType}');
           final completer = _pendingOutcome;
@@ -88,7 +93,7 @@ class PaymentService {
       );
     } catch (error) {
       _listeningStore = null;
-      _onHandoverUnlocked = null;
+      _verifyHandoverPurchase = null;
       logDebug('IAP listener start errorType=${error.runtimeType}');
     }
   }
@@ -98,7 +103,7 @@ class PaymentService {
     final subscription = _purchaseSubscription;
     _purchaseSubscription = null;
     _listeningStore = null;
-    _onHandoverUnlocked = null;
+    _verifyHandoverPurchase = null;
     final pendingOutcome = _pendingOutcome;
     _pendingOutcome = null;
     if (pendingOutcome != null && !pendingOutcome.isCompleted) {
@@ -136,10 +141,10 @@ class PaymentService {
     return product?.price;
   }
 
-  static void _handlePurchaseUpdates(
+  static Future<void> _handlePurchaseUpdates(
     InAppPurchase iap,
     List<PurchaseDetails> purchases,
-  ) {
+  ) async {
     for (final purchase in purchases) {
       if (purchase.productID != handoverProductId) continue;
 
@@ -147,7 +152,7 @@ class PaymentService {
         unawaited(_completePurchaseSafely(iap, purchase));
       }
 
-      final outcome = switch (purchase.status) {
+      var outcome = switch (purchase.status) {
         PurchaseStatus.purchased => PurchaseOutcome.purchased,
         PurchaseStatus.restored => PurchaseOutcome.purchased,
         PurchaseStatus.canceled => PurchaseOutcome.cancelled,
@@ -156,9 +161,13 @@ class PaymentService {
       };
       if (outcome == PurchaseOutcome.purchased) {
         try {
-          _onHandoverUnlocked?.call();
+          final verifier = _verifyHandoverPurchase;
+          if (verifier == null || !await verifier(purchase)) {
+            outcome = PurchaseOutcome.verificationFailed;
+          }
         } catch (error) {
-          logDebug('IAP unlock callback errorType=${error.runtimeType}');
+          logDebug('IAP verification errorType=${error.runtimeType}');
+          outcome = PurchaseOutcome.verificationFailed;
         }
       }
 
@@ -226,14 +235,19 @@ class PaymentService {
         outcome,
         message: outcome == PurchaseOutcome.noPurchasesFound
             ? 'No previous handover purchase was found for this store account.'
-            : outcome == PurchaseOutcome.failed
-                ? 'The store could not restore the purchase.'
-                : null,
+            : outcome == PurchaseOutcome.verificationFailed
+                ? 'A purchase was found, but access could not be verified. '
+                    'Please try again or contact support.'
+                : outcome == PurchaseOutcome.failed
+                    ? 'The store could not restore the purchase.'
+                    : null,
         diagnosticCode: outcome == PurchaseOutcome.noPurchasesFound
             ? 'restore_no_matching_purchase'
-            : outcome == PurchaseOutcome.failed
-                ? 'restore_failed'
-                : null,
+            : outcome == PurchaseOutcome.verificationFailed
+                ? 'restore_verification_failed'
+                : outcome == PurchaseOutcome.failed
+                    ? 'restore_failed'
+                    : null,
       );
     } on PlatformException catch (error) {
       return PurchaseResult(
@@ -306,11 +320,19 @@ class PaymentService {
       final outcome = await _checkout(iap, products.first);
       return PurchaseResult(
         outcome,
-        message: outcome == PurchaseOutcome.failed
-            ? 'The store could not complete the purchase.'
-            : null,
-        diagnosticCode:
-            outcome == PurchaseOutcome.failed ? 'checkout_failed' : null,
+        message: switch (outcome) {
+          PurchaseOutcome.failed =>
+            'The store could not complete the purchase.',
+          PurchaseOutcome.verificationFailed =>
+            'The purchase completed, but access could not be verified. '
+                'Use Restore Purchases or contact support before trying again.',
+          _ => null,
+        },
+        diagnosticCode: switch (outcome) {
+          PurchaseOutcome.failed => 'checkout_failed',
+          PurchaseOutcome.verificationFailed => 'verification_failed',
+          _ => null,
+        },
       );
     } on PlatformException catch (error) {
       return PurchaseResult(
