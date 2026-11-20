@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-app-store-handover]
 verify_jwt = true
+
+[functions.verify-google-play-handover]
+verify_jwt = true

@@ -6,11 +6,11 @@ import 'package:undercroft/services/payment_service.dart';
 
 void main() {
   group('handover invitation gate policy', () {
-    test('production iOS requires a verified entitlement', () {
+    test('production mobile requires a verified entitlement', () {
       expect(
         shouldLockHandoverInvites(
           hasDevTools: false,
-          isIos: true,
+          isMobile: true,
           testGateEnabled: false,
           unlocked: false,
         ),
@@ -19,7 +19,7 @@ void main() {
       expect(
         shouldLockHandoverInvites(
           hasDevTools: false,
-          isIos: true,
+          isMobile: true,
           testGateEnabled: false,
           unlocked: true,
         ),
@@ -27,11 +27,32 @@ void main() {
       );
     });
 
-    test('production Android remains free until Play verification exists', () {
+    test('production Android requires a verified entitlement', () {
       expect(
         shouldLockHandoverInvites(
           hasDevTools: false,
-          isIos: false,
+          isMobile: true,
+          testGateEnabled: false,
+          unlocked: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: false,
+          isMobile: true,
+          testGateEnabled: false,
+          unlocked: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('non-mobile platforms remain free in production', () {
+      expect(
+        shouldLockHandoverInvites(
+          hasDevTools: false,
+          isMobile: false,
           testGateEnabled: true,
           unlocked: false,
         ),
@@ -44,7 +65,7 @@ void main() {
       expect(
         shouldLockHandoverInvites(
           hasDevTools: true,
-          isIos: true,
+          isMobile: true,
           testGateEnabled: false,
           unlocked: false,
         ),
@@ -53,7 +74,7 @@ void main() {
       expect(
         shouldLockHandoverInvites(
           hasDevTools: true,
-          isIos: false,
+          isMobile: true,
           testGateEnabled: true,
           unlocked: false,
         ),

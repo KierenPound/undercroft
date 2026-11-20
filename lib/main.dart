@@ -454,26 +454,51 @@ class _PurchaseStreamHostState extends ConsumerState<_PurchaseStreamHost> {
     unawaited(
       PaymentService.startPurchaseListener(
         verifyHandoverPurchase: (purchase) async {
-          if (purchase.verificationData.source != 'app_store') {
+          final source = purchase.verificationData.source;
+
+          // In dev builds, non-store purchases are treated as a temporary
+          // session unlock. Production Android/iOS go through the server.
+          if (source != 'app_store' && source != 'google_play') {
             if (!devToolsEnabled || !mounted) return false;
             ref.read(sessionInvitesUnlockedProvider.notifier).state = true;
             return true;
           }
 
-          final transactionId = purchase.purchaseID;
-          if (transactionId == null || transactionId.isEmpty) return false;
-
           try {
-            final response = await Supabase.instance.client.functions.invoke(
-              'verify-app-store-handover',
-              body: {'transactionId': transactionId},
-            );
-            final data = response.data;
-            if (response.status < 200 ||
-                response.status >= 300 ||
-                data is! Map ||
-                data['granted'] != true) {
-              return false;
+            if (source == 'app_store') {
+              final transactionId = purchase.purchaseID;
+              if (transactionId == null || transactionId.isEmpty) return false;
+
+              final response =
+                  await Supabase.instance.client.functions.invoke(
+                'verify-app-store-handover',
+                body: {'transactionId': transactionId},
+              );
+              final data = response.data;
+              if (response.status < 200 ||
+                  response.status >= 300 ||
+                  data is! Map ||
+                  data['granted'] != true) {
+                return false;
+              }
+            } else {
+              // google_play: the purchase token lives in serverVerificationData.
+              final purchaseToken =
+                  purchase.verificationData.serverVerificationData;
+              if (purchaseToken.isEmpty) return false;
+
+              final response =
+                  await Supabase.instance.client.functions.invoke(
+                'verify-google-play-handover',
+                body: {'purchaseToken': purchaseToken},
+              );
+              final data = response.data;
+              if (response.status < 200 ||
+                  response.status >= 300 ||
+                  data is! Map ||
+                  data['granted'] != true) {
+                return false;
+              }
             }
 
             if (!mounted) return true;

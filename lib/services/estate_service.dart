@@ -181,15 +181,16 @@ final invitesUnlockedProvider = Provider<bool>((ref) {
 
 /// Whether invitations are currently withheld pending payment.
 ///
-/// Developer builds use the explicit rehearsal toggle. Production iOS builds
-/// use the persisted store entitlement; Android remains free until Play
-/// purchase verification is available.
+/// Developer builds use the explicit rehearsal toggle. Production builds on
+/// iOS and Android use the persisted store entitlement.
 final invitesLockedProvider = Provider<bool>((ref) {
   final gating = ref.watch(testPaymentGateProvider);
   final unlocked = ref.watch(invitesUnlockedProvider);
   return shouldLockHandoverInvites(
     hasDevTools: devToolsEnabled,
-    isIos: !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS,
+    isMobile: !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android),
     testGateEnabled: gating,
     unlocked: unlocked,
   );
@@ -197,12 +198,12 @@ final invitesLockedProvider = Provider<bool>((ref) {
 
 bool shouldLockHandoverInvites({
   required bool hasDevTools,
-  required bool isIos,
+  required bool isMobile,
   required bool testGateEnabled,
   required bool unlocked,
 }) {
   if (hasDevTools) return testGateEnabled && !unlocked;
-  return isIos && !unlocked;
+  return isMobile && !unlocked;
 }
 
 /// Whether the current user should be treated as an estate owner.
