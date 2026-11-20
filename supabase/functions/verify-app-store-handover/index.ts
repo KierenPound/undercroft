@@ -4,12 +4,12 @@ const PRODUCT_ID = "com.kierenpound.undercroft.handover";
 const BUNDLE_ID = "com.kierenpound.undercroft";
 const APPLE_HOSTS = [
   {
-    baseUrl: "https://api.storekit.itunes.apple.com",
-    environment: "Production",
-  },
-  {
     baseUrl: "https://api.storekit-sandbox.itunes.apple.com",
     environment: "Sandbox",
+  },
+  {
+    baseUrl: "https://api.storekit.itunes.apple.com",
+    environment: "Production",
   },
 ] as const;
 
@@ -131,7 +131,27 @@ async function fetchAppleTransaction(
     );
     if (response.status === 404) continue;
     if (!response.ok) {
-      console.error(`Apple transaction lookup failed (${response.status})`);
+      let errorCode = "unavailable";
+      let errorMessage = "unavailable";
+      try {
+        const errorBody = await response.json();
+        const value = errorBody?.errorCode;
+        if (typeof value === "number" || typeof value === "string") {
+          errorCode = String(value).slice(0, 32);
+        }
+        const message = errorBody?.errorMessage ?? errorBody?.message ??
+          errorBody?.error;
+        if (typeof message === "string") {
+          errorMessage = message.replace(/\s+/g, " ").slice(0, 120);
+        }
+      } catch {
+        errorMessage = "non_json_response";
+      }
+      console.error(
+        `Apple transaction lookup failed (environment=${apple.environment}, status=${response.status}, contentType=${
+          response.headers.get("content-type") ?? "unknown"
+        }, errorCode=${errorCode}, errorMessage=${errorMessage})`,
+      );
       throw new HttpError(502, "Could not verify the App Store purchase");
     }
 
