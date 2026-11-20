@@ -32,8 +32,12 @@ create table if not exists public.support_tickets (
 alter table public.support_tickets enable row level security;
 
 -- Table-level privileges for the roles that insert into this table. The
--- Cloudflare Worker uses service_role; the app/pubnlic form uses anon.
-grant insert on public.support_tickets to service_role, anon, authenticated;
+-- Cloudflare Worker uses service_role; the app/public form uses anon.
+-- service_role also reads tickets server-side, so it gets full access plus
+-- the identity sequence (required after the Oct 30 default-privilege change).
+grant insert on public.support_tickets to anon, authenticated;
+grant all on public.support_tickets to service_role;
+grant usage, select on all sequences in schema public to service_role;
 
 drop policy if exists "Anyone can submit a support ticket" on public.support_tickets;
 create policy "Anyone can submit a support ticket"

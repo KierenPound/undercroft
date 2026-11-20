@@ -28,6 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_about_you_estate_id
 
 GRANT ALL ON public.about_you TO authenticated;
 GRANT SELECT ON public.about_you TO anon;
+GRANT ALL ON public.about_you TO service_role;
 
 ALTER TABLE public.about_you ENABLE ROW LEVEL SECURITY;
 

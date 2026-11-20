@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_utility_details_estate_id
 
 GRANT ALL ON public.utility_details TO authenticated;
 GRANT SELECT ON public.utility_details TO anon;
+GRANT ALL ON public.utility_details TO service_role;
 
 ALTER TABLE public.utility_details ENABLE ROW LEVEL SECURITY;
 

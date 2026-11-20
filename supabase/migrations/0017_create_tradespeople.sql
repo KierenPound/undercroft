@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_tradespeople_estate_id
 
 GRANT ALL ON public.tradespeople TO authenticated;
 GRANT SELECT ON public.tradespeople TO anon;
+GRANT ALL ON public.tradespeople TO service_role;
 
 ALTER TABLE public.tradespeople ENABLE ROW LEVEL SECURITY;
 

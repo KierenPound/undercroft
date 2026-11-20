@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_contacts_estate_id
 
 GRANT ALL ON public.contacts TO authenticated;
 GRANT SELECT ON public.contacts TO anon;
+GRANT ALL ON public.contacts TO service_role;
 
 ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
 

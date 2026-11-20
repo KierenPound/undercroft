@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_funeral_arrangements_estate_id
 
 GRANT ALL ON public.funeral_arrangements TO authenticated;
 GRANT SELECT ON public.funeral_arrangements TO anon;
+GRANT ALL ON public.funeral_arrangements TO service_role;
 
 ALTER TABLE public.funeral_arrangements ENABLE ROW LEVEL SECURITY;
 

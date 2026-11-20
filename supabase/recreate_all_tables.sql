@@ -399,6 +399,23 @@ GRANT ALL ON public.sections TO authenticated;
 GRANT ALL ON public.checklist_items TO authenticated;
 GRANT ALL ON public.attachments TO authenticated;
 
+-- service_role (used by edge functions / PostgREST service calls) needs
+-- explicit grants after the October 30 default-privilege change.
+GRANT ALL ON public.estates TO service_role;
+GRANT ALL ON public.estate_access TO service_role;
+GRANT ALL ON public.documents TO service_role;
+GRANT ALL ON public.who_to_notify TO service_role;
+GRANT ALL ON public.notify_account_details TO service_role;
+GRANT ALL ON public.funeral_arrangements TO service_role;
+GRANT ALL ON public.about_you TO service_role;
+GRANT ALL ON public.ad_hoc_data TO service_role;
+GRANT ALL ON public.contacts TO service_role;
+GRANT ALL ON public.tradespeople TO service_role;
+GRANT ALL ON public.utility_details TO service_role;
+GRANT ALL ON public.sections TO service_role;
+GRANT ALL ON public.checklist_items TO service_role;
+GRANT ALL ON public.attachments TO service_role;
+
 GRANT SELECT ON public.estates TO anon;
 -- estate_access is deliberately not granted to anon: the only rows an
 -- anonymous caller could reach were pending invites, which exposed invite_code
@@ -417,7 +434,7 @@ GRANT SELECT ON public.sections TO anon;
 GRANT SELECT ON public.checklist_items TO anon;
 GRANT SELECT ON public.attachments TO anon;
 
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 5. ROW LEVEL SECURITY (RLS) ENABLEMENT

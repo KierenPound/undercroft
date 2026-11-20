@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_ad_hoc_data_estate_id
 
 GRANT ALL ON public.ad_hoc_data TO authenticated;
 GRANT SELECT ON public.ad_hoc_data TO anon;
+GRANT ALL ON public.ad_hoc_data TO service_role;
 
 ALTER TABLE public.ad_hoc_data ENABLE ROW LEVEL SECURITY;
 
