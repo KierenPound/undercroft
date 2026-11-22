@@ -1,6 +1,7 @@
 #!/usr/bin/env zsh
 #
-# Build and install UnderCroft on a cable-connected device.
+# Build and install UnderCroft on a cable-connected device, or build the
+# Android App Bundle for Play Store upload.
 #
 # Run this from Terminal.app rather than the IDE: signing the iOS build needs
 # your login keychain, which the IDE's sandboxed agents cannot reach.
@@ -9,7 +10,12 @@
 #
 #   --beta   include ENABLE_DEV_TOOLS=true, so the Developer tools section and
 #            the "Beta build" marker appear. Omit it to sanity-check the build
-#            exactly as an App Store release will behave.
+#            exactly as an App Store / Play Store release will behave.
+#
+# The menu offers:
+#   1) iOS          — build ipa-equivalent and install onto a cabled iPhone/iPad
+#   2) Android APK  — build release APK and install onto a cabled Android phone
+#   3) Android AAB  — build the signed App Bundle for Play Console upload
 
 set -euo pipefail
 
@@ -75,16 +81,18 @@ else
 fi
 
 echo "UnderCroft deploy"
-echo "  1) iOS     (iPhone / iPad on the cable)"
-echo "  2) Android (phone on the cable)"
-printf "Choose 1 or 2: "
+echo "  1) iOS         (iPhone / iPad on the cable)"
+echo "  2) Android APK (install onto a phone on the cable)"
+echo "  3) Android AAB (build the Play Store upload bundle)"
+printf "Choose 1, 2 or 3: "
 read -r choice
 
 case "$choice" in
   1) platform="ios" ;;
   2) platform="android" ;;
+  3) platform="android-aab" ;;
   *)
-    echo "Please choose 1 or 2." >&2
+    echo "Please choose 1, 2 or 3." >&2
     exit 1
     ;;
 esac
@@ -150,6 +158,21 @@ for device in devices:
     build/ios/iphoneos/Runner.app
 
   echo "Done. A free Apple ID install stops working after 7 days — just re-run this."
+elif [[ "$platform" == "android-aab" ]]; then
+  # Play Store upload build. No device needed — just produce the signed AAB.
+  if [[ ! -f android/key.properties ]]; then
+    echo "Android release signing is not configured." >&2
+    echo "Follow android/RELEASE_SIGNING.md before building a release bundle." >&2
+    exit 1
+  fi
+
+  echo "Building Android App Bundle for Play Store..."
+  flutter build appbundle --release "${defines[@]}"
+
+  aab="build/app/outputs/bundle/release/app-release.aab"
+  echo ""
+  echo "Done. Upload this to Play Console (Internal testing track):"
+  echo "  $aab"
 else
   # `|| true` for the same reason as the iOS branch: an adb hiccup should reach
   # the message below rather than killing the script silently.
