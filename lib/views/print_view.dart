@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/estate_print_service.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 
-const Color _sage = Color(0xFF5B7C6A);
 const Color _ink = Color(0xFF2C2C2E);
 const Color _muted = Color(0xFF6B6B70);
 
@@ -64,15 +64,8 @@ class _PrintViewState extends ConsumerState<PrintView> {
         surfaceTintColor: Colors.transparent,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF5F1E8),
-              Color(0xFFEDE6D6),
-            ],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -116,18 +109,24 @@ class _WarningCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _sage.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: AppPalette.of(context).accent.withValues(alpha: 0.35),
+        ),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.lock_outline, color: _sage, size: 22),
-              SizedBox(width: 10),
-              Text(
+              Icon(
+                Icons.lock_outline,
+                color: AppPalette.of(context).accent,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              const Text(
                 'Your data stays in the cloud',
                 style: TextStyle(
                   fontSize: 16,
@@ -137,15 +136,15 @@ class _WarningCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 12),
-          Text(
+          const SizedBox(height: 12),
+          const Text(
             'UnderCroft data is stored securely in the cloud, and you can '
             'always access it from the app on any mobile device when you '
             'login. If you need to print out the data, please keep it safe.',
             style: TextStyle(fontSize: 15, height: 1.4, color: _ink),
           ),
-          SizedBox(height: 12),
-          Text(
+          const SizedBox(height: 12),
+          const Text(
             'Printed copies list your saved text and steps only. Uploaded '
             'documents such as wills, certificates and photos are not '
             'included.',

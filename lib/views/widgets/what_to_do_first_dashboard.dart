@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/attachment.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+import '../../theme/app_palette.dart';
 import '../biometric_lock_gate.dart';
 import 'attachments_section.dart';
 import 'photo_section.dart';
@@ -713,7 +714,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
   Widget _card({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),

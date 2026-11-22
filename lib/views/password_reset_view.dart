@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/photo_cache_service.dart';
 import '../services/supabase_service.dart';
+import '../theme/app_palette.dart';
 
 /// Password reset screen.
 ///
@@ -159,12 +160,8 @@ class _PasswordResetViewState extends State<PasswordResetView> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: SafeArea(
           child: Center(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 import 'my_letter_view.dart';
 import 'widgets/attachments_section.dart';
 import 'widgets/cars_dashboard.dart';
@@ -140,12 +141,8 @@ class SectionDetailView extends ConsumerWidget {
             ],
           ),
           body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-              ),
+            decoration: BoxDecoration(
+              gradient: AppPalette.of(context).backgroundGradient,
             ),
             child: asyncSection.when(
               loading: () => const Center(child: CircularProgressIndicator()),

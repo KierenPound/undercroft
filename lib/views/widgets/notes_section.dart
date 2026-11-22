@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../repositories/sections_repository.dart';
+import '../../theme/app_palette.dart';
 
 class NotesSection extends ConsumerStatefulWidget {
   final String sectionId;
@@ -155,7 +156,7 @@ class _NotesSectionState extends ConsumerState<NotesSection>
   Widget _buildNotesEditor() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),

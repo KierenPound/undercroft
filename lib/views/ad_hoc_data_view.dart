@@ -6,6 +6,7 @@ import '../models/ad_hoc_data.dart';
 import '../repositories/ad_hoc_data_repository.dart';
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 import 'widgets/attachments_section.dart';
 
 /// Ad Hoc Data: a free-form list of user-defined records so anything the
@@ -83,12 +84,8 @@ class _AdHocDataViewState extends ConsumerState<AdHocDataView> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: asyncEstateId.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -186,7 +183,7 @@ class _Intro extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -253,7 +250,7 @@ class _EmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),

@@ -13,6 +13,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/prep_section.dart';
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 import 'biometric_lock_gate.dart';
 
 /// A single track in My Songs.
@@ -511,12 +512,8 @@ class MySongsView extends ConsumerWidget {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: SafeArea(
           child: Padding(

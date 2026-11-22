@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/biometric_lock_service.dart';
+import '../theme/app_palette.dart';
 
 /// Covers the whole app with a lock screen when it has been in the background
 /// for longer than [gracePeriod].
@@ -211,7 +212,7 @@ class _BiometricLockGateState extends State<BiometricLockGate>
     // Until the preference has loaded, show a blank cover rather than the
     // dashboard, so records are never briefly visible on a cold start.
     if (!_ready) {
-      return const ColoredBox(color: Color(0xFFF5F1E8));
+      return ColoredBox(color: AppPalette.of(context).backgroundTop);
     }
 
     return Stack(
@@ -263,24 +264,17 @@ class _LockOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFF5F1E8),
-            Color(0xFFEDE6D6),
-          ],
-        ),
+      decoration: BoxDecoration(
+        gradient: AppPalette.of(context).backgroundGradient,
       ),
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.lock_outline,
             size: 44,
-            color: Color(0xFF5B7C6A),
+            color: AppPalette.of(context).accent,
           ),
           const SizedBox(height: 20),
           const Text(
@@ -307,7 +301,7 @@ class _LockOverlay extends StatelessWidget {
                 TextButton(
                   onPressed: signingOut ? null : onCancelSignOut,
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF5B7C6A),
+                    foregroundColor: AppPalette.of(context).accent,
                   ),
                   child: const Text('Cancel'),
                 ),
@@ -315,7 +309,7 @@ class _LockOverlay extends StatelessWidget {
                 FilledButton(
                   onPressed: signingOut ? null : onConfirmSignOut,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF5B7C6A),
+                    backgroundColor: AppPalette.of(context).accent,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 28,
                       vertical: 14,
@@ -344,7 +338,7 @@ class _LockOverlay extends StatelessWidget {
             FilledButton.icon(
               onPressed: prompting ? null : onUnlock,
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF5B7C6A),
+                backgroundColor: AppPalette.of(context).accent,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
                   vertical: 14,
@@ -368,7 +362,7 @@ class _LockOverlay extends StatelessWidget {
             TextButton(
               onPressed: (prompting || signingOut) ? null : onRequestSignOut,
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF5B7C6A),
+                foregroundColor: AppPalette.of(context).accent,
               ),
               child: const Text('Sign out'),
             ),

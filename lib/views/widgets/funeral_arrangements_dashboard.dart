@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/funeral_arrangement.dart';
 import '../../repositories/funeral_arrangements_repository.dart';
+import '../../theme/app_palette.dart';
 
 /// Funeral Arrangements rich-content dashboard.
 ///
@@ -172,7 +173,7 @@ class _EmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -391,7 +392,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade200),
           ),

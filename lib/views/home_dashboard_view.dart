@@ -5,19 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/estate_service.dart';
 import '../services/photo_cache_service.dart';
+import '../theme/app_palette.dart';
 import 'print_view.dart';
 
 class HomeDashboardView extends ConsumerWidget {
   const HomeDashboardView({super.key});
 
   /// Shown above the rest, and only to owners — the readiness summary is
-  /// owner-facing.
-  static const _SectionItem _readinessSection = _SectionItem(
-    title: 'Readiness',
-    icon: Icons.fact_check_outlined,
-    color: Color(0xFF5B7C6A),
-  );
-
+  /// owner-facing. Tinted with the selected scheme's accent.
   static const List<_SectionItem> _sections = [
     _SectionItem(
       title: 'My Letter to You',
@@ -81,7 +76,12 @@ class HomeDashboardView extends ConsumerWidget {
     final isOwner = ref.watch(isOwnerProvider).valueOrNull ?? false;
 
     final sections = [
-      if (isOwner) _readinessSection,
+      if (isOwner)
+        _SectionItem(
+          title: 'Readiness',
+          icon: Icons.fact_check_outlined,
+          color: AppPalette.of(context).accent,
+        ),
       ..._sections,
     ];
 
@@ -115,15 +115,8 @@ class HomeDashboardView extends ConsumerWidget {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF5F1E8),
-              Color(0xFFEDE6D6),
-            ],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: ListView.separated(
           padding: const EdgeInsets.all(16),
@@ -183,7 +176,7 @@ class _SectionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppPalette.of(context).cardSurface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),

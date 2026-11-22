@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 import '../repositories/sections_repository.dart';
 import '../services/estate_service.dart';
 import '../services/video_compression_service.dart';
+import '../theme/app_palette.dart';
 import 'biometric_lock_gate.dart';
 
 /// "My Letter to You" — a full-page letter the estate owner writes to their
@@ -82,12 +83,8 @@ class MyLetterView extends ConsumerWidget {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: SafeArea(
           child: LayoutBuilder(
@@ -250,7 +247,7 @@ class _LetterEditorState extends ConsumerState<_LetterEditor>
   Widget _buildLetterBox() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
@@ -519,7 +516,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [

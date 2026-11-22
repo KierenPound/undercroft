@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/tradesperson.dart';
 import '../../repositories/tradespeople_repository.dart';
+import '../../theme/app_palette.dart';
 
 /// Tradespeople: the trades the estate relies on — gas, electric, drains and
 /// so on — listed on the Running the House page.
@@ -61,7 +62,7 @@ class TradespeopleSection extends ConsumerWidget {
             if (tradespeople.isEmpty) return const _EmptyCard();
             return Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.grey.shade200),
               ),
@@ -166,7 +167,7 @@ class _EmptyCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),

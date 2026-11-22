@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/utility_detail.dart';
 import '../../repositories/utility_details_repository.dart';
+import '../../theme/app_palette.dart';
 import '../biometric_lock_gate.dart';
 
 /// One utility card on the Running the House page — Gas meter, Electric meter
@@ -245,7 +246,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
   Widget _card({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),

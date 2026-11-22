@@ -8,6 +8,7 @@ import '../models/who_to_notify.dart';
 import '../repositories/sections_repository.dart';
 import '../repositories/who_to_notify_repository.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 import 'widgets/attachments_section.dart';
 import 'widgets/checklist_section.dart';
 import 'widgets/contacts_section.dart';
@@ -83,12 +84,8 @@ class WhoToNotifyListView extends ConsumerWidget {
             ],
           ),
           body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-              ),
+            decoration: BoxDecoration(
+              gradient: AppPalette.of(context).backgroundGradient,
             ),
             child: asyncSection.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -374,7 +371,7 @@ class _LifeLedgerCallout extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -509,7 +506,7 @@ class _StaticOrgCard extends StatelessWidget {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade200),
           ),
@@ -635,7 +632,7 @@ class _AppleAccountInstructions extends StatelessWidget {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.grey.shade200),
           ),

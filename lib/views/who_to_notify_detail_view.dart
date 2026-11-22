@@ -7,6 +7,7 @@ import '../models/notify_account_details.dart';
 import '../models/who_to_notify.dart';
 import '../repositories/who_to_notify_repository.dart';
 import '../services/estate_service.dart';
+import '../theme/app_palette.dart';
 import 'who_to_notify_list_view.dart';
 
 final accountDetailsProvider = FutureProvider.autoDispose
@@ -148,12 +149,8 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
         surfaceTintColor: Colors.transparent,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: asyncEntry.when(
           loading: () => const Center(child: CircularProgressIndicator()),

@@ -13,6 +13,8 @@ import '../services/crash_reporting_service.dart';
 import '../services/estate_service.dart';
 import '../services/invite_print_service.dart';
 import '../services/payment_service.dart';
+import '../theme/app_palette.dart';
+import '../theme/theme_controller.dart';
 import '../utils/log.dart';
 import 'widgets/about_you_section.dart';
 
@@ -521,6 +523,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final invitesLocked = ref.watch(invitesLockedProvider);
     final testPaymentGate = ref.watch(testPaymentGateProvider);
 
+    // The colour scheme running right now on this device.
+    final selectedPalette = ref.watch(appPaletteProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -528,15 +533,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         surfaceTintColor: Colors.transparent,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF5F1E8),
-              Color(0xFFEDE6D6),
-            ],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: ListView(
           // The bottom of the screen is where Android draws its own back/home/
@@ -563,9 +561,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.alternate_email,
-                        color: Color(0xFF5B7C6A),
+                        color: AppPalette.of(context).accent,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -600,9 +598,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.home_outlined,
-                        color: Color(0xFF5B7C6A),
+                        color: AppPalette.of(context).accent,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -619,7 +617,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         IconButton(
                           onPressed: () => _renameEstate(estateName),
                           icon: const Icon(Icons.edit_outlined, size: 20),
-                          color: const Color(0xFF5B7C6A),
+                          color: AppPalette.of(context).accent,
                           tooltip: 'Rename estate',
                         ),
                     ],
@@ -736,7 +734,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       Icon(
                         isOwner ? Icons.shield : Icons.person,
                         color: isOwner
-                            ? const Color(0xFF5B7C6A)
+                            ? AppPalette.of(context).accent
                             : const Color(0xFFE08A2C),
                         size: 22,
                       ),
@@ -813,6 +811,39 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             ),
                           ],
                         ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Appearance — a per-device preference, so it sits with the other
+            // device-level settings rather than the estate data above.
+            _SectionCard(
+              title: 'Appearance',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Choose the colours UnderCroft uses on this device. '
+                    'Anyone with access to the estate can pick their own.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      for (final palette in AppPalette.choices)
+                        _PaletteChoice(
+                          palette: palette,
+                          selected: palette.id == selectedPalette.id,
+                          onTap: () => ref
+                              .read(appPaletteProvider.notifier)
+                              .select(palette),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
             if (isActualOwner) ...[
@@ -1020,7 +1051,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF5B7C6A),
+                          color: AppPalette.of(context).accent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Column(
@@ -1617,6 +1648,93 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
+/// One colour scheme option in the Appearance card.
+///
+/// Each option previews itself: the mini gradient is the scheme's background,
+/// with the accent and card colours shown as swatches on top.
+class _PaletteChoice extends StatelessWidget {
+  final AppPalette palette;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PaletteChoice({
+    required this.palette,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: palette.cardSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? palette.accent : Colors.black12,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: palette.backgroundGradient,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _swatch(palette.accent),
+                  const SizedBox(width: 6),
+                  _swatch(palette.cardSurface),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (selected) ...[
+                  Icon(Icons.check, size: 14, color: palette.accent),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  palette.name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        selected ? FontWeight.w600 : FontWeight.w400,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _swatch(Color color) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black12),
+      ),
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -1627,7 +1745,7 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(

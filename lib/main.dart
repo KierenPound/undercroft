@@ -14,6 +14,7 @@ import 'services/introduction_service.dart';
 import 'services/payment_service.dart';
 import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'utils/log.dart';
 import 'views/ad_hoc_data_view.dart';
 import 'views/auth_view.dart';
@@ -524,15 +525,19 @@ class _PurchaseStreamHostState extends ConsumerState<_PurchaseStreamHost> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class UnderCroftApp extends StatelessWidget {
+class UnderCroftApp extends ConsumerWidget {
   const UnderCroftApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The chosen colour scheme drives the whole app, so a change in Settings
+    // repaints everything without a restart.
+    final palette = ref.watch(appPaletteProvider);
+
     return MaterialApp.router(
       title: 'UnderCroft',
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(palette),
+      darkTheme: AppTheme.dark(palette),
       themeMode: ThemeMode.light,
       routerConfig: _router,
       // Sits above the router so the lock screen covers every route without

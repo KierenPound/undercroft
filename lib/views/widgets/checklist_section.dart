@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/checklist_item.dart';
 import '../../repositories/sections_repository.dart';
+import '../../theme/app_palette.dart';
 
 final checklistItemsProvider = FutureProvider.autoDispose
     .family<List<ChecklistItem>, String>((ref, sectionId) async {
@@ -239,7 +240,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -290,7 +291,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),

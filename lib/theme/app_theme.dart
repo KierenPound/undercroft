@@ -1,26 +1,38 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'app_palette.dart';
+
 class AppTheme {
-  static ThemeData light() {
+  /// The light theme for [palette].
+  ///
+  /// The accent seeds the Material colour scheme, and the palette itself is
+  /// registered as an extension so screens can reach the background gradient
+  /// and card surface without any widget needing to know which scheme is on.
+  static ThemeData light([AppPalette palette = AppPalette.fallback]) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF5B7C6A),
+      seedColor: palette.accent,
       brightness: Brightness.light,
     );
     return ThemeData(
       colorScheme: colorScheme,
       switchTheme: _switchTheme(colorScheme),
+      extensions: [palette],
       useMaterial3: true,
     );
   }
 
-  static ThemeData dark() {
+  /// Retained for the platform dark theme. UnderCroft currently ships light
+  /// schemes only; this keeps following the palette accent so the two stay in
+  /// step if a dark scheme is offered later.
+  static ThemeData dark([AppPalette palette = AppPalette.fallback]) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF5B7C6A),
+      seedColor: palette.accent,
       brightness: Brightness.dark,
     );
     return ThemeData(
       colorScheme: colorScheme,
       switchTheme: _switchTheme(colorScheme),
+      extensions: [palette],
       useMaterial3: true,
     );
   }

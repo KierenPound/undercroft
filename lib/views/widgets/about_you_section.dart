@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/about_you.dart';
 import '../../repositories/about_you_repository.dart';
+import '../../theme/app_palette.dart';
 import '../biometric_lock_gate.dart';
 
 /// Uppercases as the user types, so an NI number reads the same way it is
@@ -95,8 +96,8 @@ class AboutYouSection extends ConsumerWidget {
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Add owner'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF5B7C6A),
-                    side: const BorderSide(color: Color(0xFF5B7C6A)),
+                    foregroundColor: AppPalette.of(context).accent,
+                    side: BorderSide(color: AppPalette.of(context).accent),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -186,8 +187,6 @@ class _AboutYouCard extends ConsumerStatefulWidget {
 
 class _AboutYouCardState extends ConsumerState<_AboutYouCard>
     with WidgetsBindingObserver {
-  static const Color tint = Color(0xFF5B7C6A);
-
   late TextEditingController _nameController;
   late TextEditingController _niController;
   late TextEditingController _chiController;
@@ -418,10 +417,10 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.14),
+                  color: AppPalette.of(context).accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: const Icon(Icons.badge_outlined, color: tint, size: 18),
+                child: Icon(Icons.badge_outlined, color: AppPalette.of(context).accent, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -536,7 +535,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
                 : (widget.isOwner && !_busy ? () => _pickDocument(doc) : null),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.grey.shade200),
               ),
@@ -654,7 +653,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: tint, width: 1.5),
+              borderSide: BorderSide(color: AppPalette.of(context).accent, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/contact.dart';
 import '../../repositories/contacts_repository.dart';
+import '../../theme/app_palette.dart';
 
 /// Contacts: the individual people to notify (family, friends, GP, solicitor),
 /// listed above the organisation entries on the Who to Notify page.
@@ -84,7 +85,7 @@ class _ContactsSectionState extends ConsumerState<ContactsSection> {
             if (contacts.isEmpty && draft == null) return const _EmptyCard();
             return Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.grey.shade200),
               ),
@@ -184,7 +185,7 @@ class _EmptyCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
       ),

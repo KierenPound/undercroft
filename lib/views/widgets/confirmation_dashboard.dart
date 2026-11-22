@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/prep_section.dart';
 import '../../repositories/sections_repository.dart';
 import '../../services/estate_service.dart';
+import '../../theme/app_palette.dart';
 
 final _legalDocumentsConfig = sectionConfigByTitle('Legal Documents')!;
 
@@ -82,17 +83,6 @@ class ConfirmationDashboard extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _card({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: child,
     );
   }
 
@@ -301,7 +291,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -375,7 +365,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -454,7 +444,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -583,7 +573,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -690,7 +680,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -769,7 +759,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -841,7 +831,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -972,7 +962,7 @@ class ConfirmationDashboard extends ConsumerWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1066,6 +1056,26 @@ class ConfirmationDashboard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Rounded surface used for the dashboard's content blocks, tinted by the
+/// selected colour scheme.
+class _Card extends StatelessWidget {
+  final Widget child;
+
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppPalette.of(context).cardSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: child,
     );
   }
 }

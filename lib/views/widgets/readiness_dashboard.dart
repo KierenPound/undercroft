@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/estate_service.dart';
+import '../../theme/app_palette.dart';
 
 /// Green when a readiness step is met, orange while it is still outstanding.
 const _metColor = Color(0xFF3A8D5A);
@@ -80,7 +81,7 @@ class ReadinessDashboard extends ConsumerWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.grey.shade200),
           ),
@@ -152,7 +153,7 @@ class _EstateReviewCheckInState extends ConsumerState<_EstateReviewCheckIn> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),

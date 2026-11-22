@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/supabase_service.dart';
+import '../theme/app_palette.dart';
 import '../utils/log.dart';
 
 class AuthView extends StatefulWidget {
@@ -205,9 +206,9 @@ class _AuthViewState extends State<AuthView> {
     // The first-run check is still in flight. Hold the form back for that
     // moment so the tab never flashes the wrong way round.
     if (screenMode == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F1E8),
-        body: Center(
+      return Scaffold(
+        backgroundColor: AppPalette.of(context).backgroundTop,
+        body: const Center(
           child: CircularProgressIndicator(color: Color(0xFF3A8D5A)),
         ),
       );
@@ -216,12 +217,8 @@ class _AuthViewState extends State<AuthView> {
     if (screenMode == _AuthScreenMode.intro) {
       return Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-            ),
+          decoration: BoxDecoration(
+            gradient: AppPalette.of(context).backgroundGradient,
           ),
           child: SafeArea(
             child: Center(
@@ -329,12 +326,8 @@ class _AuthViewState extends State<AuthView> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F1E8), Color(0xFFEDE6D6)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppPalette.of(context).backgroundGradient,
         ),
         child: SafeArea(
           child: Center(

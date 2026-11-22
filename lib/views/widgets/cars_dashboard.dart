@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../services/estate_service.dart';
+import '../../theme/app_palette.dart';
 
 /// Cars rich-content dashboard.
 ///
@@ -57,17 +58,6 @@ class CarsDashboard extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _card({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: child,
     );
   }
 
@@ -252,7 +242,7 @@ class CarsDashboard extends StatelessWidget {
           tint: tint,
         ),
         const SizedBox(height: 14),
-        _card(
+        _Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -407,6 +397,26 @@ class CarsDashboard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Rounded surface used for the dashboard's content blocks, tinted by the
+/// selected colour scheme.
+class _Card extends StatelessWidget {
+  final Widget child;
+
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppPalette.of(context).cardSurface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: child,
     );
   }
 }
