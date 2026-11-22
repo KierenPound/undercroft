@@ -358,10 +358,10 @@ class _LegalDocumentsDashboardState
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -374,7 +374,7 @@ class _LegalDocumentsDashboardState
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: child,
     );
@@ -407,7 +407,7 @@ class _LegalDocumentsDashboardState
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -444,7 +444,7 @@ class _LegalDocumentsDashboardState
               onChanged: (_) => _scheduleSave(),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                hintStyle: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 border: InputBorder.none,
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
@@ -453,7 +453,7 @@ class _LegalDocumentsDashboardState
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: tint,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -502,13 +502,13 @@ class _LegalDocumentsDashboardState
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
-                        style: const TextStyle(
-                            fontSize: 15, color: Color(0xFF2C2C2E)),
+                        style: TextStyle(
+                            fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                       )
                     : Text(
                         _effectiveIntro,
-                        style: const TextStyle(
-                            fontSize: 15, color: Color(0xFF2C2C2E)),
+                        style: TextStyle(
+                            fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                       ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
@@ -651,7 +651,7 @@ class _LegalDocumentsDashboardState
         _sectionHeader(
           title: 'Title Deeds',
           icon: Icons.house_rounded,
-          tint: Colors.brown,
+          tint: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         const SizedBox(height: 14),
         _card(
@@ -663,7 +663,7 @@ class _LegalDocumentsDashboardState
                 Text(
                   introText,
                   style:
-                      const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                      TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
@@ -671,13 +671,13 @@ class _LegalDocumentsDashboardState
                 _tipRow(
                   'Tap any card below to open and read the full Land '
                   'Registry PDF.',
-                  Colors.brown,
+                  Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 12),
                 _buildPdfGrid(
                   attachments: deeds,
                   maxCount: _maxDeeds,
-                  tint: Colors.brown,
+                  tint: Theme.of(context).colorScheme.onSurfaceVariant,
                   emptyOwnerText: 'Upload up to $_maxDeeds Title Deed PDFs.',
                   emptyViewerText: 'No Title Deed PDFs uploaded yet.',
                   addLabel: 'Add Title Deed PDFs',
@@ -707,7 +707,7 @@ class _LegalDocumentsDashboardState
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: tint,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -718,12 +718,12 @@ class _LegalDocumentsDashboardState
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.lightbulb, size: 14, color: Colors.amber.shade700),
+        Icon(Icons.lightbulb, size: 14, color: Colors.amber),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
       ],
@@ -749,19 +749,19 @@ class _LegalDocumentsDashboardState
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Column(
               children: [
                 Icon(Icons.picture_as_pdf,
-                    size: 36, color: Colors.grey.shade300),
+                    size: 36, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text(
                   widget.isOwner ? emptyOwnerText : emptyViewerText,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -876,10 +876,10 @@ class _LegalDocumentsDashboardState
           displayName,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2C2C2E),
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
@@ -981,7 +981,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
         title: Text(
           widget.attachment.fileName
               .replaceFirst(RegExp(r'^(will|codicil|deed)_\d+_'), ''),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
       body: _loading
@@ -992,7 +992,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       'Failed to load PDF: $_error',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1067,7 +1067,7 @@ class _PdfThumbnailState extends State<_PdfThumbnail> {
   Widget build(BuildContext context) {
     if (_failed || _imageBytes == null) {
       return Container(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: const Center(
           child: Icon(Icons.picture_as_pdf, size: 48, color: Colors.orange),
         ),

@@ -557,11 +557,11 @@ class _ReadOnlyBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade600),
+        Icon(Icons.lock_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 6),
         Text(
           'Read-only — only the estate owner can edit this playlist.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -1066,7 +1066,22 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
         }
 
         if (_tracks.isEmpty) {
-          return const Center(child: Text('No songs available.'));
+          // _activeCsv stays empty until the first sync completes. A post-frame
+          // callback kicks off the sync, so there is a brief window where the
+          // section data has loaded but the tracks have not been parsed yet.
+          // Show a loader then; the empty message only applies after a sync
+          // that genuinely produced no tracks.
+          if (_activeCsv.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return Center(
+            child: Text(
+              'No songs available.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          );
         }
 
         return ListView(
@@ -1099,12 +1114,12 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               child: Icon(Icons.music_note, color: accent, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'My Songs',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -1151,9 +1166,9 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                     const Spacer(),
                     Text(
                       '${_currentIndex + 1} / ${_tracks.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -1161,10 +1176,10 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                 const SizedBox(height: 6),
                 Text(
                   _currentTrack.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1174,7 +1189,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                   _currentTrack.artist,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade700,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1189,7 +1204,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                         tooltip: _shuffleOn ? 'Shuffle: On' : 'Shuffle: Off',
                         icon: Icon(
                           Icons.shuffle_rounded,
-                          color: _shuffleOn ? accent : Colors.grey,
+                          color: _shuffleOn ? accent : Theme.of(context).colorScheme.onSurfaceVariant,
                           size: 26,
                         ),
                         style: _shuffleOn
@@ -1278,24 +1293,24 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                   child: Icon(Icons.upload_file, color: accent, size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Playlist CSV',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Choose a CSV file whose columns are: You Tube video id, Song Title, Artist.',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
                 height: 1.4,
               ),
             ),
@@ -1304,7 +1319,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               'Uploading a file replaces the current list of tracks with the contents of that CSV.',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                 height: 1.4,
               ),
             ),
@@ -1394,12 +1409,12 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
               child: Icon(Icons.list_alt, color: accent, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Playlist',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const Spacer(),
@@ -1470,7 +1485,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
-                    color: const Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1483,7 +1498,7 @@ class _MySongsBodyState extends ConsumerState<_MySongsBody> {
                           : 'Track ${index + 1}'),
                   style: TextStyle(
                     fontSize: 11,
-                    color: isCurrent ? accent : Colors.grey,
+                    color: isCurrent ? accent : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

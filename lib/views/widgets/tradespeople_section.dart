@@ -48,7 +48,7 @@ class TradespeopleSection extends ConsumerWidget {
           error: (error, _) => Center(
             child: Column(
               children: [
-                const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text('Error: $error', textAlign: TextAlign.center),
                 TextButton(
@@ -64,12 +64,12 @@ class TradespeopleSection extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Column(
                 children: [
                   for (var i = 0; i < tradespeople.length; i++) ...[
-                    if (i > 0) Divider(height: 1, color: Colors.grey.shade200),
+                    if (i > 0) Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     _TradespersonTile(
                       tradesperson: tradespeople[i],
                       isOwner: isOwner,
@@ -120,13 +120,13 @@ class _Header extends StatelessWidget {
               color: TradespeopleSection.tint, size: 20),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
             'Tradespeople',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -169,25 +169,25 @@ class _EmptyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
-          Icon(Icons.handyman, size: 40, color: Colors.grey.shade400),
+          Icon(Icons.handyman, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'No tradespeople yet',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Add the gas engineer, electrician, drain specialist — anyone you '
             'call on when the house needs work.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -345,7 +345,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
       shape: const Border(),
       collapsedShape: const Border(),
       iconColor: tint,
-      collapsedIconColor: Colors.grey.shade400,
+      collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant,
       leading: _avatar(),
       title: Text(
         widget.tradesperson.name.trim().isEmpty
@@ -355,8 +355,8 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: widget.tradesperson.name.trim().isEmpty
-              ? Colors.grey.shade500
-              : const Color(0xFF2C2C2E),
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.onSurface,
         ),
       ),
       subtitle: _subtitle(),
@@ -457,10 +457,10 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
             ? const Icon(Icons.handyman, color: tint, size: 20)
             : Text(
                 initials,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
       ),
@@ -477,12 +477,12 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
     final notes = _notesPreview;
 
     if (leading.isEmpty && notes.isEmpty) return null;
-    if (notes.isEmpty) return Text(leading, style: _subtitleStyle);
+    if (notes.isEmpty) return Text(leading, style: _subtitleStyle());
 
     return Row(
       children: [
         if (leading.isNotEmpty) ...[
-          Text(leading, style: _subtitleStyle),
+          Text(leading, style: _subtitleStyle()),
           const SizedBox(width: 8),
         ],
         Expanded(
@@ -491,7 +491,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
-            style: _subtitleStyle,
+            style: _subtitleStyle(),
           ),
         ),
       ],
@@ -505,9 +505,9 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
     return raw.split('\n').first.trim();
   }
 
-  static final TextStyle _subtitleStyle = TextStyle(
+  TextStyle _subtitleStyle() => TextStyle(
     fontSize: 13,
-    color: Colors.grey.shade600,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
   );
 
   /// A single detail row: icon, then either an editable field (owner) or
@@ -549,7 +549,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -571,7 +571,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: hasValue ? color : Colors.grey.shade500,
+                      color: hasValue ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
           ),
@@ -592,7 +592,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
   /// The notes row: multi-line, so instructions can wrap rather than being
   /// cut off at the edge of the card.
   Widget _notesRow() {
-    const color = Colors.blueGrey;
+    final color = Theme.of(context).colorScheme.primary;
     return Container(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
@@ -602,7 +602,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(left: 12, top: 14),
             child: Icon(Icons.notes, size: 18, color: color),
           ),
@@ -619,7 +619,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                       hintText: 'Notes',
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -628,9 +628,9 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                         horizontal: 0,
                       ),
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF2C2C2E),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   )
                 : Padding(
@@ -642,8 +642,8 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
                       style: TextStyle(
                         fontSize: 14,
                         color: widget.tradesperson.notes.trim().isEmpty
-                            ? Colors.grey.shade500
-                            : const Color(0xFF2C2C2E),
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),

@@ -66,10 +66,10 @@ class AboutYouSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'The personal details an executor needs for each owner. '
               'Only you and your invited people can see these.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             if (entries.isEmpty)
@@ -77,7 +77,7 @@ class AboutYouSection extends ConsumerWidget {
                 isOwner
                     ? 'No records yet. Add one for each estate owner.'
                     : 'No records have been added yet.',
-                style: const TextStyle(fontSize: 14, color: Colors.black45),
+                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             for (int i = 0; i < entries.length; i++) ...[
               if (i > 0) const SizedBox(height: 16),
@@ -403,9 +403,9 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -429,10 +429,10 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
                   onTap: () => setState(() => _expanded = !_expanded),
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C2C2E),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -441,7 +441,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
                 icon: Icon(
                   _expanded ? Icons.expand_less : Icons.expand_more,
                   size: 22,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () => setState(() => _expanded = !_expanded),
                 tooltip: _expanded ? 'Hide details' : 'Show details',
@@ -520,10 +520,10 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),
@@ -537,7 +537,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
               decoration: BoxDecoration(
                 color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               clipBehavior: Clip.antiAlias,
               child: hasImage
@@ -546,20 +546,20 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Center(
                         child: Icon(Icons.broken_image_outlined,
-                            color: Colors.grey.shade400),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     )
                   : Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(icon, color: Colors.grey.shade400, size: 22),
+                          Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
                           const SizedBox(height: 6),
                           Text(
                             widget.isOwner ? 'Add image' : 'Not added',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -575,7 +575,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
               Expanded(
                 child: Text(
                   _formattedSize(_entry.fileSizeFor(doc)),
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface),
                 ),
               ),
               if (widget.isOwner)
@@ -594,7 +594,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
         else
           Text(
             widget.isOwner ? 'JPG or PNG' : '',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface),
           ),
       ],
     );
@@ -621,10 +621,10 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),
@@ -640,16 +640,16 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400),
+            hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             filled: true,
-            fillColor: widget.isOwner ? Colors.white : Colors.grey.shade100,
+            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -657,7 +657,7 @@ class _AboutYouCardState extends ConsumerState<_AboutYouCard>
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
             ),
           ),
           onChanged: (_) {

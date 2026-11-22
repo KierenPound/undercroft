@@ -31,9 +31,9 @@ class ReadinessDashboard extends ConsumerWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const Text(
+      error: (_, __) => Text(
         'Could not load your handover readiness.',
-        style: TextStyle(fontSize: 13, color: Colors.black54),
+        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       data: (invites) {
         final readiness = EstateReadiness.fromInvites(invites);
@@ -83,7 +83,7 @@ class ReadinessDashboard extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +155,7 @@ class _EstateReviewCheckInState extends ConsumerState<_EstateReviewCheckIn> {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,9 +176,9 @@ class _EstateReviewCheckInState extends ConsumerState<_EstateReviewCheckIn> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            error: (_, __) => const Text(
+            error: (_, __) => Text(
               'Could not load your review status.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             data: (status) {
               final lastReviewedAt = status?.lastReviewedAt;
@@ -245,11 +245,11 @@ class _ReadinessStep extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               height: 1.3,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),

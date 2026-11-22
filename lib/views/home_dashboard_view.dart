@@ -206,16 +206,16 @@ class _SectionRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   section.displayTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey.shade400,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 24,
               ),
             ],

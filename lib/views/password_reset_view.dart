@@ -183,10 +183,10 @@ class _PasswordResetViewState extends State<PasswordResetView> {
                       Text(
                         _inRecovery ? 'Set new password' : 'Reset password',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -195,7 +195,7 @@ class _PasswordResetViewState extends State<PasswordResetView> {
                             ? 'Enter your new password below.'
                             : 'Enter your email and we\'ll send you a link to reset your password.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
                       if (!_inRecovery)

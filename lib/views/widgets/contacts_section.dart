@@ -70,7 +70,7 @@ class _ContactsSectionState extends ConsumerState<ContactsSection> {
           error: (error, _) => Center(
             child: Column(
               children: [
-                const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text('Error: $error', textAlign: TextAlign.center),
                 TextButton(
@@ -87,12 +87,12 @@ class _ContactsSectionState extends ConsumerState<ContactsSection> {
               decoration: BoxDecoration(
                 color: AppPalette.of(context).cardSurface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Column(
                 children: [
                   for (var i = 0; i < contacts.length; i++) ...[
-                    if (i > 0) Divider(height: 1, color: Colors.grey.shade200),
+                    if (i > 0) Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     _ContactTile(
                       key: ValueKey(contacts[i].contactId),
                       contact: contacts[i],
@@ -101,7 +101,7 @@ class _ContactsSectionState extends ConsumerState<ContactsSection> {
                   ],
                   if (draft != null) ...[
                     if (contacts.isNotEmpty)
-                      Divider(height: 1, color: Colors.grey.shade200),
+                      Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     _ContactTile(
                       key: const ValueKey('contact-draft'),
                       contact: draft,
@@ -138,13 +138,13 @@ class _Header extends StatelessWidget {
               const Icon(Icons.contacts, color: ContactsSection.tint, size: 20),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
             'Contacts',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -187,24 +187,24 @@ class _EmptyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
-          Icon(Icons.person_outline, size: 40, color: Colors.grey.shade400),
+          Icon(Icons.person_outline, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'No contacts yet',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Add the people you would want told — family, friends, the GP.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -378,7 +378,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
       shape: const Border(),
       collapsedShape: const Border(),
       iconColor: tint,
-      collapsedIconColor: Colors.grey.shade400,
+      collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant,
       leading: _avatar(),
       title: Text(
         widget.contact.name.trim().isEmpty
@@ -388,8 +388,8 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: widget.contact.name.trim().isEmpty
-              ? Colors.grey.shade500
-              : const Color(0xFF2C2C2E),
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.onSurface,
         ),
       ),
       subtitle: _subtitle(),
@@ -477,10 +477,10 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
             ? const Icon(Icons.person_outline, color: tint, size: 20)
             : Text(
                 initials,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
       ),
@@ -489,15 +489,15 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
 
   Widget? _subtitle() {
     final phone = widget.contact.telephone.trim();
-    if (phone.isNotEmpty) return Text(phone, style: _subtitleStyle);
+    if (phone.isNotEmpty) return Text(phone, style: _subtitleStyle());
     final email = widget.contact.email.trim();
-    if (email.isNotEmpty) return Text(email, style: _subtitleStyle);
+    if (email.isNotEmpty) return Text(email, style: _subtitleStyle());
     return null;
   }
 
-  static final TextStyle _subtitleStyle = TextStyle(
+  TextStyle _subtitleStyle() => TextStyle(
     fontSize: 13,
-    color: Colors.grey.shade600,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
   );
 
   /// A single contact detail row: icon, then either an editable field (owner)
@@ -542,7 +542,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -564,7 +564,7 @@ class _ContactTileState extends ConsumerState<_ContactTile> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: hasValue ? color : Colors.grey.shade500,
+                      color: hasValue ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
           ),

@@ -700,10 +700,10 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -716,7 +716,8 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border:
+            Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: child,
     );
@@ -783,7 +784,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                               ? 'Tap to expand'
                               : 'Family photograph',
                       style:
-                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                          TextStyle(fontSize: 12, color: Colors.blue),
                     ),
                   ],
                 ),
@@ -826,7 +827,8 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
       'assets/images/defaults/default_wtdf.jpeg',
       fit: BoxFit.cover,
       width: double.infinity,
-      errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
+      errorBuilder: (_, __, ___) =>
+          Container(color: Theme.of(context).colorScheme.outlineVariant),
     );
   }
 
@@ -842,12 +844,14 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
           tint: Colors.red,
         ),
         const SizedBox(height: 12),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
             "You don't need to do these all at once.  Take your time!  "
             "It's not like we are going anywhere!",
-            style: TextStyle(fontSize: 15, color: Colors.grey),
+            style: TextStyle(
+                fontSize: 15,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
       ],
@@ -929,7 +933,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                                     : const Icon(Icons.edit, size: 16),
                                 label: Text(
                                   _uploading ? 'Uploading...' : 'Replace photo',
-                                  style: const TextStyle(fontSize: 13),
+                                  style: TextStyle(fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFE08A2C),
@@ -948,12 +952,12 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Notes',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF8E8E93),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -968,16 +972,23 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                             decoration: InputDecoration(
                               hintText: 'Notes about the pets...',
                               hintStyle: TextStyle(
-                                  fontSize: 14, color: Colors.grey.shade400),
+                                  fontSize: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide:
-                                    BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide:
-                                    BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -986,8 +997,8 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                               ),
                               contentPadding: const EdgeInsets.all(12),
                             ),
-                            style: const TextStyle(
-                                fontSize: 14, color: Color(0xFF2C2C2E)),
+                            style: TextStyle(
+                                fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
                           ),
                         ],
                       ),
@@ -1025,14 +1036,14 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 Row(
                   children: [
                     Icon(Icons.local_hospital,
-                        size: 18, color: Colors.teal.shade700),
+                        size: 18, color: Colors.teal),
                     const SizedBox(width: 8),
                     Text(
                       'Vet',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Colors.teal.shade700,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -1083,8 +1094,9 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) =>
-          Container(color: Colors.grey.shade200, child: const Icon(Icons.pets)),
+      errorBuilder: (_, __, ___) => Container(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          child: const Icon(Icons.pets)),
     );
   }
 
@@ -1134,10 +1146,10 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                       EdgeInsets.symmetric(vertical: 6, horizontal: 0),
                   isDense: true,
                 ),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -1177,7 +1189,9 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
               onChanged: (_) => _schedulePetSave(),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 border: InputBorder.none,
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
@@ -1186,7 +1200,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: tint,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -1217,10 +1231,10 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Contact the GP or hospital doctor to get the '
                   'Medical Certificate of Cause of Death (MCCD).',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 14),
                 const Divider(height: 1),
@@ -1228,25 +1242,27 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 Row(
                   children: [
                     Icon(Icons.location_on,
-                        size: 18, color: Colors.red.shade700),
+                        size: 18, color: Colors.red),
                     const SizedBox(width: 6),
                     Text(
                       'Local Process',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Colors.red.shade700,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'The doctor will email this certificate directly to '
                   'the local council Registrar. They will also pass your name '
                   'and phone number to the registration team so they know '
                   'who to contact.',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1274,35 +1290,41 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Once you know the MCCD has been sent over by the medical '
                   'team, contact the local Registrar to schedule your '
                   'formal phone appointment:',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 14),
                 _buildRegistrarContactRow(),
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'It helps to gather a few details about the person who '
                   'passed away before the registrar calls you.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info, size: 16, color: Colors.blue.shade700),
+                    Icon(Icons.info, size: 16, color: Colors.blue),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Because the appointment is done over the phone, '
                         'you do not need the physical, original documents. '
                         'The registrar just needs you to read out the '
                         'information or confirm the details.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
                       ),
                     ),
                   ],
@@ -1410,7 +1432,9 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
               onChanged: onChanged ?? (_) => _scheduleRegistrarSave(),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 border: InputBorder.none,
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
@@ -1419,7 +1443,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: tint,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -1443,7 +1467,8 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 7),
-            child: Icon(Icons.circle, size: 7, color: Colors.grey.shade800),
+            child: Icon(Icons.circle,
+                size: 7, color: Theme.of(context).colorScheme.onSurface),
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -1452,14 +1477,14 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 children: [
                   TextSpan(
                     text: '$title: ',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   TextSpan(text: description),
                 ],
               ),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -1476,14 +1501,14 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
           children: [
             TextSpan(
               text: '$label ',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             TextSpan(text: text),
           ],
         ),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Color(0xFF2C2C2E),
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -1550,11 +1575,11 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   intro,
                   style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1566,14 +1591,14 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 Row(
                   children: [
                     Icon(Icons.copy_all_rounded,
-                        size: 18, color: Colors.purple.shade700),
+                        size: 18, color: Colors.purple),
                     const SizedBox(width: 8),
                     Text(
                       copiesHeading,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Colors.purple.shade700,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -1581,7 +1606,9 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 const SizedBox(height: 8),
                 Text(
                   copiesDescription,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 8),
                 _registrarLabelText('Cost:', copiesCost),
@@ -1630,12 +1657,12 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'The registrar will provide a unique tracking code for the '
                   'free, official service. Entering this code online allows '
                   'you to report the bereavement to multiple government '
                   'systems simultaneously, automatically updating:',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 16),
                 _buildBulletRow('HMRC (Taxes)', Colors.green),
@@ -1679,7 +1706,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
         _sectionHeader(
           title: 'Phones / Computers',
           icon: Icons.phone_android_rounded,
-          tint: Colors.grey.shade700,
+          tint: Theme.of(context).colorScheme.onSurface,
         ),
         const SizedBox(height: 14),
         _card(
@@ -1768,7 +1795,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontFamily: 'monospace',
                 ),
               ),
@@ -1813,7 +1840,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 hintText: hint,
                 hintStyle: TextStyle(
                   fontSize: 15,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontFamily: 'monospace',
                 ),
                 border: InputBorder.none,
@@ -1824,7 +1851,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: tint,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontFamily: 'monospace',
               ),
             ),
@@ -1879,7 +1906,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: tint,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   if ((subtitle ?? (title != null ? fallback : ''))
@@ -1891,7 +1918,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -1915,7 +1942,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
       ],
@@ -2063,18 +2090,20 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                       color: Colors.orange, size: 16),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Certificates',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '${certificates.length}/$_maxCertificates',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface),
                 ),
               ],
             ),
@@ -2082,13 +2111,15 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb, size: 14, color: Colors.orange.shade700),
+                Icon(Icons.lightbulb, size: 14, color: Colors.orange),
                 const SizedBox(width: 6),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Tap any certificate image below to open the full '
                     'high-resolution scan.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -2101,22 +2132,25 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Column(
                   children: [
                     Icon(Icons.image_not_supported,
-                        size: 36, color: Colors.grey.shade300),
+                        size: 36,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(height: 8),
                     Text(
                       widget.isOwner
                           ? 'Upload up to $_maxCertificates certificate images.'
                           : 'No certificate images uploaded yet.',
                       textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurface),
                     ),
                   ],
                 ),
@@ -2205,9 +2239,10 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                     fit: BoxFit.cover,
                     width: double.infinity,
                     errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image,
-                          color: Colors.grey, size: 24),
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      child: Icon(Icons.broken_image,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 24),
                     ),
                   ),
                 ),
@@ -2237,20 +2272,20 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
           attachment.fileName.replaceFirst(RegExp(r'^cert_'), ''),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2C2C2E),
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Row(
           children: [
-            Icon(Icons.fullscreen, size: 10, color: Colors.orange.shade700),
+            Icon(Icons.fullscreen, size: 10, color: Colors.orange),
             const SizedBox(width: 3),
             Text(
               'Tap to expand',
-              style: TextStyle(fontSize: 10, color: Colors.orange.shade700),
+              style: TextStyle(fontSize: 10, color: Colors.orange),
             ),
           ],
         ),
@@ -2285,7 +2320,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -2396,7 +2431,7 @@ class _FullscreenCertificateViewer extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           attachment.fileName.replaceFirst(RegExp(r'^cert_'), ''),
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white),
         ),
       ),
       body: Center(

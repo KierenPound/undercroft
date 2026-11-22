@@ -262,12 +262,12 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
                   const Icon(Icons.attach_file, color: Colors.orange, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Attachments',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             if (!widget.isOwner) ...[
@@ -275,12 +275,12 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'Read-only',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -345,14 +345,14 @@ class _AttachmentsSectionState extends ConsumerState<AttachmentsSection> {
                     child: Column(
                       children: [
                         Icon(Icons.attach_file,
-                            size: 48, color: Colors.grey.shade300),
+                            size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(height: 12),
                         Text(
                           widget.isOwner
                               ? 'Upload photos or PDFs here to store them securely.'
                               : 'Estate Owner hasn\'t uploaded any attachments yet.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade500),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -412,9 +412,9 @@ class _AttachmentCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: attachment.type == AttachmentType.pdf
                         ? Colors.orange.withValues(alpha: 0.15)
-                        : Colors.grey.shade100,
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: attachment.type == AttachmentType.pdf
                       ? (attachment.downloadUrl.isNotEmpty
@@ -435,15 +435,15 @@ class _AttachmentCard extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 width: 140,
                                 height: 140,
-                                errorBuilder: (_, __, ___) => const Center(
+                                errorBuilder: (_, __, ___) => Center(
                                   child: Icon(Icons.photo,
-                                      size: 48, color: Colors.grey),
+                                      size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 ),
                               ),
                             )
-                          : const Center(
+                          : Center(
                               child: Icon(Icons.photo,
-                                  size: 48, color: Colors.grey),
+                                  size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             )),
                 ),
               ),
@@ -496,23 +496,23 @@ class _AttachmentCard extends StatelessWidget {
                   attachment.fileName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (attachment.formattedSize.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     attachment.formattedSize,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
                 const SizedBox(height: 2),
                 Text(
                   attachment.formattedDate,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

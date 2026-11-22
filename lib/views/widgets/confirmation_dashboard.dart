@@ -34,21 +34,21 @@ class ConfirmationDashboard extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIntroAlmostDoneSection(),
+        _buildIntroAlmostDoneSection(context: context),
         const SizedBox(height: 28),
-        _buildLocateWillSection(isEwni: isEwni),
+        _buildLocateWillSection(context: context, isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildDateOfDeathValuationsSection(),
+        _buildDateOfDeathValuationsSection(context: context),
         const SizedBox(height: 28),
-        _buildHmrcReferenceSection(),
+        _buildHmrcReferenceSection(context: context),
         const SizedBox(height: 28),
-        _buildTaxFormsSection(isEwni: isEwni),
+        _buildTaxFormsSection(context: context, isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildPayTaxSection(isEwni: isEwni),
+        _buildPayTaxSection(context: context, isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildHmrcStampedC1AndCourtSection(isEwni: isEwni),
+        _buildHmrcStampedC1AndCourtSection(context: context, isEwni: isEwni),
         const SizedBox(height: 28),
-        _buildGrantConfirmationSection(isEwni: isEwni),
+        _buildGrantConfirmationSection(context: context, isEwni: isEwni),
       ],
     );
   }
@@ -56,6 +56,7 @@ class ConfirmationDashboard extends ConsumerWidget {
   // MARK: - Shared helpers
 
   Widget _sectionHeader({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Color tint,
@@ -75,10 +76,10 @@ class ConfirmationDashboard extends ConsumerWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -87,6 +88,7 @@ class ConfirmationDashboard extends ConsumerWidget {
   }
 
   Widget _formCard({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Color tint,
@@ -111,16 +113,16 @@ class ConfirmationDashboard extends ConsumerWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 body,
-                style: const TextStyle(fontSize: 15, color: Colors.grey),
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -130,6 +132,7 @@ class ConfirmationDashboard extends ConsumerWidget {
   }
 
   Widget _infoCallout({
+    required BuildContext context,
     required Color tint,
     required IconData icon,
     required String title,
@@ -161,16 +164,16 @@ class ConfirmationDashboard extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   body,
-                  style: const TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -181,6 +184,7 @@ class ConfirmationDashboard extends ConsumerWidget {
   }
 
   Widget _stepBlock({
+    required BuildContext context,
     required IconData icon,
     required Color tint,
     required int stepNumber,
@@ -203,7 +207,7 @@ class ConfirmationDashboard extends ConsumerWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: tint,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -214,16 +218,16 @@ class ConfirmationDashboard extends ConsumerWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 body,
-                style: const TextStyle(fontSize: 15, color: Colors.grey),
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -232,7 +236,11 @@ class ConfirmationDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _postalCard({required String address, required Color tint}) {
+  Widget _postalCard({
+    required BuildContext context,
+    required String address,
+    required Color tint,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       width: double.infinity,
@@ -243,16 +251,16 @@ class ConfirmationDashboard extends ConsumerWidget {
       ),
       child: Text(
         address,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           fontFamily: 'monospace',
-          color: Color(0xFF2C2C2E),
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
   }
 
-  Widget _flowChipRow({required List<String> items, required Color tint}) {
+  Widget _flowChipRow({required List<String> items, required Color tint, required BuildContext context}) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -269,7 +277,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: tint,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -280,12 +288,13 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - You're almost done (Intro)
 
-  Widget _buildIntroAlmostDoneSection() {
+  Widget _buildIntroAlmostDoneSection({required BuildContext context}) {
     const tint = Colors.teal;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: "You're almost done",
           icon: Icons.auto_awesome,
           tint: tint,
@@ -297,12 +306,12 @@ class ConfirmationDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "As the end is near, what better than a musical interlude "
                   "to set you up for the hardest (and most lucrative) steps.  "
                   "Please play the Song for the day at the end and think of us, "
                   "kindly.  Or laugh.  Hopefully both!",
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -320,7 +329,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                           color: Colors.teal, size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -329,15 +338,15 @@ class ConfirmationDashboard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           Text(
                             "Everything from here on is linear paperwork.  "
                             "Take it one card at a time and you'll be done in "
                             "a few weeks.",
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -354,12 +363,16 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - Locate the Will
 
-  Widget _buildLocateWillSection({required bool isEwni}) {
+  Widget _buildLocateWillSection({
+    required BuildContext context,
+    required bool isEwni,
+  }) {
     const tint = Colors.purple;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Locate the Will & Identify the Executors',
           icon: Icons.draw,
           tint: tint,
@@ -371,12 +384,12 @@ class ConfirmationDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Before touching any accounts, find the original paper Will.',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -385,7 +398,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                   'They are generally the only people legally allowed to sign the '
                   'upcoming HMRC tax returns and '
                   '${isEwni ? 'probate application' : 'court inventories'}.',
-                  style: const TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -408,12 +421,12 @@ class ConfirmationDashboard extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'The Original Document',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -433,12 +446,13 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - Date of Death Valuations
 
-  Widget _buildDateOfDeathValuationsSection() {
+  Widget _buildDateOfDeathValuationsSection({required BuildContext context}) {
     const tint = Colors.orange;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Request "Date of Death" Valuations',
           icon: Icons.balance,
           tint: tint,
@@ -450,11 +464,11 @@ class ConfirmationDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'You must get the exact financial value of everything owned '
                   'on the specific day of passing.  Contact each company below '
                   'and ask for a "Date of Death Balance Certificate":',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
@@ -466,14 +480,14 @@ class ConfirmationDashboard extends ConsumerWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.brown.withValues(alpha: 0.14),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child:
-                          const Icon(Icons.home, color: Colors.brown, size: 18),
+                          Icon(Icons.home, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 18),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -482,10 +496,10 @@ class ConfirmationDashboard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Provide a realistic open-market value for each '
                             'property as of the date of death. You can usually '
@@ -494,7 +508,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                             'from a surveyor or estate agent is advisable if '
                             'Inheritance Tax may apply, the property is unusual, '
                             'or family disagreements are possible.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -522,19 +536,19 @@ class ConfirmationDashboard extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'The Banks',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             'Contact the following types of organisations for final balances  '
                             'across all listed account numbers (see Who to Notify):',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                           const SizedBox(height: 8),
                           _flowChipRow(
@@ -545,6 +559,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                               'Savings'
                             ],
                             tint: Colors.indigo,
+                            context: context,
                           ),
                         ],
                       ),
@@ -561,13 +576,14 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - HMRC Tax Reference
 
-  Widget _buildHmrcReferenceSection() {
+  Widget _buildHmrcReferenceSection({required BuildContext context}) {
     const tint = Colors.indigo;
     const mint = Color(0xFF00C7BE);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Get an HMRC Tax Reference Number',
           icon: Icons.onetwothree,
           tint: tint,
@@ -593,7 +609,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                           color: Colors.indigo, size: 18),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -602,15 +618,15 @@ class ConfirmationDashboard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Go online to GOV.UK and apply for an Inheritance '
                             'Tax Reference Number using Form IHT422.',
                             style: TextStyle(
-                                fontSize: 15, color: Color(0xFF2C2C2E)),
+                                fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                           ),
                         ],
                       ),
@@ -633,7 +649,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                       child: const Icon(Icons.schedule, color: mint, size: 18),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -642,17 +658,17 @@ class ConfirmationDashboard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
                             'Do this immediately after getting your '
                             'valuations.  It takes HMRC about 3 weeks to '
                             'generate and post this reference number to you, '
                             'and you cannot pay the tax or submit forms '
                             'without it.',
-                            style: TextStyle(fontSize: 15, color: Colors.grey),
+                            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -669,12 +685,16 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - HMRC Tax Forms
 
-  Widget _buildTaxFormsSection({required bool isEwni}) {
+  Widget _buildTaxFormsSection({
+    required BuildContext context,
+    required bool isEwni,
+  }) {
     const tint = Colors.blue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Fill in the HMRC Tax Forms',
           icon: Icons.description,
           tint: tint,
@@ -686,16 +706,17 @@ class ConfirmationDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Once you have your reference number and all your exact '
                   'estate values, the executors must complete the heavy tax '
                   'paperwork:',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _formCard(
+                  context: context,
                   title: 'Form IHT400 (The Inheritance Tax Account)',
                   icon: Icons.article,
                   tint: Colors.blue,
@@ -707,6 +728,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 if (isEwni) ...[
                   const SizedBox(height: 12),
                   _infoCallout(
+                    context: context,
                     tint: Colors.blue,
                     icon: Icons.info_outline,
                     title: 'Note for smaller estates',
@@ -725,6 +747,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _formCard(
+                  context: context,
                   title: isEwni
                       ? 'Apply for Probate Online (GOV.UK) / Form PA1P'
                       : 'Form C1 (The Confirmation Inventory)',
@@ -748,12 +771,16 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - Pay the Tax
 
-  Widget _buildPayTaxSection({required bool isEwni}) {
+  Widget _buildPayTaxSection({
+    required BuildContext context,
+    required bool isEwni,
+  }) {
     const tint = Colors.green;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Pay the Tax (Bypassing the Cash Trap)',
           icon: Icons.payments,
           tint: tint,
@@ -770,12 +797,13 @@ class ConfirmationDashboard extends ConsumerWidget {
                   'grant ${isEwni ? 'Probate' : 'Confirmation'}.  To clear '
                   'this hurdle without spending your own personal money, use '
                   'these tools:',
-                  style: const TextStyle(fontSize: 15, color: Colors.grey),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _infoCallout(
+                  context: context,
                   tint: Colors.indigo,
                   icon: Icons.assignment,
                   title: 'Form IHT423 (The Direct Payment Scheme)',
@@ -786,7 +814,8 @@ class ConfirmationDashboard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 _infoCallout(
-                  tint: Colors.brown,
+                  context: context,
+                  tint: Theme.of(context).colorScheme.onSurfaceVariant,
                   icon: Icons.cottage,
                   title: 'The Property Installment Option',
                   body: 'Because often much of the value is tied up in mortar, '
@@ -804,7 +833,10 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - HMRC Stamped C1 + Sheriff Court
 
-  Widget _buildHmrcStampedC1AndCourtSection({required bool isEwni}) {
+  Widget _buildHmrcStampedC1AndCourtSection({
+    required BuildContext context,
+    required bool isEwni,
+  }) {
     const tint = Colors.red;
     const courtPackageItems = [
       'Your HMRC-stamped Form C1 (Confirmation Inventory)',
@@ -824,6 +856,7 @@ class ConfirmationDashboard extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: isEwni
               ? 'IHT400 Share / Code & HMCTS Probate Registry'
               : 'HMRC Stamped C1 & local Sheriff Court',
@@ -838,6 +871,7 @@ class ConfirmationDashboard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _stepBlock(
+                  context: context,
                   icon: Icons.upload_file,
                   tint: Colors.red,
                   stepNumber: 1,
@@ -852,6 +886,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 48),
                   child: _postalCard(
+                    context: context,
                     address: 'HM Revenue and Customs\nBX9 1HT',
                     tint: Colors.red,
                   ),
@@ -860,6 +895,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _stepBlock(
+                  context: context,
                   icon: Icons.verified_user,
                   tint: Colors.orange,
                   stepNumber: 2,
@@ -879,6 +915,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 _stepBlock(
+                  context: context,
                   icon: Icons.account_balance,
                   tint: Colors.purple,
                   stepNumber: 3,
@@ -913,9 +950,9 @@ class ConfirmationDashboard extends ConsumerWidget {
                                     Expanded(
                                       child: Text(
                                         item,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 15,
-                                            color: Color(0xFF2C2C2E)),
+                                            color: Theme.of(context).colorScheme.onSurface),
                                       ),
                                     ),
                                   ],
@@ -930,6 +967,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 48),
                     child: _infoCallout(
+                      context: context,
                       tint: Colors.purple,
                       icon: Icons.info_outline,
                       title: 'Note on the Will',
@@ -949,12 +987,16 @@ class ConfirmationDashboard extends ConsumerWidget {
 
   // MARK: - Receive Grant of Confirmation
 
-  Widget _buildGrantConfirmationSection({required bool isEwni}) {
+  Widget _buildGrantConfirmationSection({
+    required BuildContext context,
+    required bool isEwni,
+  }) {
     const tint = Colors.teal;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: isEwni
               ? 'Receive the Grant of Probate & Unlock the Cash'
               : 'Receive the Grant of Confirmation & Unlock the Cash',
@@ -977,9 +1019,9 @@ class ConfirmationDashboard extends ConsumerWidget {
                       : 'The Sheriff Court will review the Will and stamped '
                           'C1 inventory. Typically within 2 to 6 weeks, they '
                           'will issue the formal Grant of Confirmation.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -999,7 +1041,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                           color: Colors.green, size: 22),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1008,17 +1050,17 @@ class ConfirmationDashboard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2C2C2E),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           Text(
                             'If you have reached here, well done! '
                             'I know it has been a lot of paperwork, but it '
                             'only has to be done once ',
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.grey,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -1030,6 +1072,7 @@ class ConfirmationDashboard extends ConsumerWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 14),
                 _infoCallout(
+                  context: context,
                   tint: Colors.teal,
                   icon: Icons.menu_book,
                   title: isEwni
@@ -1073,7 +1116,7 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: child,
     );
@@ -1193,9 +1236,9 @@ class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor>
     if (!widget.isOwner) {
       return Text(
         _controller.text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: Color(0xFF2C2C2E),
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       );
     }
@@ -1214,9 +1257,9 @@ class _SolicitorIntroEditorState extends ConsumerState<_SolicitorIntroEditor>
         isDense: true,
         contentPadding: EdgeInsets.zero,
       ),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
-        color: Color(0xFF2C2C2E),
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }

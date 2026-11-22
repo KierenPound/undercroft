@@ -264,7 +264,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
       fit: BoxFit.cover,
       width: double.infinity,
       cacheWidth: 600,
-      errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
+      errorBuilder: (_, __, ___) => Container(color: Theme.of(context).colorScheme.surfaceContainerHighest),
     );
   }
 
@@ -288,10 +288,10 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -305,7 +305,7 @@ class _PhotoSectionState extends ConsumerState<PhotoSection> {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.surfaceContainerHighest),
       ),
       child: child,
     );
@@ -323,7 +323,7 @@ class MemoryPhotoPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey.shade200,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: const Center(
         child: SizedBox(
           width: 20,

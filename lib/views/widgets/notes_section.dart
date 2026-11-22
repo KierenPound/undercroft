@@ -105,19 +105,19 @@ class _NotesSectionState extends ConsumerState<NotesSection>
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Colors.blueGrey.withValues(alpha: 0.18),
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.sticky_note_2,
-                  color: Colors.blueGrey, size: 20),
+              child: Icon(Icons.sticky_note_2,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Notes',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             if (!widget.isOwner) ...[
@@ -125,12 +125,12 @@ class _NotesSectionState extends ConsumerState<NotesSection>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'Read-only',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -146,7 +146,7 @@ class _NotesSectionState extends ConsumerState<NotesSection>
           )
         else if (asyncSection.hasError && !asyncSection.hasValue)
           Text('Error: ${asyncSection.error}',
-              style: const TextStyle(color: Colors.red))
+              style: TextStyle(color: Colors.red))
         else
           _buildNotesEditor(),
       ],
@@ -158,7 +158,7 @@ class _NotesSectionState extends ConsumerState<NotesSection>
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: TextField(
         controller: _notesController,
@@ -175,7 +175,7 @@ class _NotesSectionState extends ConsumerState<NotesSection>
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(14),
         ),
-        style: const TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+        style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
       ),
     );
   }

@@ -20,6 +20,7 @@ class CarsDashboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildDvlaSection(
+          context: context,
           grantName: processRegion == EstateProcessRegion.scotland
               ? 'Confirmation'
               : 'Probate',
@@ -31,6 +32,7 @@ class CarsDashboard extends StatelessWidget {
   // MARK: - Shared helpers
 
   Widget _sectionHeader({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Color tint,
@@ -50,10 +52,10 @@ class CarsDashboard extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -62,6 +64,7 @@ class CarsDashboard extends StatelessWidget {
   }
 
   Widget _subSectionHeader({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Color tint,
@@ -81,10 +84,10 @@ class CarsDashboard extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -96,6 +99,7 @@ class CarsDashboard extends StatelessWidget {
     required String title,
     required IconData icon,
     required Color tint,
+    required BuildContext context,
   }) {
     return Row(
       children: [
@@ -115,7 +119,7 @@ class CarsDashboard extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: tint,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -123,7 +127,11 @@ class CarsDashboard extends StatelessWidget {
     );
   }
 
-  Widget _insuranceRuleBullet({required String title, required String text}) {
+  Widget _insuranceRuleBullet({
+    required BuildContext context,
+    required String title,
+    required String text,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -135,18 +143,18 @@ class CarsDashboard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -157,6 +165,7 @@ class CarsDashboard extends StatelessWidget {
   }
 
   Widget _keepCarStep({
+    required BuildContext context,
     required int number,
     required String title,
     required String text,
@@ -175,7 +184,7 @@ class CarsDashboard extends StatelessWidget {
           alignment: Alignment.center,
           child: Text(
             '$number',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: Colors.green,
@@ -189,18 +198,18 @@ class CarsDashboard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (trailingBlock != null) ...[
@@ -214,10 +223,10 @@ class CarsDashboard extends StatelessWidget {
                   ),
                   child: Text(
                     trailingBlock,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2C2C2E),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -231,12 +240,16 @@ class CarsDashboard extends StatelessWidget {
 
   // MARK: - DVLA Vehicle Transfer & Insurance Rules
 
-  Widget _buildDvlaSection({required String grantName}) {
+  Widget _buildDvlaSection({
+    required BuildContext context,
+    required String grantName,
+  }) {
     const tint = Colors.red;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader(
+          context: context,
           title: 'Vehicle Transfer & Insurance Rules (DVLA)',
           icon: Icons.shield,
           tint: tint,
@@ -253,28 +266,30 @@ class CarsDashboard extends StatelessWidget {
                   'A motor vehicle is a personal possession. You do not have '
                   'to wait for $grantName to transfer or sell any of the '
                   'cars.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'However, there are strict legal rules regarding insurance '
                   'and the logbook.',
-                  style: TextStyle(fontSize: 15, color: Color(0xFF2C2C2E)),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const Divider(height: 1),
                 const SizedBox(height: 22),
 
                 // Important Insurance Rules
                 _subSectionHeader(
+                  context: context,
                   title: 'Important Insurance Rules',
                   icon: Icons.warning_amber_rounded,
                   tint: Colors.red,
                 ),
                 const SizedBox(height: 12),
                 _insuranceRuleBullet(
+                  context: context,
                   title: 'Important: Check Motor Insurance Cover',
                   text: 'Even if you are listed as a named driver on my car '
                       'insurance policy, your cover nearly always becomes invalid '
@@ -282,6 +297,7 @@ class CarsDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _insuranceRuleBullet(
+                  context: context,
                   title: 'Do Not Drive the Car:',
                   text: 'The car must be left parked safely on private land '
                       '(a driveway or garage). Do not drive it on a public '
@@ -298,6 +314,7 @@ class CarsDashboard extends StatelessWidget {
 
                 // How to Transfer Ownership (via Post)
                 _subSectionHeader(
+                  context: context,
                   title: 'How to Transfer Ownership (via Post)',
                   icon: Icons.mail,
                   tint: Colors.indigo,
@@ -309,9 +326,11 @@ class CarsDashboard extends StatelessWidget {
                   title: 'If you are KEEPING the Car:',
                   icon: Icons.directions_car,
                   tint: Colors.green,
+                  context: context,
                 ),
                 const SizedBox(height: 12),
                 _keepCarStep(
+                  context: context,
                   number: 1,
                   title: 'Fill out details:',
                   text: 'Fill out the "new keeper" details section in the '
@@ -319,6 +338,7 @@ class CarsDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _keepCarStep(
+                  context: context,
                   number: 2,
                   title: 'Keep green slip:',
                   text: 'Tear off the green "new keeper" slip (Section 2) '
@@ -328,6 +348,7 @@ class CarsDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _keepCarStep(
+                  context: context,
                   number: 3,
                   title: 'Write a cover letter:',
                   text: 'Write a brief covering letter to the DVLA explaining '
@@ -336,6 +357,7 @@ class CarsDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _keepCarStep(
+                  context: context,
                   number: 4,
                   title: 'Send to DVLA:',
                   text: 'Post the main part of the V5C Logbook and your '
@@ -352,13 +374,14 @@ class CarsDashboard extends StatelessWidget {
                   title: 'If you are SELLING the Car:',
                   icon: Icons.payments,
                   tint: Colors.red,
+                  context: context,
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.description, color: Colors.red, size: 16),
-                    SizedBox(width: 10),
+                    const Icon(Icons.description, color: Colors.red, size: 16),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Follow the exact same steps as above, but fill out '
@@ -368,25 +391,25 @@ class CarsDashboard extends StatelessWidget {
                         'Sensitive Casework Team.',
                         style: TextStyle(
                           fontSize: 15,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.phonelink_erase, color: Colors.red, size: 16),
-                    SizedBox(width: 10),
+                    const Icon(Icons.phonelink_erase, color: Colors.red, size: 16),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Remember to erase your personal data, like phones or '
                         'sat nav destinations.',
                         style: TextStyle(
                           fontSize: 15,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -414,7 +437,7 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: child,
     );

@@ -122,8 +122,11 @@ class WhoToNotifyListView extends ConsumerWidget {
                       error: (error, _) => Center(
                         child: Column(
                           children: [
-                            const Icon(Icons.error_outline,
-                                size: 40, color: Colors.grey),
+                            Icon(Icons.error_outline,
+                                size: 40,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                             const SizedBox(height: 8),
                             Text('Error: $error', textAlign: TextAlign.center),
                             TextButton(
@@ -318,7 +321,7 @@ class _EntryCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: entry.icon == Icons.notifications
-                      ? Colors.grey.shade100
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest
                       : const Color(0xFF3A8D5A).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -335,10 +338,10 @@ class _EntryCard extends StatelessWidget {
                   children: [
                     Text(
                       entry.companyName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C2C2E),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (entry.contactNumber != null &&
@@ -347,13 +350,14 @@ class _EntryCard extends StatelessWidget {
                         entry.contactNumber!,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              Icon(Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -373,7 +377,8 @@ class _LifeLedgerCallout extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,12 +397,12 @@ class _LifeLedgerCallout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Start with Life Ledger first',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF2C2C2E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -405,7 +410,7 @@ class _LifeLedgerCallout extends StatelessWidget {
                   'It bulk-notifies dozens of companies automatically using the accounts below. Only a few exceptions require direct calls.',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.4,
                   ),
                 ),
@@ -424,7 +429,7 @@ class _LifeLedgerCallout extends StatelessWidget {
 class _StaticOrgCard extends StatelessWidget {
   final String title;
   final IconData icon;
-  final Color tint;
+  final Color? tint;
   final String? leadParagraph;
   final String? linkLabel;
   final String? linkUrl;
@@ -433,7 +438,7 @@ class _StaticOrgCard extends StatelessWidget {
   const _StaticOrgCard({
     required this.title,
     required this.icon,
-    required this.tint,
+    this.tint,
     this.leadParagraph,
     this.linkLabel,
     this.linkUrl,
@@ -458,7 +463,7 @@ class _StaticOrgCard extends StatelessWidget {
   factory _StaticOrgCard.digitalSubscriptions() => const _StaticOrgCard(
         title: 'Digital Subscriptions (Amazon, Apple, etc.)',
         icon: Icons.credit_card,
-        tint: Colors.grey,
+        tint: null,
         notes: [
           'Amazon, Apple, Netflix and others should be setup as Organisations, just like a bank account.  Typically an email is the account number. A direct debit or recurring card payment should get cancelled automatically by the bank, but best to notify and cancel the service.',
           "Life Ledger can probably help with Netflix, but typically the others will need a call or livechat.  Check the Organisation entry.",
@@ -475,6 +480,7 @@ class _StaticOrgCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveTint = tint ?? Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -484,19 +490,19 @@ class _StaticOrgCard extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.18),
+                color: effectiveTint.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: tint, size: 20),
+              child: Icon(icon, color: effectiveTint, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -508,7 +514,8 @@ class _StaticOrgCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant),
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -517,9 +524,9 @@ class _StaticOrgCard extends StatelessWidget {
               if (leadParagraph != null) ...[
                 Text(
                   leadParagraph!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF6B6B6E),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
@@ -533,25 +540,25 @@ class _StaticOrgCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         vertical: 10, horizontal: 12),
                     decoration: BoxDecoration(
-                      color: tint.withValues(alpha: 0.10),
+                      color: effectiveTint.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.public, color: tint, size: 18),
+                        Icon(Icons.public, color: effectiveTint, size: 18),
                         const SizedBox(width: 8),
                         Text(
                           linkLabel!,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: tint,
+                            color: effectiveTint,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(Icons.open_in_new,
-                            color: tint.withValues(alpha: 0.8), size: 16),
+                            color: effectiveTint.withValues(alpha: 0.8), size: 16),
                       ],
                     ),
                   ),
@@ -564,20 +571,20 @@ class _StaticOrgCard extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: tint.withValues(alpha: 0.08),
+                    color: effectiveTint.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info, color: tint, size: 18),
+                      Icon(Icons.info, color: effectiveTint, size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           notes[i],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF2C2C2E),
+                            color: Theme.of(context).colorScheme.onSurface,
                             height: 1.4,
                           ),
                         ),
@@ -615,13 +622,13 @@ class _AppleAccountInstructions extends StatelessWidget {
                   const Icon(Icons.apple, color: Color(0xFF007AFF), size: 22),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'How to Access My Apple Account',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                   height: 1.2,
                 ),
               ),
@@ -634,7 +641,8 @@ class _AppleAccountInstructions extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant),
           ),
           padding: const EdgeInsets.all(16),
           child: const Column(
@@ -730,10 +738,10 @@ class _Step extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               if (body != null) ...[
@@ -742,7 +750,7 @@ class _Step extends StatelessWidget {
                   body!,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade700,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.4,
                   ),
                 ),
@@ -761,7 +769,7 @@ class _Step extends StatelessWidget {
                             width: 5,
                             height: 5,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade500,
+                              color: Theme.of(context).colorScheme.onSurface,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -772,7 +780,7 @@ class _Step extends StatelessWidget {
                             b,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade800,
+                              color: Theme.of(context).colorScheme.onSurface,
                               height: 1.4,
                             ),
                           ),
@@ -801,14 +809,16 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.notifications_none,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             'No organisations yet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -816,7 +826,8 @@ class _EmptyState extends StatelessWidget {
             onAdd == null
                 ? 'The estate owner can add organisations here.'
                 : 'Add companies to notify about the estate.',
-            style: TextStyle(color: Colors.grey.shade500),
+            style:
+                TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           if (onAdd != null) ...[
             const SizedBox(height: 20),

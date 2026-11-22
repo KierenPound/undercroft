@@ -65,7 +65,7 @@ class SectionDetailView extends ConsumerWidget {
       icon: const Icon(Icons.info_outline, size: 18),
       label: const Text('Disclaimer'),
       style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFF5A5A60),
+        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -153,13 +153,13 @@ class SectionDetailView extends ConsumerWidget {
                 // that a normal content page carries. Owners only.
                 if (section.title == 'Readiness') {
                   if (!isOwner) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
                           'This page is for the estate owner.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 15, color: Colors.black54),
+                          style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ),
                     );

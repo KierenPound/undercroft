@@ -131,11 +131,11 @@ class _ReadOnlyBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(Icons.lock_outline, size: 16, color: Colors.grey.shade600),
+        Icon(Icons.lock_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 6),
         Text(
           'Read-only — only the estate owner can edit this letter.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -249,7 +249,7 @@ class _LetterEditorState extends ConsumerState<_LetterEditor>
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -274,11 +274,11 @@ class _LetterEditorState extends ConsumerState<_LetterEditor>
           keyboardType: TextInputType.multiline,
           textCapitalization: TextCapitalization.sentences,
           onChanged: widget.isOwner ? (_) => _scheduleSave() : null,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Caveat',
             fontSize: 24,
             height: 1.4,
-            color: Color(0xFF2C2C2E),
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           decoration: InputDecoration(
             border: InputBorder.none,
@@ -289,7 +289,7 @@ class _LetterEditorState extends ConsumerState<_LetterEditor>
               fontFamily: 'Caveat',
               fontSize: 24,
               height: 1.4,
-              color: Colors.grey.shade400,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -518,7 +518,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -534,7 +534,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
           Row(
             children: [
               Icon(Icons.videocam_outlined,
-                  size: 20, color: Colors.brown.shade400),
+                  size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               const Text(
                 'My Video to You',
@@ -597,7 +597,7 @@ class _VideoToYouSectionState extends ConsumerState<_VideoToYouSection> {
                           'Making your video smaller so it fits...',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -645,14 +645,14 @@ class _VideoNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBF6E9),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEADFC3)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 16, color: Colors.brown.shade400),
+          Icon(Icons.info_outline, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -663,7 +663,7 @@ class _VideoNote extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 height: 1.45,
-                color: Colors.brown.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -766,20 +766,20 @@ class _EmptyVideoBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F1EA),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDDD6C6)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.movie_creation_outlined,
-                size: 28, color: Colors.grey.shade500),
+                size: 28, color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 6),
             Text(
               'No video yet',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),

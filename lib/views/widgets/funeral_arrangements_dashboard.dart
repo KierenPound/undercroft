@@ -43,7 +43,7 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
           error: (error, _) => Center(
             child: Column(
               children: [
-                const Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text('Error: $error', textAlign: TextAlign.center),
                 TextButton(
@@ -175,25 +175,25 @@ class _EmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
           Icon(Icons.celebration_outlined,
-              size: 48, color: Colors.grey.shade400),
+              size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'No funeral arrangements yet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Add one for each estate owner.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           if (onAdd != null) ...[
@@ -372,10 +372,10 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
             Expanded(
               child: Text(
                 'Funeral ($name)',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -394,7 +394,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
           decoration: BoxDecoration(
             color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -403,6 +403,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
               children: [
                 // Name
                 _buildField(
+                  context: context,
                   label: 'Name',
                   controller: _nameController,
                   hint: 'Name',
@@ -412,6 +413,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                 const SizedBox(height: 12),
                 // Notes
                 _buildField(
+                  context: context,
                   label: 'Notes',
                   controller: _notesController,
                   hint: 'Funeral wishes, instructions, etc.',
@@ -422,6 +424,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                 const SizedBox(height: 12),
                 // Prepaid details
                 _buildField(
+                  context: context,
                   label: 'Prepaid details',
                   controller: _prepaidController,
                   hint: 'Prepaid plan, provider, policy number, etc.',
@@ -434,32 +437,30 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'URL',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _urlController,
                       enabled: widget.isOwner,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
                         hintText: 'https://...',
                         hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.normal,
                         ),
                         filled: true,
-                        fillColor: widget.isOwner
-                            ? Colors.blue.withValues(alpha: 0.04)
-                            : Colors.grey.shade100,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
@@ -473,7 +474,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                             ? IconButton(
                                 icon: const Icon(
                                   Icons.open_in_new,
-                                  color: Colors.grey,
+                                  color: Colors.blue,
                                   size: 18,
                                 ),
                                 onPressed: () =>
@@ -496,7 +497,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                         disabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: Colors.grey.shade200,
+                            color: Theme.of(context).colorScheme.outlineVariant,
                           ),
                         ),
                       ),
@@ -516,6 +517,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
   }
 
   Widget _buildField({
+    required BuildContext context,
     required String label,
     required TextEditingController controller,
     required String hint,
@@ -524,15 +526,16 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
     required bool enabled,
     TextCapitalization textCapitalization = TextCapitalization.sentences,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: cs.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),
@@ -544,16 +547,16 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
           textCapitalization: textCapitalization,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade400),
+            hintStyle: TextStyle(color: cs.onSurfaceVariant),
             filled: true,
-            fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade100,
+            fillColor: cs.surfaceContainerHighest,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: cs.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -561,7 +564,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: cs.outlineVariant),
             ),
           ),
           onChanged: (_) {

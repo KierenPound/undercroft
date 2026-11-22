@@ -158,10 +158,10 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 12),
                 Text('Organisation not found.',
-                    style: TextStyle(color: Colors.grey.shade600)),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -323,7 +323,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -335,7 +335,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: tint,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   )
                 : Text(
@@ -345,7 +345,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: hasValue ? tint : Colors.grey.shade500,
+                      color: hasValue ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
           ),
@@ -366,7 +366,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.notes, size: 20, color: Colors.grey.shade600),
+        Icon(Icons.notes, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 10),
         Expanded(
           child: isOwner
@@ -385,7 +385,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                       style: const TextStyle(fontSize: 15))
                   : Text('Supplementary notes',
                       style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 15))),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 15))),
         ),
       ],
     );
@@ -433,7 +433,7 @@ class _WhoToNotifyDetailViewState extends ConsumerState<WhoToNotifyDetailView> {
                           ? 'No account details yet.\nTap "Add" to add sort codes, account numbers, etc.'
                           : 'No account details yet.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade500),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ),
@@ -680,7 +680,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
           child: Text(label,
               style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500)),
         ),
         Expanded(
@@ -707,7 +707,7 @@ class _AccountDetailsCardState extends State<_AccountDetailsCard> {
                   : showHintWhenEmpty
                       ? Text(hint,
                           style: TextStyle(
-                              color: Colors.grey.shade400, fontSize: 14))
+                              color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14))
                       : const SizedBox.shrink()),
         ),
       ],

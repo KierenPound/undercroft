@@ -177,12 +177,12 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
               child: const Icon(Icons.checklist, color: Colors.green, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Checklist',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF2C2C2E),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             // Both owners and executors can tick items off, so the section
@@ -193,7 +193,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
                 final completed = items.where((e) => e.isCompleted).length;
                 return Text(
                   '$completed/${items.length}',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
                 );
               },
               orElse: () => const SizedBox.shrink(),
@@ -208,7 +208,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
             child: CircularProgressIndicator(),
           )),
           error: (error, _) =>
-              Text('Error: $error', style: const TextStyle(color: Colors.red)),
+              Text('Error: $error', style: TextStyle(color: Colors.red)),
           data: (items) {
             if (items.isEmpty && !widget.isOwner) {
               return Card(
@@ -242,7 +242,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +253,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
               item.isCompleted
                   ? Icons.check_circle
                   : Icons.radio_button_unchecked,
-              color: item.isCompleted ? Colors.green : Colors.grey,
+              color: item.isCompleted ? Colors.green : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 22,
             ),
           ),
@@ -264,7 +264,9 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: item.isCompleted ? Colors.grey : const Color(0xFF2C2C2E),
+                color: item.isCompleted
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : Theme.of(context).colorScheme.onSurface,
                 decoration:
                     item.isCompleted ? TextDecoration.lineThrough : null,
               ),
@@ -293,7 +295,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         children: [

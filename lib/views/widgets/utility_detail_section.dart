@@ -220,10 +220,10 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
         Expanded(
           child: Text(
             _kind.label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -231,12 +231,15 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
+              color: Theme.of(context).colorScheme.outlineVariant,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               'Read-only',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
       ],
@@ -248,7 +251,9 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       child: child,
     );
@@ -339,7 +344,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -365,7 +370,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
   /// The description beside the photo, matched to the same size: a wrapped
   /// multi-line field for owners, plain text for everyone else.
   Widget _notesPanel(bool resolving) {
-    const color = Colors.blueGrey;
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
     return Container(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
@@ -375,8 +380,8 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 12, top: 14),
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 14),
             child: Icon(Icons.notes, size: 18, color: color),
           ),
           const SizedBox(width: 8),
@@ -398,7 +403,7 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
                           hintText: _notesHint,
                           hintStyle: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade500,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           border: InputBorder.none,
                           isDense: true,
@@ -409,10 +414,10 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
                             12,
                           ),
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           height: 1.35,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       )
                     : Padding(
@@ -425,8 +430,8 @@ class _UtilityDetailSectionState extends ConsumerState<UtilityDetailSection>
                             fontSize: 14,
                             height: 1.35,
                             color: _lastSavedNotes.trim().isEmpty
-                                ? Colors.grey.shade500
-                                : const Color(0xFF2C2C2E),
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),

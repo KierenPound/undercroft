@@ -114,8 +114,8 @@ class _AdHocDataViewState extends ConsumerState<AdHocDataView> {
                   error: (error, _) => Center(
                     child: Column(
                       children: [
-                        const Icon(Icons.error_outline,
-                            size: 40, color: Colors.grey),
+                        Icon(Icons.error_outline,
+                            size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(height: 8),
                         Text('Error: $error', textAlign: TextAlign.center),
                         TextButton(
@@ -185,7 +185,7 @@ class _Intro extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +208,7 @@ class _Intro extends StatelessWidget {
               'email, URL and notes.',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade700,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                 height: 1.4,
               ),
             ),
@@ -252,25 +252,25 @@ class _EmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.of(context).cardSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
           Icon(Icons.inventory_2_outlined,
-              size: 48, color: Colors.grey.shade400),
+              size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'No ad hoc data yet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF2C2C2E),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Add your own sections for anything not already covered.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -540,7 +540,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       border: InputBorder.none,
                       isDense: true,
@@ -562,7 +562,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: hasValue ? color : Colors.grey.shade500,
+                      color: hasValue ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
           ),
@@ -585,7 +585,7 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 12),
-          child: Icon(Icons.notes, size: 20, color: Colors.grey.shade600),
+          child: Icon(Icons.notes, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -609,8 +609,8 @@ class _AdHocCardState extends ConsumerState<_AdHocCard> {
                     style: TextStyle(
                       fontSize: 15,
                       color: widget.entry.notes.trim().isEmpty
-                          ? Colors.grey.shade400
-                          : const Color(0xFF2C2C2E),
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),

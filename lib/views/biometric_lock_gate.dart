@@ -277,22 +277,22 @@ class _LockOverlay extends StatelessWidget {
             color: AppPalette.of(context).accent,
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'UnderCroft is locked',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2F3330),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           if (confirmingSignOut) ...[
-            const Text(
+            Text(
               'You will need your email and password to sign back in. The app '
               'lock will also be turned off on this device.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.black54),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             Row(
@@ -329,10 +329,10 @@ class _LockOverlay extends StatelessWidget {
               ],
             ),
           ] else ...[
-            const Text(
+            Text(
               'Unlock to view your estate records.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.black54),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
             FilledButton.icon(

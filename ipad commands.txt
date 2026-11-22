@@ -1,0 +1,45 @@
+# iPad mini simulator commands (Xcode 27)
+
+> Xcode 27 removed `Simulator.app`. It is replaced by **Device Hub**
+> (`Xcode.app/Contents/Applications/DeviceHub.app`), which sits *outside*
+> the `xcode-select -p` developer dir. So `open "$(xcode-select -p)/Applications/Simulator.app"`
+> now fails with "The file ... does not exist".
+
+## 1. Open Device Hub (replaces the old Simulator app)
+
+```
+open -a DeviceHub
+```
+
+## 2. List available simulators (to get the exact device name / UDID)
+
+```
+xcrun simctl list devices available
+```
+
+## 3. Boot the iPad mini (optional — `flutter run` will boot it if needed)
+
+```
+xcrun simctl boot "iPad mini (A17 Pro)"
+```
+
+## 4. Run the app on the iPad mini simulator
+
+```
+flutter run -d "iPad mini (A17 Pro)"
+```
+
+## Create a new iPad mini simulator (only if it is missing)
+
+```
+xcrun simctl create "iPad mini (A17 Pro)" \
+  "com.apple.CoreSimulator.SimDeviceType.iPad-mini-A17-Pro" \
+  "com.apple.CoreSimulator.SimRuntime.iOS-27-0"
+```
+
+Notes:
+- Xcode lives on the external SSD at `/Volumes/KierenSSD/Xcode.app`.
+- Flutter 3.50 already supports Device Hub (`getSimulatorPath()` checks
+  `Contents/Applications/DeviceHub.app` first), so `flutter run` works normally.
+- If the device name does not match exactly, run `flutter devices` and use the
+  exact name or ID shown.

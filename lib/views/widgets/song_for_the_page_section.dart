@@ -149,10 +149,10 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Paste a YouTube link to use for this page instead of the '
                 'current song.',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -248,13 +248,13 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
               child: const Icon(Icons.music_note, color: Colors.teal, size: 20),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Song for the page',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2C2C2E),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -290,9 +290,9 @@ class _SongForThePageSectionState extends ConsumerState<SongForThePageSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'A little something for this page — tap play to listen.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 if (videoId != null && _controller != null)

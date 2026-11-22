@@ -27,6 +27,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Fill for the content cards — the "text boxes" the paler schemes tint.
   final Color cardSurface;
 
+  /// Drives the Material colour scheme, so a dark palette gets light text and
+  /// a light palette gets dark text without each screen having to decide.
+  final Brightness brightness;
+
   const AppPalette({
     required this.id,
     required this.name,
@@ -34,6 +38,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.backgroundTop,
     required this.backgroundBottom,
     required this.cardSurface,
+    this.brightness = Brightness.light,
   });
 
   /// The original look, and the fallback whenever a stored id is unknown.
@@ -73,8 +78,34 @@ class AppPalette extends ThemeExtension<AppPalette> {
     cardSurface: Color(0xFFFDFAFE),
   );
 
+  static const AppPalette crimson = AppPalette(
+    id: 'crimson',
+    name: 'Crimson',
+    accent: Color(0xFFA64545),
+    backgroundTop: Color(0xFFF7EEEE),
+    backgroundBottom: Color(0xFFF0E0E0),
+    cardSurface: Color(0xFFFFFAFA),
+  );
+
+  static const AppPalette obsidian = AppPalette(
+    id: 'obsidian',
+    name: 'Obsidian',
+    accent: Color(0xFF6FB3B8),
+    backgroundTop: Color(0xFF1A1A1F),
+    backgroundBottom: Color(0xFF121214),
+    cardSurface: Color(0xFF24242B),
+    brightness: Brightness.dark,
+  );
+
   /// The schemes offered in Settings, in menu order.
-  static const List<AppPalette> choices = [sage, slate, clay, plum];
+  static const List<AppPalette> choices = [
+    sage,
+    slate,
+    clay,
+    plum,
+    crimson,
+    obsidian,
+  ];
 
   static const AppPalette fallback = sage;
 
@@ -105,6 +136,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? backgroundTop,
     Color? backgroundBottom,
     Color? cardSurface,
+    Brightness? brightness,
   }) {
     return AppPalette(
       id: id ?? this.id,
@@ -113,6 +145,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       backgroundTop: backgroundTop ?? this.backgroundTop,
       backgroundBottom: backgroundBottom ?? this.backgroundBottom,
       cardSurface: cardSurface ?? this.cardSurface,
+      brightness: brightness ?? this.brightness,
     );
   }
 

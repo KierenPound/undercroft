@@ -241,13 +241,13 @@ class _AuthViewState extends State<AuthView> {
                           color: Color(0xFF3A8D5A),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Welcome to UnderCroft',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF2C2C2E),
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -255,7 +255,7 @@ class _AuthViewState extends State<AuthView> {
                           'I see this is your first time using UnderCroft. '
                           'Let me guide you through getting set up.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 24),
                         FilledButton(
@@ -351,10 +351,10 @@ class _AuthViewState extends State<AuthView> {
                             ? 'Welcome to UnderCroft'
                             : 'Welcome back to UnderCroft',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -363,7 +363,7 @@ class _AuthViewState extends State<AuthView> {
                             ? 'Create an account to get started.'
                             : 'Sign in to your account.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
                       // The group is what makes the hints below take effect:

@@ -275,17 +275,17 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                       Text(
                         title,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF2C2C2E),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         body,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
                       if (showChoiceStep) ...[
@@ -346,12 +346,14 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                           ),
                           if (_hasPendingInvite) ...[
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'This account has a pending invite waiting for '
                               'it, so you can only join with that code.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.black45,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -414,7 +416,7 @@ class _OptionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: const Color(0xFF3A8D5A).withValues(alpha: 0.25),

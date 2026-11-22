@@ -455,9 +455,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const Text(
+      error: (_, __) => Text(
         'Could not load invitations.',
-        style: TextStyle(fontSize: 13, color: Colors.black54),
+        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       data: (allInvites) {
         // A revoked row with no recorded email says nothing and offers no
@@ -468,9 +468,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             .toList();
 
         if (invites.isEmpty) {
-          return const Text(
+          return Text(
             'Nobody has been invited yet.',
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           );
         }
 
@@ -554,9 +554,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'You are signed in with',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -591,9 +591,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'You are managing',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -644,12 +644,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Choose whether this estate should follow the Scotland '
                     'process or the England & Wales process. This is saved '
                     'to the estate and shared with '
                     'everyone who has access.',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
                   asyncProcessRegion.when(
@@ -661,9 +661,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
-                    error: (_, __) => const Text(
+                    error: (_, __) => Text(
                       'Could not load the legal process setting.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     data: (processRegion) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,19 +698,19 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           processRegion == EstateProcessRegion.scotland
                               ? 'Using the Scotland-specific wording and steps.'
                               : 'Using the England & Wales process.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Colors.black54,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         if (!isOwner)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               'Only an owner can change this setting.',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black54,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -784,22 +784,22 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       ),
                     )
                   : !_lockSupported
-                      ? const Text(
+                      ? Text(
                           'This device has no biometrics set up. Add Face ID '
                           'or a fingerprint in your device settings, then '
                           'return here to enable the app lock.',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         )
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Require your fingerprint or face to reopen '
                               'UnderCroft after it has been in the background '
                               'for more than a minute.',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black54,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -822,10 +822,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Choose the colours UnderCroft uses on this device. '
                     'Anyone with access to the estate can pick their own.',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -861,9 +861,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                  error: (_, __) => const Text(
+                  error: (_, __) => Text(
                     'Could not load your reminder setting.',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   data: (status) => SwitchListTile(
                     contentPadding: EdgeInsets.zero,
@@ -892,10 +892,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Simulate executor view to test the read-only UI without '
                       'changing your database role.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
@@ -915,11 +915,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     // Owner-only, because that is who the paywall applies to.
                     if (actualRole == 'owner') ...[
                       const Divider(height: 24),
-                      const Text(
+                      Text(
                         'Put invitations behind the paid handover unlock, so '
                         'the purchase flow can be tried end to end. Nothing is '
                         'written to the estate.',
-                        style: TextStyle(fontSize: 13, color: Colors.black54),
+                        style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
@@ -942,11 +942,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       ),
                     ],
                     const Divider(height: 24),
-                    const Text(
+                    Text(
                       'Send a harmless event to Sentry to confirm crash '
                       'reporting works end to end. Nothing user-visible '
                       'happens.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 12),
                     Align(
@@ -994,11 +994,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Generate a 6-character invite code. Share it with the '
                       'person you want to act as an executor of this estate. '
                       'They enter the code when they first sign in.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -1109,12 +1109,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Generate a 6-character invite code. The person who '
                       'uses this code will become a co-owner of this estate, '
                       'with the same full privileges as you. They enter the '
                       'code when they first sign in.',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -1307,9 +1307,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             'any access you have granted to others.'
                         : 'Deletes your account and removes your access to this '
                             'estate.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Colors.black54,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1385,9 +1385,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   return Text(
                     'UnderCroft ${info.version} (${info.buildNumber})'
                     '${enableDevTools ? '  ·  Beta build' : ''}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.black38,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
                     ),
                   );
                 },
@@ -1535,7 +1538,9 @@ class _InviteRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: invite.isRevoked ? Colors.black45 : Colors.black87,
+                  color: invite.isRevoked
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : Theme.of(context).colorScheme.onSurface,
                   fontFamily: 'monospace',
                 ),
               ),
@@ -1547,9 +1552,9 @@ class _InviteRow extends StatelessWidget {
                   Expanded(
                     child: Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Colors.black54,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -1561,9 +1566,9 @@ class _InviteRow extends StatelessWidget {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       'Code',
-                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(width: 8),
                     SelectableText(
@@ -1665,6 +1670,10 @@ class _PaletteChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = palette.brightness == Brightness.dark;
+    final borderColor = selected
+        ? palette.accent
+        : (isDark ? Colors.white24 : Colors.black12);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -1675,7 +1684,7 @@ class _PaletteChoice extends StatelessWidget {
           color: palette.cardSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? palette.accent : Colors.black12,
+            color: borderColor,
             width: selected ? 2 : 1,
           ),
         ),
@@ -1691,9 +1700,9 @@ class _PaletteChoice extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _swatch(palette.accent),
+                  _swatch(palette.accent, isDark),
                   const SizedBox(width: 6),
-                  _swatch(palette.cardSurface),
+                  _swatch(palette.cardSurface, isDark),
                 ],
               ),
             ),
@@ -1711,7 +1720,7 @@ class _PaletteChoice extends StatelessWidget {
                     fontSize: 12,
                     fontWeight:
                         selected ? FontWeight.w600 : FontWeight.w400,
-                    color: Colors.black87,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
               ],
@@ -1722,14 +1731,16 @@ class _PaletteChoice extends StatelessWidget {
     );
   }
 
-  Widget _swatch(Color color) {
+  Widget _swatch(Color color, bool isDark) {
     return Container(
       width: 16,
       height: 16,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.black12),
+        border: Border.all(
+          color: isDark ? Colors.white24 : Colors.black12,
+        ),
       ),
     );
   }
@@ -1807,10 +1818,10 @@ class _UnlockInvitesCardState extends State<_UnlockInvitesCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Bringing an executor or a co-estate owner into this estate is a one-off '
             'purchase. Everything else in UnderCroft stays free.',
-            style: TextStyle(fontSize: 13, color: Colors.black54),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1823,7 +1834,7 @@ class _UnlockInvitesCardState extends State<_UnlockInvitesCard> {
                     : 'Your purchase is verified and saved to this estate. '
                         'Use Restore Purchases to check your Apple account '
                         'again on this device.',
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           SizedBox(
