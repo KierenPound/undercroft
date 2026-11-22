@@ -4,6 +4,10 @@ import 'package:video_compressor_plus/video_compressor_plus.dart';
 
 const int _mb = 1024 * 1024;
 
+/// The upload ceiling the service enforces, in whole megabytes. The scripted
+/// outputs below are sized against it, so they stay meaningful if it changes.
+const int _limitMb = VideoCompressionService.maxUploadBytes ~/ _mb;
+
 /// Records every attempt and answers with the scripted sizes.
 ///
 /// `null` stands for an attempt that failed, which is how a throwing or
@@ -79,14 +83,14 @@ void main() {
     test('retries at low, from the original, when medium is still too big',
         () async {
       final fake = _FakeCompressor([
-        _output('/tmp/medium.mp4', 60),
+        _output('/tmp/medium.mp4', _limitMb + 50),
         _output('/tmp/low.mp4', 20),
       ]);
       final service = VideoCompressionService(compress: fake.call);
 
       final result = await service.prepare(
         sourcePath: '/tmp/original.mov',
-        sourceSizeBytes: 80 * _mb,
+        sourceSizeBytes: (_limitMb + 50) * _mb,
       );
 
       expect(result.status, VideoCompressionStatus.compressed);
@@ -106,14 +110,14 @@ void main() {
     test('gives up with a friendly message when low is still too big',
         () async {
       final fake = _FakeCompressor([
-        _output('/tmp/medium.mp4', 60),
-        _output('/tmp/low.mp4', 55),
+        _output('/tmp/medium.mp4', _limitMb + 50),
+        _output('/tmp/low.mp4', _limitMb + 20),
       ]);
       final service = VideoCompressionService(compress: fake.call);
 
       final result = await service.prepare(
         sourcePath: '/tmp/original.mov',
-        sourceSizeBytes: 80 * _mb,
+        sourceSizeBytes: (_limitMb + 50) * _mb,
       );
 
       expect(result.status, VideoCompressionStatus.tooLarge);
@@ -145,12 +149,12 @@ void main() {
 
       final result = await service.prepare(
         sourcePath: '/tmp/original.mov',
-        sourceSizeBytes: 50 * _mb,
+        sourceSizeBytes: _limitMb * _mb,
       );
 
       expect(fake.calls, hasLength(2));
       expect(result.status, VideoCompressionStatus.original);
-      expect(result.sizeBytes, 50 * _mb);
+      expect(result.sizeBytes, _limitMb * _mb);
       expect(result.canUpload, isTrue);
     });
   });
