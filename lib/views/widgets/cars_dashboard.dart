@@ -184,7 +184,7 @@ class CarsDashboard extends StatelessWidget {
           alignment: Alignment.center,
           child: Text(
             '$number',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: Colors.green,

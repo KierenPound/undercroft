@@ -105,11 +105,15 @@ class _NotesSectionState extends ConsumerState<NotesSection>
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.18),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.sticky_note_2,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  size: 20),
             ),
             const SizedBox(width: 10),
             Text(
@@ -130,7 +134,9 @@ class _NotesSectionState extends ConsumerState<NotesSection>
                 ),
                 child: Text(
                   'Read-only',
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -146,7 +152,7 @@ class _NotesSectionState extends ConsumerState<NotesSection>
           )
         else if (asyncSection.hasError && !asyncSection.hasValue)
           Text('Error: ${asyncSection.error}',
-              style: TextStyle(color: Colors.red))
+              style: const TextStyle(color: Colors.red))
         else
           _buildNotesEditor(),
       ],
@@ -175,7 +181,8 @@ class _NotesSectionState extends ConsumerState<NotesSection>
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(14),
         ),
-        style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
+        style: TextStyle(
+            fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
       ),
     );
   }

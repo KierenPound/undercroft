@@ -193,7 +193,9 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
                 final completed = items.where((e) => e.isCompleted).length;
                 return Text(
                   '$completed/${items.length}',
-                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurface),
                 );
               },
               orElse: () => const SizedBox.shrink(),
@@ -208,7 +210,7 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
             child: CircularProgressIndicator(),
           )),
           error: (error, _) =>
-              Text('Error: $error', style: TextStyle(color: Colors.red)),
+              Text('Error: $error', style: const TextStyle(color: Colors.red)),
           data: (items) {
             if (items.isEmpty && !widget.isOwner) {
               return Card(
@@ -253,7 +255,9 @@ class _ChecklistSectionState extends ConsumerState<ChecklistSection> {
               item.isCompleted
                   ? Icons.check_circle
                   : Icons.radio_button_unchecked,
-              color: item.isCompleted ? Colors.green : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: item.isCompleted
+                  ? Colors.green
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 22,
             ),
           ),

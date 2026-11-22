@@ -212,7 +212,7 @@ class _BiometricLockGateState extends State<BiometricLockGate>
     // Until the preference has loaded, show a blank cover rather than the
     // dashboard, so records are never briefly visible on a cold start.
     if (!_ready) {
-      return ColoredBox(color: AppPalette.of(context).backgroundTop);
+      return ColoredBox(color: AppPalette.of(context).cardSurface);
     }
 
     return Stack(
@@ -264,9 +264,10 @@ class _LockOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: AppPalette.of(context).backgroundGradient,
-      ),
+      // Matches a section card rather than the background gradient, so the
+      // lock screen reads as content and its text keeps the same contrast a
+      // regular section has.
+      color: AppPalette.of(context).cardSurface,
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

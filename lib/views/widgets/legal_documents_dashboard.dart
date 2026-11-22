@@ -718,7 +718,7 @@ class _LegalDocumentsDashboardState
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.lightbulb, size: 14, color: Colors.amber),
+        const Icon(Icons.lightbulb, size: 14, color: Colors.amber),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -981,7 +981,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
         title: Text(
           widget.attachment.fileName
               .replaceFirst(RegExp(r'^(will|codicil|deed)_\d+_'), ''),
-          style: TextStyle(color: Colors.white, fontSize: 16),
+          style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
       body: _loading
@@ -992,7 +992,7 @@ class _FullscreenPdfViewerState extends State<_FullscreenPdfViewer> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       'Failed to load PDF: $_error',
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       textAlign: TextAlign.center,
                     ),
                   ),

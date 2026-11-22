@@ -43,7 +43,9 @@ class FuneralArrangementsDashboard extends ConsumerWidget {
           error: (error, _) => Center(
             child: Column(
               children: [
-                Icon(Icons.error_outline, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                Icon(Icons.error_outline,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 8),
                 Text('Error: $error', textAlign: TextAlign.center),
                 TextButton(
@@ -193,7 +195,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Add one for each estate owner.',
-            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           if (onAdd != null) ...[
@@ -394,7 +398,8 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
           decoration: BoxDecoration(
             color: AppPalette.of(context).cardSurface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            border:
+                Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -449,7 +454,7 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                     TextField(
                       controller: _urlController,
                       enabled: widget.isOwner,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.w600,
                       ),
@@ -460,7 +465,9 @@ class _ArrangementCardState extends ConsumerState<_ArrangementCard>
                           fontWeight: FontWeight.normal,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,

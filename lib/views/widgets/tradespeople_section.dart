@@ -603,7 +603,7 @@ class _TradespersonTileState extends ConsumerState<_TradespersonTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.only(left: 12, top: 14),
+            padding: const EdgeInsets.only(left: 12, top: 14),
             child: Icon(Icons.notes, size: 18, color: color),
           ),
           const SizedBox(width: 8),

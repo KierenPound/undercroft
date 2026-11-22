@@ -69,13 +69,19 @@ class AppPalette extends ThemeExtension<AppPalette> {
     cardSurface: Color(0xFFFFFCF8),
   );
 
-  static const AppPalette plum = AppPalette(
+  /// Tom's pick: the outside a medium purple with the cards a light lavender,
+  /// so the black text drawn on the cards stays readable.
+  ///
+  /// The id stays `plum` so a device that already selected this scheme keeps it
+  /// rather than reverting to [fallback].
+  static const AppPalette tom = AppPalette(
     id: 'plum',
-    name: 'Plum',
-    accent: Color(0xFF6E4A73),
-    backgroundTop: Color(0xFFF7F1F7),
-    backgroundBottom: Color(0xFFEBE0EC),
-    cardSurface: Color(0xFFFDFAFE),
+    name: 'Tom',
+    accent: Color(0xFF68468F),
+    backgroundTop: Color(0xFFA489C3),
+    backgroundBottom: Color(0xFF9273B4),
+    cardSurface: Color(0xFFE8E2F7),
+    brightness: Brightness.light,
   );
 
   static const AppPalette crimson = AppPalette(
@@ -102,7 +108,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     sage,
     slate,
     clay,
-    plum,
+    tom,
     crimson,
     obsidian,
   ];

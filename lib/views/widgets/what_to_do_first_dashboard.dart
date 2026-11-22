@@ -784,7 +784,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                               ? 'Tap to expand'
                               : 'Family photograph',
                       style:
-                          TextStyle(fontSize: 12, color: Colors.blue),
+                          const TextStyle(fontSize: 12, color: Colors.blue),
                     ),
                   ],
                 ),
@@ -933,7 +933,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                                     : const Icon(Icons.edit, size: 16),
                                 label: Text(
                                   _uploading ? 'Uploading...' : 'Replace photo',
-                                  style: TextStyle(fontSize: 13),
+                                  style: const TextStyle(fontSize: 13),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFE08A2C),
@@ -1035,7 +1035,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.local_hospital,
+                    const Icon(Icons.local_hospital,
                         size: 18, color: Colors.teal),
                     const SizedBox(width: 8),
                     Text(
@@ -1241,7 +1241,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Icon(Icons.location_on,
+                    const Icon(Icons.location_on,
                         size: 18, color: Colors.red),
                     const SizedBox(width: 6),
                     Text(
@@ -1312,7 +1312,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info, size: 16, color: Colors.blue),
+                    const Icon(Icons.info, size: 16, color: Colors.blue),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1477,7 +1477,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 children: [
                   TextSpan(
                     text: '$title: ',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   TextSpan(text: description),
                 ],
@@ -1501,7 +1501,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
           children: [
             TextSpan(
               text: '$label ',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             TextSpan(text: text),
           ],
@@ -1590,7 +1590,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Icon(Icons.copy_all_rounded,
+                    const Icon(Icons.copy_all_rounded,
                         size: 18, color: Colors.purple),
                     const SizedBox(width: 8),
                     Text(
@@ -2111,7 +2111,7 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb, size: 14, color: Colors.orange),
+                const Icon(Icons.lightbulb, size: 14, color: Colors.orange),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -2279,10 +2279,10 @@ class _WhatToDoFirstDashboardState extends ConsumerState<WhatToDoFirstDashboard>
           ),
         ),
         const SizedBox(height: 2),
-        Row(
+        const Row(
           children: [
             Icon(Icons.fullscreen, size: 10, color: Colors.orange),
-            const SizedBox(width: 3),
+            SizedBox(width: 3),
             Text(
               'Tap to expand',
               style: TextStyle(fontSize: 10, color: Colors.orange),
@@ -2431,7 +2431,7 @@ class _FullscreenCertificateViewer extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           attachment.fileName.replaceFirst(RegExp(r'^cert_'), ''),
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
       ),
       body: Center(
