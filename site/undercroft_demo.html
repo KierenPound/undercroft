@@ -305,6 +305,12 @@
       <p id="playback-status" class="load-status playback-status" role="status" aria-live="polite" style="display: none;"></p>
     </div>
 
+    <!-- Debug / version panel (visible on all builds for now) -->
+    <div id="debug-panel" style="position:fixed;bottom:8px;left:8px;background:#1a1a1a;color:#0f0;font:11px/1.4 monospace;padding:8px 10px;border-radius:6px;z-index:9999;max-width:90vw;overflow:auto;">
+      <div id="debug-version"></div>
+      <div id="debug-info"></div>
+    </div>
+
     <!-- Dot Indicators -->
     <div class="dots-wrapper" id="dots-wrapper" style="display: none;"></div>
   </div>
@@ -317,6 +323,7 @@
   </div>
 
   <script>
+    const DEMO_VERSION = '2026-11-23.5';  // bump each deploy to confirm the right build is live
     let currentSlide = 0;
     let autoPlayTimer = null;
     let transitionPauseTimer = null;
@@ -339,11 +346,31 @@
       }
     }
 
+    function debug(msg) {
+      const el = document.getElementById('debug-info');
+      if (el) {
+        const line = document.createElement('div');
+        line.textContent = msg;
+        el.appendChild(line);
+        // keep the panel from growing unboundedly
+        while (el.children.length > 12) el.removeChild(el.firstChild);
+      }
+      console.log('[demo]', msg);
+    }
+
+    // Show the build version immediately so the user knows which deploy is running.
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('debug-version').textContent = `v${DEMO_VERSION}`;
+    });
+
     // Function to load and cache voices properly
     function loadVoices() {
       if (speechSupported) {
         availableVoices = window.speechSynthesis.getVoices();
-        console.log("Available Voices:", availableVoices.map(v => `${v.name} (${v.lang})`));
+        debug(`voices loaded: ${availableVoices.length}`);
+        if (availableVoices.length) {
+          debug(`first voice: ${availableVoices[0].name} (${availableVoices[0].lang})`);
+        }
       }
     }
 
@@ -447,6 +474,7 @@
     }
 
     function startWalkthrough() {
+      debug(`speechSupported=${speechSupported}, voices=${availableVoices.length}`);
       document.getElementById('load-status').style.display = 'none';
       document.getElementById('slides-wrapper').style.display = 'block';
       document.getElementById('controls-bar').style.display = 'flex';
@@ -574,10 +602,10 @@
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         utterance.lang = selectedVoice.lang;
-        console.log("Using voice:", selectedVoice.name, selectedVoice.lang);
+        debug(`selected voice: ${selectedVoice.name} (${selectedVoice.lang})`);
       } else {
         utterance.lang = 'en-GB';
-        console.log("No UK voice found. Using browser default.");
+        debug('no UK voice found — using browser default');
       }
 
       // Track how far through the narration we are so Pause/Play can resume in place.
@@ -588,6 +616,7 @@
       };
 
       utterance.onstart = () => {
+        debug('utterance onstart');
         document.getElementById('playback-status').style.display = 'none';
       };
 
@@ -596,6 +625,7 @@
       // within the user gesture, which is the pattern iOS requires.
 
       utterance.onend = () => {
+        debug('utterance onend');
         // A cancelled utterance (pause/skip) also fires onend in some browsers;
         // only treat it as a real finish when we are still playing, and keep the
         // resume position until the next slide actually starts.
@@ -607,6 +637,7 @@
       };
 
       utterance.onerror = (event) => {
+        debug(`utterance onerror: ${event.error}`);
         if (event.error === 'not-allowed') {
           isPlaying = false;
           document.getElementById('btn-pause-play').textContent = '▶ Play';
@@ -623,6 +654,7 @@
       // iOS Safari requires speak() to be called synchronously within the user
       // gesture and WITHOUT a preceding resume() — resume() can silence it.
       // cancel() was already called at the top of this function.
+      debug(`speaking: "${fullText.slice(startCharIndex, 60)}..."`);
       window.speechSynthesis.speak(utterance);
     }
 
