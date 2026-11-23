@@ -558,20 +558,25 @@
       // list can go stale.
       availableVoices = window.speechSynthesis.getVoices();
 
-      const fionaVoice = availableVoices.find(voice => voice.name.toLowerCase().includes('fiona'));
-      const floVoice = availableVoices.find(voice =>
-        voice.name.toLowerCase().includes('flo') && voice.lang.toLowerCase() === 'en-gb'
-      );
-      const ukEnglishVoice = availableVoices.find(voice =>
-        voice.lang.toLowerCase() === 'en-gb'
-      );
-      const selectedVoice = fionaVoice || floVoice || ukEnglishVoice;
+      // Voice preference: Fiona (Scottish, warm) first, then other UK voices.
+      const preferredVoices = ['Fiona', 'Serena', 'Kate', 'Daniel', 'Oliver', 'Flo'];
+      let selectedVoice = null;
+      for (const name of preferredVoices) {
+        selectedVoice = availableVoices.find(v =>
+          v.name.toLowerCase().includes(name.toLowerCase()) && v.lang.toLowerCase() === 'en-gb'
+        );
+        if (selectedVoice) break;
+      }
+      // Fall back to any en-GB voice.
+      if (!selectedVoice) {
+        selectedVoice = availableVoices.find(v => v.lang.toLowerCase() === 'en-gb');
+      }
 
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         console.log("Using voice:", selectedVoice.name, selectedVoice.lang);
       } else {
-        console.log("No preferred UK voice found. Using browser default.");
+        console.log("No UK voice found. Using browser default.");
       }
 
       // Track how far through the narration we are so Pause/Play can resume in place.
