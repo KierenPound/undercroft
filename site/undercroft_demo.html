@@ -302,6 +302,7 @@
       <button id="btn-next" class="btn-control" type="button" onclick="nextSlideManual()">Next ▶</button>
       <span id="slide-counter" class="slide-counter" aria-live="polite"></span>
       <select id="topic-select" class="topic-select" aria-label="Jump to a topic"></select>
+      <select id="voice-select" class="topic-select" aria-label="Choose narration voice" onchange="onVoiceChange(this.value)"></select>
       <p id="playback-status" class="load-status playback-status" role="status" aria-live="polite" style="display: none;"></p>
     </div>
 
@@ -323,7 +324,7 @@
   </div>
 
   <script>
-    const DEMO_VERSION = '2026-11-23.5';  // bump each deploy to confirm the right build is live
+    const DEMO_VERSION = '2026-11-23.6';  // bump each deploy to confirm the right build is live
     let currentSlide = 0;
     let autoPlayTimer = null;
     let transitionPauseTimer = null;
@@ -333,6 +334,7 @@
     let speechCharIndex = 0;   // absolute index into the current slide's narration text
     let speechBaseOffset = 0;  // offset used when resuming a slide mid-narration
     let availableVoices = [];
+    let selectedVoiceName = localStorage.getItem('undercroft-demo-voice') || '';
     const narrationEnabled = true;
     const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 
@@ -371,7 +373,31 @@
         if (availableVoices.length) {
           debug(`first voice: ${availableVoices[0].name} (${availableVoices[0].lang})`);
         }
+        populateVoiceSelect();
       }
+    }
+
+    function populateVoiceSelect() {
+      const select = document.getElementById('voice-select');
+      if (!select) return;
+      const previous = select.value;
+      select.innerHTML = '';
+      availableVoices.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        select.appendChild(opt);
+      });
+      const pick = (selectedVoiceName && availableVoices.some(v => v.name === selectedVoiceName))
+        ? selectedVoiceName
+        : previous;
+      if (pick) select.value = pick;
+    }
+
+    function onVoiceChange(name) {
+      selectedVoiceName = name;
+      localStorage.setItem('undercroft-demo-voice', name);
+      debug(`voice changed to: ${name}`);
     }
 
     function cancelSpeech() {
@@ -584,17 +610,23 @@
       // list can go stale.
       availableVoices = window.speechSynthesis.getVoices();
 
-      // Voice preference: match by name first (language-agnostic), since some
-      // browsers don't tag Fiona with en-GB even though she is Scottish English.
-      const preferredNames = ['Fiona', 'Serena', 'Kate', 'Daniel', 'Oliver', 'Flo'];
-      let selectedVoice = null;
-      for (const name of preferredNames) {
-        selectedVoice = availableVoices.find(v =>
-          v.name.toLowerCase().includes(name.toLowerCase())
-        );
-        if (selectedVoice) break;
+      // 1) User's explicit choice from the voice dropdown (persisted in localStorage).
+      let selectedVoice = selectedVoiceName
+        ? availableVoices.find(v => v.name === selectedVoiceName)
+        : null;
+
+      // 2) Default preference list (language-agnostic match).
+      if (!selectedVoice) {
+        const preferredNames = ['Fiona', 'Serena', 'Kate', 'Flo', 'Daniel', 'Oliver'];
+        for (const name of preferredNames) {
+          selectedVoice = availableVoices.find(v =>
+            v.name.toLowerCase().includes(name.toLowerCase())
+          );
+          if (selectedVoice) break;
+        }
       }
-      // Fall back to any UK voice.
+
+      // 3) Fall back to any UK voice.
       if (!selectedVoice) {
         selectedVoice = availableVoices.find(v => v.lang.toLowerCase() === 'en-gb');
       }
