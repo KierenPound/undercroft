@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service · UnderCroft</title>
+    <meta name="description" content="Terms governing your use of the UnderCroft mobile application.">
+    <style>
+        :root {
+            color-scheme: light;
+
+            /* UnderCroft palette */
+            --ivory: #F5F1E8;
+            --sand: #EDE6D6;
+            --sage: #5B7C6A;
+            --sage-strong: #47614F;
+            --sage-tint: rgba(91, 124, 106, 0.08);
+            --sage-line: rgba(91, 124, 106, 0.18);
+            --ink: #2B302A;
+            --ink-body: #3A4038;
+            --ink-soft: #5A6157;
+            --ink-faint: #7C8579;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 28px 16px 48px;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--ink-body);
+            background: linear-gradient(180deg, var(--ivory) 0%, var(--sand) 100%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+            padding: 0 4px 14px;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--sage);
+            text-decoration: none;
+        }
+
+        .brand-divider {
+            color: var(--sage-line);
+        }
+
+        .page-name {
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            color: var(--ink-faint);
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: clamp(24px, 4vw, 40px);
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .updated {
+            margin: 0 0 10px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        h1 {
+            margin: 0 0 18px;
+            font-size: clamp(1.6rem, 3.6vw, 2.05rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: var(--ink);
+        }
+
+        h2 {
+            margin: 32px 0 10px;
+            padding-bottom: 8px;
+            font-size: 1.02rem;
+            font-weight: 600;
+            color: var(--sage-strong);
+            border-bottom: 1px solid var(--sage-line);
+        }
+
+        p, li {
+            font-size: 0.965rem;
+            margin: 0 0 12px;
+        }
+
+        ul, ol {
+            margin: 0 0 12px;
+            padding-left: 20px;
+        }
+
+        li { margin-bottom: 6px; }
+
+        strong { color: var(--ink); }
+
+        a {
+            color: var(--sage-strong);
+            text-decoration: underline;
+            text-decoration-color: rgba(91, 124, 106, 0.4);
+            text-underline-offset: 2px;
+        }
+
+        a:hover { text-decoration-color: currentColor; }
+
+        .callout {
+            margin: 20px 0;
+            padding: 16px 18px;
+            background: var(--sage-tint);
+            border-left: 3px solid var(--sage);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .callout p:last-child { margin-bottom: 0; }
+
+        .callout-title {
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--sage-strong);
+        }
+
+        .page-footer {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--ink-faint);
+        }
+
+        .page-footer a {
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .page-footer a:hover { color: var(--sage-strong); }
+
+        .page-footer span { padding: 0 6px; }
+
+        :focus-visible {
+            outline: 2px solid var(--sage);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 18px 12px 40px; }
+            h2 { margin-top: 26px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="page-header">
+            <a class="brand" href="index.html">UnderCroft</a>
+            <span class="brand-divider">·</span>
+            <span class="page-name">Terms of Service</span>
+        </header>
+
+        <main class="card">
+            <p class="updated">App: UnderCroft · Last updated November 2026</p>
+            <h1>Terms of Service</h1>
+
+            <p>These Terms of Service ("Terms") govern your use of the <strong>UnderCroft</strong> mobile application ("the app"), operated by us. By creating an account or using the app, you agree to these Terms. If you do not agree, please do not use the app.</p>
+
+            <h2>1. The service</h2>
+            <p>UnderCroft is a personal estate-preparation tool that lets you record and organise information to help your executor or next of kin after you die. The app is provided for your own personal use only.</p>
+            <p>UnderCroft is not a law firm or a financial adviser. Nothing in the app constitutes legal, financial, tax, or professional advice. If you have specific questions about probate, tax, or your affairs, consult a qualified professional.</p>
+
+            <h2>2. Account</h2>
+            <ul>
+                <li>You must be at least 18 years old to use the app.</li>
+                <li>You are responsible for the information you enter and for keeping your account credentials secure.</li>
+                <li>You must not use the app for any unlawful purpose or in a way that disrupts its operation.</li>
+            </ul>
+
+            <h2>3. Your content</h2>
+            <p>You retain full ownership of everything you enter or upload to the app. By using the app, you grant us a limited licence to store and display your content only so that we can provide the service to you. We do not access or use your content for any other purpose.</p>
+
+            <h2>4. Paid features</h2>
+            <p>The app is free to download. Some features, such as the ability to invite an executor or co-estate owner, are unlocked through a one-time in-app purchase ("Complete the Handover").</p>
+            <ul>
+                <li>Purchases are processed by Apple App Store or Google Play. Refunds are subject to the store's refund policy.</li>
+                <li>The unlock is tied to your account and estate and is intended for use by the estate owner. It grants access to the features described in the product listing.</li>
+                <li>Prices may change at any time without notice.</li>
+            </ul>
+
+            <h2>5. No guarantee of availability</h2>
+            <p>We aim to keep the app running, but we cannot guarantee uninterrupted or error-free service. We may update, change, or discontinue features at any time.</p>
+
+            <h2>6. Limitation of liability</h2>
+            <p>To the fullest extent permitted by law, UnderCroft and its operator will not be liable for any loss or damage arising from your use of the app, including loss of data, loss of profits, or reliance on any guidance within it. The app is provided "as is" without warranties of any kind.</p>
+
+            <h2>7. Privacy</h2>
+            <p>Your use of the app is also governed by our <a href="privacy.html">Privacy Policy</a>.</p>
+
+            <h2>8. Changes to these Terms</h2>
+            <p>We may update these Terms from time to time. If we make significant changes, we'll let you know through the app. Continued use after changes means you accept the updated Terms.</p>
+
+            <h2>9. Termination</h2>
+            <p>You can delete your account and all your data at any time from <strong>Settings → Delete my account</strong> within the app. We may suspend or terminate access if you breach these Terms.</p>
+
+            <h2>10. Contact</h2>
+            <p>If you have any questions about these Terms, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> <a href="mailto:support@undercroftvault.com">support@undercroftvault.com</a></li>
+                <li><strong>Support form:</strong> <a href="support.html">undercroftvault.com/support</a></li>
+            </ul>
+        </main>
+
+        <footer class="page-footer">
+            <a href="privacy.html">Privacy Policy</a>
+            <span>·</span>
+            <a href="terms.html">Terms of Service</a>
+            <span>·</span>
+            <a href="support.html">Support</a>
+        </footer>
+    </div>
+</body>
+</html>
