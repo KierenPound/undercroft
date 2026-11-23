@@ -445,6 +445,11 @@
       // The topic selector is a native pulldown, so it works on every platform.
       loadVoices();
 
+      // On touch devices (phones/tablets), browsers block speech synthesis that
+      // isn't triggered by a user gesture. Start paused so the first narration
+      // begins when the user taps Play, rather than being silently rejected.
+      const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
       if (!speechSupported) {
         const status = document.getElementById('playback-status');
         status.textContent = 'Narration is not supported in this browser. Slides will advance automatically.';
@@ -452,8 +457,17 @@
       }
 
       isEnded = false;
-      isPlaying = true;
-      playCurrentSlideAudioAndAdvance();
+      if (isTouchDevice && speechSupported) {
+        isPlaying = false;
+        document.getElementById('btn-pause-play').textContent = '▶ Play';
+        const status = document.getElementById('playback-status');
+        status.textContent = 'Tap Play to start the narration.';
+        status.style.display = 'block';
+        showSlide(0);
+      } else {
+        isPlaying = true;
+        playCurrentSlideAudioAndAdvance();
+      }
     }
 
     function showSlide(index) {
@@ -524,10 +538,10 @@
       const utterance = new SpeechSynthesisUtterance(fullText.slice(startCharIndex));
       utterance.rate = 1.0;
 
-      // Prefer Fiona, then use the available UK English Flo voice.
-      if (availableVoices.length === 0) {
-        availableVoices = window.speechSynthesis.getVoices();
-      }
+      // Always refresh the voice list right before speaking. Some browsers (especially
+      // iOS Safari) return an empty list until voiceschanged has fired, and the cached
+      // list can go stale.
+      availableVoices = window.speechSynthesis.getVoices();
 
       const fionaVoice = availableVoices.find(voice => voice.name.toLowerCase().includes('fiona'));
       const floVoice = availableVoices.find(voice =>
@@ -556,6 +570,11 @@
         document.getElementById('playback-status').style.display = 'none';
       };
 
+      // iOS Safari sometimes pauses speech synthesis mid-utterance; resume it.
+      utterance.onpause = () => {
+        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
+      };
+
       utterance.onend = () => {
         // A cancelled utterance (pause/skip) also fires onend in some browsers;
         // only treat it as a real finish when we are still playing, and keep the
@@ -581,6 +600,9 @@
         fallbackTimer();
       };
 
+      // iOS Safari (and some Android browsers) require resume() before speak(),
+      // especially after a cancel(), otherwise the utterance stays silent.
+      try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
       window.speechSynthesis.speak(utterance);
     }
 
