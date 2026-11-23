@@ -67,3 +67,6 @@ repomix-output.xml
 
 # local R2 credential notes — never commit
 r2storage
+
+# TRAE IDE — zipped HTML share packages, not source
+.trae-html-share-packages/

@@ -84,7 +84,7 @@ class _AuthViewState extends State<AuthView> {
     var opened = false;
     try {
       opened = await launchUrl(
-        Uri.parse('https://crabkingslair.com/undercroft_demo'),
+        Uri.parse('https://undercroftvault.com/undercroft_demo'),
         mode: LaunchMode.externalApplication,
       );
     } catch (_) {

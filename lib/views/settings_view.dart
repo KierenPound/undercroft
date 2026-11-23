@@ -1260,7 +1260,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _openExternal(
-                        'https://crabkingslair.com/support',
+                        'https://undercroftvault.com/support',
                       ),
                       icon: const Icon(Icons.help_outline, size: 18),
                       label: const Text('Support'),
@@ -1271,7 +1271,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _openExternal(
-                        'https://crabkingslair.com/privacy',
+                        'https://undercroftvault.com/privacy',
                       ),
                       icon: const Icon(Icons.privacy_tip_outlined, size: 18),
                       label: const Text('Privacy policy'),
@@ -1282,7 +1282,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _openExternal(
-                        'https://crabkingslair.com/undercroft_demo',
+                        'https://undercroftvault.com/undercroft_demo',
                       ),
                       icon: const Icon(Icons.play_circle_outline, size: 18),
                       label: const Text('Demo guide'),

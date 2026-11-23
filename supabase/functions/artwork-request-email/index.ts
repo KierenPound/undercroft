@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 const NOTIFICATION_EMAIL = "poundmatt@live.com";
-const NOTIFICATION_FROM = "contact@crabkingslair.com";
+const NOTIFICATION_FROM = "support@undercroftvault.com";
 
 serve(async (req) => {
   try {
