@@ -185,10 +185,24 @@
     /* Controls & Indicators Bar */
     .controls-bar {
       display: flex;
+      flex-direction: column;
       justify-content: flex-start;
+      align-items: stretch;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .controls-buttons {
+      display: flex;
       align-items: center;
       gap: 0.35rem;
-      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .controls-selects {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
       flex-wrap: wrap;
     }
 
@@ -221,18 +235,20 @@
       margin-left: 0.25rem;
     }
 
-    .topic-select {
+    .topic-select,
+    .voice-select {
       background-color: var(--card-bg);
       color: var(--text-color);
       border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 0.35rem 0.5rem;
       font-size: 0.8rem;
-      max-width: 240px;
-      margin-left: auto;
+      flex: 1 1 0;
+      min-width: 0;
     }
 
-    .topic-select:focus-visible {
+    .topic-select:focus-visible,
+    .voice-select:focus-visible {
       outline: 2px solid var(--accent-color);
       outline-offset: 2px;
     }
@@ -283,6 +299,22 @@
       padding: 0;
       text-align: left;
     }
+
+    @media (min-width: 768px) {
+      .controls-bar {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .controls-selects {
+        margin-left: auto;
+      }
+      .topic-select,
+      .voice-select {
+        flex: 0 1 auto;
+        max-width: 240px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -297,17 +329,21 @@
 
     <!-- Controls Bar (Previous, Pause/Play, Next) -->
     <div id="controls-bar" class="controls-bar" style="display: none;">
-      <button id="btn-prev" class="btn-control" type="button" onclick="prevSlide()">◀ Previous</button>
-      <button id="btn-pause-play" class="btn-control" type="button" onclick="togglePausePlay()">⏸ Pause</button>
-      <button id="btn-next" class="btn-control" type="button" onclick="nextSlideManual()">Next ▶</button>
-      <span id="slide-counter" class="slide-counter" aria-live="polite"></span>
-      <select id="topic-select" class="topic-select" aria-label="Jump to a topic"></select>
-      <select id="voice-select" class="topic-select" aria-label="Choose narration voice" onchange="onVoiceChange(this.value)"></select>
+      <div class="controls-buttons">
+        <button id="btn-prev" class="btn-control" type="button" onclick="prevSlide()">◀ Previous</button>
+        <button id="btn-pause-play" class="btn-control" type="button" onclick="togglePausePlay()">⏸ Pause</button>
+        <button id="btn-next" class="btn-control" type="button" onclick="nextSlideManual()">Next ▶</button>
+        <span id="slide-counter" class="slide-counter" aria-live="polite"></span>
+      </div>
+      <div class="controls-selects">
+        <select id="topic-select" class="topic-select" aria-label="Jump to a topic"></select>
+        <select id="voice-select" class="voice-select" aria-label="Choose narration voice" onchange="onVoiceChange(this.value)"></select>
+      </div>
       <p id="playback-status" class="load-status playback-status" role="status" aria-live="polite" style="display: none;"></p>
     </div>
 
-    <!-- Debug / version panel (visible on all builds for now) -->
-    <div id="debug-panel" style="position:fixed;bottom:8px;left:8px;background:#1a1a1a;color:#0f0;font:11px/1.4 monospace;padding:8px 10px;border-radius:6px;z-index:9999;max-width:90vw;overflow:auto;">
+    <!-- Debug / version panel (gated behind DEBUG_ENABLED) -->
+    <div id="debug-panel" style="display:none;position:fixed;bottom:8px;left:8px;background:#1a1a1a;color:#0f0;font:11px/1.4 monospace;padding:8px 10px;border-radius:6px;z-index:9999;max-width:90vw;overflow:auto;">
       <div id="debug-version"></div>
       <div id="debug-info"></div>
     </div>
@@ -324,7 +360,8 @@
   </div>
 
   <script>
-    const DEMO_VERSION = '2026-11-23.6';  // bump each deploy to confirm the right build is live
+    const DEMO_VERSION = '2026-11-23.8';  // bump each deploy to confirm the right build is live
+    const DEBUG_ENABLED = false;           // set to true to show the on-screen debug panel
     let currentSlide = 0;
     let autoPlayTimer = null;
     let transitionPauseTimer = null;
@@ -349,20 +386,23 @@
     }
 
     function debug(msg) {
+      console.log('[demo]', msg);
+      if (!DEBUG_ENABLED) return;
       const el = document.getElementById('debug-info');
       if (el) {
         const line = document.createElement('div');
         line.textContent = msg;
         el.appendChild(line);
-        // keep the panel from growing unboundedly
         while (el.children.length > 12) el.removeChild(el.firstChild);
       }
-      console.log('[demo]', msg);
     }
 
-    // Show the build version immediately so the user knows which deploy is running.
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('debug-version').textContent = `v${DEMO_VERSION}`;
+      if (DEBUG_ENABLED) {
+        const panel = document.getElementById('debug-panel');
+        if (panel) panel.style.display = 'block';
+        document.getElementById('debug-version').textContent = `v${DEMO_VERSION}`;
+      }
     });
 
     // Function to load and cache voices properly
@@ -617,7 +657,7 @@
 
       // 2) Default preference list (language-agnostic match).
       if (!selectedVoice) {
-        const preferredNames = ['Fiona', 'Serena', 'Kate', 'Flo', 'Daniel', 'Oliver'];
+        const preferredNames = ['Fiona', 'Moira', 'Serena', 'Kate', 'Flo', 'Daniel', 'Oliver'];
         for (const name of preferredNames) {
           selectedVoice = availableVoices.find(v =>
             v.name.toLowerCase().includes(name.toLowerCase())
