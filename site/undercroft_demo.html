@@ -329,6 +329,16 @@
     const narrationEnabled = true;
     const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 
+    function setPlaybackStatus(msg) {
+      const status = document.getElementById('playback-status');
+      if (msg) {
+        status.textContent = msg;
+        status.style.display = 'block';
+      } else {
+        status.style.display = 'none';
+      }
+    }
+
     // Function to load and cache voices properly
     function loadVoices() {
       if (speechSupported) {
@@ -517,7 +527,12 @@
     }
 
     function playCurrentSlideAudioAndAdvance(startCharIndex = 0) {
-      cancelSpeech();
+      // Only cancel if something is actually speaking. On iOS, calling cancel()
+      // immediately followed by speak() in the same tick silently drops the
+      // utterance, so avoid an unnecessary cancel.
+      if (speechSupported && (window.speechSynthesis.speaking || window.speechSynthesis.paused)) {
+        window.speechSynthesis.cancel();
+      }
       clearTimeout(transitionPauseTimer);
       clearTimeout(autoPlayTimer);
 
@@ -590,20 +605,24 @@
         if (event.error === 'not-allowed') {
           isPlaying = false;
           document.getElementById('btn-pause-play').textContent = '▶ Play';
-          const status = document.getElementById('playback-status');
-          status.textContent = 'Your browser blocked narration. Press Play to start it.';
-          status.style.display = 'block';
+          setPlaybackStatus('Your browser blocked narration. Press Play to start it.');
           return;
         }
         // Cancellations happen when the user pauses or skips to another slide.
         if (event.error === 'canceled' || event.error === 'interrupted') return;
+        // Surface any other error so the user knows what happened.
+        setPlaybackStatus(`Narration error: ${event.error}. Slides will advance automatically.`);
         fallbackTimer();
       };
 
       // iOS Safari (and some Android browsers) require resume() before speak(),
       // especially after a cancel(), otherwise the utterance stays silent.
+      // Defer to the next tick to avoid the cancel-then-speak race on iOS.
       try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
-      window.speechSynthesis.speak(utterance);
+      setTimeout(() => {
+        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
+        window.speechSynthesis.speak(utterance);
+      }, 0);
     }
 
     // Move to the next slide, or finish the walkthrough when we reach the last one.
