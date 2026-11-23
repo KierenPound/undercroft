@@ -558,24 +558,27 @@
       // list can go stale.
       availableVoices = window.speechSynthesis.getVoices();
 
-      // Voice preference: Fiona (Scottish, warm) first, then other UK voices.
-      const preferredVoices = ['Fiona', 'Serena', 'Kate', 'Daniel', 'Oliver', 'Flo'];
+      // Voice preference: match by name first (language-agnostic), since some
+      // browsers don't tag Fiona with en-GB even though she is Scottish English.
+      const preferredNames = ['Fiona', 'Serena', 'Kate', 'Daniel', 'Oliver', 'Flo'];
       let selectedVoice = null;
-      for (const name of preferredVoices) {
+      for (const name of preferredNames) {
         selectedVoice = availableVoices.find(v =>
-          v.name.toLowerCase().includes(name.toLowerCase()) && v.lang.toLowerCase() === 'en-gb'
+          v.name.toLowerCase().includes(name.toLowerCase())
         );
         if (selectedVoice) break;
       }
-      // Fall back to any en-GB voice.
+      // Fall back to any UK voice.
       if (!selectedVoice) {
         selectedVoice = availableVoices.find(v => v.lang.toLowerCase() === 'en-gb');
       }
 
       if (selectedVoice) {
         utterance.voice = selectedVoice;
+        utterance.lang = selectedVoice.lang;
         console.log("Using voice:", selectedVoice.name, selectedVoice.lang);
       } else {
+        utterance.lang = 'en-GB';
         console.log("No UK voice found. Using browser default.");
       }
 
@@ -620,14 +623,12 @@
         fallbackTimer();
       };
 
-      // iOS Safari (and some Android browsers) require resume() before speak(),
-      // especially after a cancel(), otherwise the utterance stays silent.
-      // Defer to the next tick to avoid the cancel-then-speak race on iOS.
+      // iOS Safari requires speak() to be called synchronously within the user
+      // gesture (e.g. a button tap). Deferring even to setTimeout(0) breaks the
+      // gesture chain and iOS silently refuses to play. resume() is still needed
+      // to wake the engine after a cancel().
       try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
-      setTimeout(() => {
-        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
-        window.speechSynthesis.speak(utterance);
-      }, 0);
+      window.speechSynthesis.speak(utterance);
     }
 
     // Move to the next slide, or finish the walkthrough when we reach the last one.
