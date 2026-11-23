@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnderCroft · Estate preparation, quietly sorted</title>
+    <meta name="description" content="UnderCroft helps you prepare an estate and handle bereavement admin calmly — documents, accounts, contacts and instructions, all in one secure place.">
+    <style>
+        :root {
+            color-scheme: light;
+
+            /* UnderCroft palette — matches the app's default Sage scheme */
+            --ivory: #F5F1E8;
+            --sand: #EDE6D6;
+            --sage: #5B7C6A;
+            --sage-strong: #47614F;
+            --sage-tint: rgba(91, 124, 106, 0.08);
+            --sage-line: rgba(91, 124, 106, 0.18);
+            --ink: #2B302A;
+            --ink-body: #3A4038;
+            --ink-soft: #5A6157;
+            --ink-faint: #7C8579;
+
+            --radius: 14px;
+            --shadow: 0 8px 8px rgba(0, 0, 0, 0.04);
+            --shadow-lift: 0 14px 30px -18px rgba(43, 48, 42, 0.45);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            padding: 28px 16px 48px;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.65;
+            color: var(--ink-body);
+            background: linear-gradient(180deg, var(--ivory) 0%, var(--sand) 100%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        /* --- Header ------------------------------------------------------- */
+        .page-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px 18px;
+            padding: 0 4px 20px;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--sage);
+            text-decoration: none;
+        }
+
+        .site-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            font-size: 0.85rem;
+        }
+
+        .site-nav a {
+            color: var(--ink-soft);
+            text-decoration: none;
+            transition: color 0.16s ease;
+        }
+
+        .site-nav a:hover { color: var(--sage-strong); }
+
+        /* --- Hero --------------------------------------------------------- */
+        .hero {
+            background: #FFFFFF;
+            border-radius: var(--radius);
+            padding: clamp(28px, 5vw, 52px);
+            box-shadow: var(--shadow);
+        }
+
+        .eyebrow {
+            margin: 0 0 12px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        h1 {
+            margin: 0 0 18px;
+            max-width: 20ch;
+            font-size: clamp(1.75rem, 4.6vw, 2.9rem);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            line-height: 1.12;
+            color: var(--ink);
+        }
+
+        .lede {
+            margin: 0 0 12px;
+            max-width: 62ch;
+            font-size: 1.02rem;
+            color: var(--ink-soft);
+        }
+
+        .lede + .lede { margin-top: 0; }
+
+        /* --- Store buttons ------------------------------------------------ */
+        .store-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .store-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 11px;
+            padding: 12px 22px;
+            font: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            background: var(--sage);
+            border: 1px solid transparent;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: background-color 0.16s ease, transform 0.16s ease;
+        }
+
+        .store-btn:hover {
+            background: var(--sage-strong);
+            transform: translateY(-1px);
+        }
+
+        .store-btn svg {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 auto;
+            fill: currentColor;
+        }
+
+        .store-btn-secondary {
+            color: var(--sage-strong);
+            background: var(--sage-tint);
+            border-color: var(--sage-line);
+        }
+
+        .store-btn-secondary:hover {
+            color: #FFFFFF;
+            background: var(--sage);
+            border-color: transparent;
+        }
+
+        .store-note {
+            margin: 12px 0 0;
+            font-size: 0.84rem;
+            color: var(--ink-faint);
+        }
+
+        /* --- Photo montage ------------------------------------------------ */
+        .montage {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .montage img {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lift);
+        }
+
+        /* --- Sections ----------------------------------------------------- */
+        .section { margin-top: clamp(44px, 7vw, 68px); }
+
+        .section-title {
+            margin: 0 0 8px;
+            font-size: clamp(1.2rem, 2.6vw, 1.5rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--sage-strong);
+        }
+
+        .section-lede {
+            margin: 0 0 24px;
+            max-width: 66ch;
+            font-size: 0.97rem;
+            color: var(--ink-soft);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .feature {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #FFFFFF;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .feature img {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+        }
+
+        .feature-body { padding: 20px 22px 24px; }
+
+        .feature h3 {
+            margin: 0 0 8px;
+            font-size: 1.02rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+        }
+
+        .feature p {
+            margin: 0;
+            font-size: 0.93rem;
+            color: var(--ink-soft);
+        }
+
+        /* --- Trust list --------------------------------------------------- */
+        .panel {
+            background: #FFFFFF;
+            border-radius: var(--radius);
+            padding: clamp(24px, 4vw, 36px);
+            box-shadow: var(--shadow);
+        }
+
+        .trust-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 22px 32px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .trust-list li {
+            display: grid;
+            gap: 4px;
+            font-size: 0.93rem;
+            color: var(--ink-soft);
+        }
+
+        .trust-list strong {
+            font-size: 0.97rem;
+            color: var(--ink);
+        }
+
+        /* --- Closing callout --------------------------------------------- */
+        .closing {
+            margin-top: clamp(44px, 7vw, 68px);
+            padding: clamp(28px, 5vw, 44px);
+            background: var(--sage-tint);
+            border: 1px solid var(--sage-line);
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .closing h2 {
+            margin: 0 0 10px;
+            font-size: clamp(1.25rem, 3vw, 1.7rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+        }
+
+        .closing p {
+            margin: 0 auto;
+            max-width: 54ch;
+            font-size: 0.97rem;
+            color: var(--ink-soft);
+        }
+
+        .closing .store-row { justify-content: center; }
+
+        /* --- Footer ------------------------------------------------------- */
+        .page-footer {
+            margin-top: 34px;
+            padding-top: 22px;
+            border-top: 1px solid var(--sage-line);
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--ink-faint);
+        }
+
+        .page-footer a {
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .page-footer a:hover { color: var(--sage-strong); }
+
+        .page-footer span { padding: 0 6px; }
+
+        .page-footer .disclaimer {
+            margin: 14px auto 0;
+            max-width: 62ch;
+            line-height: 1.6;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--sage);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 720px) {
+            .montage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 18px 12px 40px; }
+            .page-header { padding-bottom: 16px; }
+            .store-btn { flex: 1 1 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <header class="page-header">
+        <a class="brand" href="index.html">UnderCroft</a>
+        <nav class="site-nav">
+            <a href="undercroft_demo.html">See the demo</a>
+            <a href="support.html">Support</a>
+            <a href="privacy.html">Privacy</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <p class="eyebrow">Estate preparation · Bereavement admin</p>
+            <h1>Everything your family will need, in one calm place.</h1>
+            <p class="lede">
+                UnderCroft helps you prepare an estate while you still can — and helps the people
+                you leave behind deal with the paperwork when the time comes. Record what matters,
+                work through the practical steps in order, and leave clear instructions instead of
+                unanswered questions.
+            </p>
+            <p class="lede">
+                It is built for a difficult subject, so it stays plain, unhurried and specific.
+            </p>
+
+            <div class="store-row">
+                <!-- TODO: paste the live App Store URL into href -->
+                <a class="store-btn" href="#" aria-label="Download UnderCroft on the App Store">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.26 3.06-.99 1.03-2.14 1.62-3.35 1.53-.03-.12-.05-.26-.05-.42 0-1.09.46-2.19 1.25-3.02.4-.42.9-.77 1.5-1.05.6-.28 1.17-.43 1.71-.46.02.12.04.25.04.36l.16 0zm4.3 16.44c-.4.92-.59 1.33-1.1 2.14-.72 1.13-1.73 2.54-2.99 2.55-1.12.01-1.4-.73-2.92-.72-1.51.01-1.83.74-2.95.73-1.26-.01-2.22-1.28-2.93-2.41C6.02 17.02 5.8 13.06 7.24 10.9c1.02-1.53 2.64-2.43 4.16-2.43 1.55 0 2.52.73 3.8.73 1.24 0 2-.73 3.79-.73 1.35 0 2.79.74 3.81 2.01-3.35 1.84-2.8 6.62 1.87 8.39z"/></svg>
+                    Download on the App&nbsp;Store
+                </a>
+                <!-- TODO: paste the live Play Store URL into href -->
+                <a class="store-btn store-btn-secondary" href="#" aria-label="Get UnderCroft on Google Play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 1.8c-.3.3-.5.8-.5 1.4v17.6c0 .6.2 1.1.5 1.4l.1.1 9.9-9.9v-.2L3.7 1.7l-.1.1zm11.6 11.6-2.9-2.9 2.9-2.9 3.5 2c1 .6 1 1.5 0 2.1l-3.5 2v-.3zm-1.1.7L5 21.6c.4.5 1.1.5 1.9.1l9.9-5.6-2.7-1.5-.4-.1.4-.4zm0-7.2 2.7-1.5-9.9-5.6c-.8-.4-1.5-.4-1.9.1l9.1 9.1.4-.4-.4-.1z"/></svg>
+                    Get it on Google&nbsp;Play
+                </a>
+            </div>
+            <p class="store-note">Available for iPhone, iPad and Android. Your vault stays private to you and the people you choose to share it with.</p>
+        </section>
+
+        <div class="montage">
+            <img src="assets/default_wtdf.jpeg" alt="A quiet moment of preparation" loading="lazy">
+            <img src="assets/default_legal_documents.jpeg" alt="Paperwork and legal documents" loading="lazy">
+            <img src="assets/default_running_house.jpeg" alt="A home kept running" loading="lazy">
+            <img src="assets/default_who_to_notify.jpeg" alt="Contact details for the people to tell" loading="lazy">
+        </div>
+
+        <section class="section">
+            <h2 class="section-title">What's inside</h2>
+            <p class="section-lede">
+                Eight guided sections cover the practical side of an estate. Each one holds its own
+                checklist, notes, photos and documents, and tells you where to go next rather than
+                leaving you to work it out.
+            </p>
+
+            <div class="grid">
+                <article class="feature">
+                    <img src="assets/default_wtdf.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>What to Do First</h3>
+                        <p>The immediate steps in order — who to ring, where to register the death, and the details you will be asked for.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_legal_documents.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Legal Documents</h3>
+                        <p>Where the will, deeds and certificates are kept, and what your solicitors are holding for you.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_confirmation.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Confirmation &amp; Probate</h3>
+                        <p>The court process for your region, broken into ordered steps with the forms, fees and contact details.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_cars.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Cars</h3>
+                        <p>Who to notify, insurance to sort, and what to do with the vehicle itself — keys, paperwork and all.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_funeral.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Funeral Arrangements</h3>
+                        <p>Wishes, readings, music and the people to contact, so nobody has to guess what you would have wanted.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_running_house.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Running the House</h3>
+                        <p>Utilities, bills, accounts and access details — the things someone needs to keep a home going.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_who_to_notify.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Who to Notify</h3>
+                        <p>Every organisation and person to tell, with the contact details and what each one needs from you.</p>
+                    </div>
+                </article>
+
+                <article class="feature">
+                    <img src="assets/default_cat.jpeg" alt="" loading="lazy">
+                    <div class="feature-body">
+                        <h3>Pets &amp; Ad Hoc Details</h3>
+                        <p>Vets, insurance, microchips — plus a free-form section for anything particular to your household.</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">The parts that aren't admin</h2>
+            <p class="section-lede">
+                An estate is more than a list of tasks. UnderCroft keeps room for the things people
+                are actually going to want, alongside the paperwork.
+            </p>
+
+            <div class="panel">
+                <ul class="trust-list">
+                    <li>
+                        <strong>A letter to the people you love</strong>
+                        Write it in the app and it stays with the estate, ready to be read.
+                    </li>
+                    <li>
+                        <strong>Your songs and a page's music</strong>
+                        Build a playlist, and choose the music for each part of the service.
+                    </li>
+                    <li>
+                        <strong>A video message</strong>
+                        Record something in your own voice and hand it on for a moment that matters.
+                    </li>
+                    <li>
+                        <strong>Photos of belongings and places</strong>
+                        Add pictures to any section, so there is no doubt about what you meant.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Built to be trusted with family information</h2>
+            <p class="section-lede">
+                This is the most personal information you will ever write down. It is handled
+                accordingly — and you can see that in how the app behaves.
+            </p>
+
+            <div class="panel">
+                <ul class="trust-list">
+                    <li>
+                        <strong>Locked behind your face or finger</strong>
+                        Biometric access and a background timeout, so an unattended phone is not an open book.
+                    </li>
+                    <li>
+                        <strong>Only you can read your records</strong>
+                        Data is stored in cloud databases protected by Row Level Security, with encryption in transit and at rest.
+                    </li>
+                    <li>
+                        <strong>Never sold, never advertised against</strong>
+                        No selling, renting or trading of your information, and no advertising networks.
+                    </li>
+                    <li>
+                        <strong>Delete it all whenever you choose</strong>
+                        Remove your account and every entry from Settings in a few taps.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Shared with the right people</h2>
+            <p class="section-lede">
+                Preparing an estate is rarely a solo job. An owner can invite an executor or a
+                co-owner to work alongside them, and take that access away again if circumstances
+                change. Nobody else can see inside.
+            </p>
+        </section>
+
+        <section class="closing">
+            <h2>Start while it is still an ordinary day</h2>
+            <p>
+                An hour now saves somebody a great deal of guesswork later. Try the demo first if
+                you would like to look around before creating an estate.
+            </p>
+            <div class="store-row">
+                <!-- TODO: paste the live App Store URL into href -->
+                <a class="store-btn" href="#" aria-label="Download UnderCroft on the App Store">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.26 3.06-.99 1.03-2.14 1.62-3.35 1.53-.03-.12-.05-.26-.05-.42 0-1.09.46-2.19 1.25-3.02.4-.42.9-.77 1.5-1.05.6-.28 1.17-.43 1.71-.46.02.12.04.25.04.36l.16 0zm4.3 16.44c-.4.92-.59 1.33-1.1 2.14-.72 1.13-1.73 2.54-2.99 2.55-1.12.01-1.4-.73-2.92-.72-1.51.01-1.83.74-2.95.73-1.26-.01-2.22-1.28-2.93-2.41C6.02 17.02 5.8 13.06 7.24 10.9c1.02-1.53 2.64-2.43 4.16-2.43 1.55 0 2.52.73 3.8.73 1.24 0 2-.73 3.79-.73 1.35 0 2.79.74 3.81 2.01-3.35 1.84-2.8 6.62 1.87 8.39z"/></svg>
+                    Download on the App&nbsp;Store
+                </a>
+                <!-- TODO: paste the live Play Store URL into href -->
+                <a class="store-btn store-btn-secondary" href="#" aria-label="Get UnderCroft on Google Play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 1.8c-.3.3-.5.8-.5 1.4v17.6c0 .6.2 1.1.5 1.4l.1.1 9.9-9.9v-.2L3.7 1.7l-.1.1zm11.6 11.6-2.9-2.9 2.9-2.9 3.5 2c1 .6 1 1.5 0 2.1l-3.5 2v-.3zm-1.1.7L5 21.6c.4.5 1.1.5 1.9.1l9.9-5.6-2.7-1.5-.4-.1.4-.4zm0-7.2 2.7-1.5-9.9-5.6c-.8-.4-1.5-.4-1.9.1l9.1 9.1.4-.4-.4-.1z"/></svg>
+                    Get it on Google&nbsp;Play
+                </a>
+            </div>
+            <p class="store-note">Or <a href="undercroft_demo.html">try the demo</a> in your browser first.</p>
+        </section>
+    </main>
+
+    <footer class="page-footer">
+        <a href="privacy.html">Privacy Policy</a>
+        <span>·</span>
+        <a href="terms.html">Terms of Service</a>
+        <span>·</span>
+        <a href="support.html">Support</a>
+        <p class="disclaimer">
+            UnderCroft provides practical guidance and record-keeping for estate preparation. It is
+            not a solicitor, and nothing in it is legal or financial advice. For a specific estate,
+            always take advice from a qualified professional.
+        </p>
+    </footer>
+</div>
+
+</body>
+</html>

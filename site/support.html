@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support · UnderCroft</title>
+    <meta name="description" content="Contact the UnderCroft support team.">
+    <style>
+        :root {
+            color-scheme: light;
+
+            /* UnderCroft palette */
+            --ivory: #F5F1E8;
+            --sand: #EDE6D6;
+            --sage: #5B7C6A;
+            --sage-strong: #47614F;
+            --sage-tint: rgba(91, 124, 106, 0.08);
+            --sage-line: rgba(91, 124, 106, 0.18);
+            --ink: #2B302A;
+            --ink-body: #3A4038;
+            --ink-soft: #5A6157;
+            --ink-faint: #7C8579;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 28px 16px 48px;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--ink-body);
+            background: linear-gradient(180deg, var(--ivory) 0%, var(--sand) 100%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+            padding: 0 4px 14px;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--sage);
+            text-decoration: none;
+        }
+
+        .brand-divider { color: var(--sage-line); }
+
+        .page-name {
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            color: var(--ink-faint);
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: clamp(22px, 4vw, 32px);
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.45rem, 3.4vw, 1.85rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: var(--ink);
+        }
+
+        .lede {
+            margin: 0 0 24px;
+            font-size: 0.945rem;
+            color: var(--ink-soft);
+        }
+
+        .field {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            color: var(--ink-soft);
+        }
+
+        .optional {
+            font-weight: 400;
+            color: var(--ink-faint);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        input[type="file"] {
+            width: 100%;
+            padding: 11px 13px;
+            font: inherit;
+            font-size: 0.95rem;
+            color: var(--ink);
+            background: #FFFFFF;
+            border: 1px solid var(--sage-line);
+            border-radius: 10px;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        input[type="file"] {
+            padding: 9px 11px;
+            font-size: 0.875rem;
+            color: var(--ink-soft);
+            background: var(--sage-tint);
+        }
+
+        input[type="file"]::file-selector-button {
+            margin-right: 12px;
+            padding: 7px 12px;
+            font: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--sage-strong);
+            background: #FFFFFF;
+            border: 1px solid var(--sage-line);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--sage);
+            box-shadow: 0 0 0 3px rgba(91, 124, 106, 0.15);
+        }
+
+        button {
+            width: 100%;
+            margin-top: 4px;
+            padding: 13px 18px;
+            font: inherit;
+            font-size: 0.97rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            background: var(--sage);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.16s ease;
+        }
+
+        button:hover { background: var(--sage-strong); }
+
+        button:disabled {
+            background: #A9B4A4;
+            cursor: not-allowed;
+        }
+
+        .status {
+            display: none;
+            margin-top: 16px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            border-radius: 10px;
+        }
+
+        .status.success {
+            display: block;
+            color: var(--sage-strong);
+            background: var(--sage-tint);
+            border: 1px solid rgba(91, 124, 106, 0.28);
+        }
+
+        .status.error {
+            display: block;
+            color: #8A5410;
+            background: rgba(224, 138, 44, 0.09);
+            border: 1px solid rgba(224, 138, 44, 0.32);
+        }
+
+        .page-footer {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--ink-faint);
+        }
+
+        .page-footer a {
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .page-footer a:hover { color: var(--sage-strong); }
+
+        .page-footer span { padding: 0 6px; }
+
+        :focus-visible {
+            outline: 2px solid var(--sage);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 18px 12px 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <header class="page-header">
+        <a class="brand" href="index.html">UnderCroft</a>
+        <span class="brand-divider">·</span>
+        <span class="page-name">Support</span>
+    </header>
+
+    <main class="card">
+        <div id="formContainer">
+            <h1>Submit a support request</h1>
+            <p class="lede">Tell us what has gone wrong and we will come back to you by email.</p>
+
+            <form id="supportForm" novalidate>
+                <div class="field">
+                    <label for="userName">Name <span class="optional">(optional)</span></label>
+                    <input type="text" id="userName" name="name" autocomplete="name" placeholder="Your name">
+                </div>
+
+                <div class="field">
+                    <label for="userEmail">Email address</label>
+                    <input type="email" id="userEmail" name="email" autocomplete="email" required placeholder="you@example.com">
+                </div>
+
+                <div class="field">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" name="subject" required placeholder="How can we help?">
+                </div>
+
+                <div class="field">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" required placeholder="Describe the issue in as much detail as you can — what you expected, and what actually happened."></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="screenshot">Screenshot <span class="optional">(optional)</span></label>
+                    <input type="file" id="screenshot" name="screenshot" accept="image/*">
+                </div>
+
+                <button type="submit" id="submitBtn">Submit ticket</button>
+            </form>
+        </div>
+
+        <div id="statusMsg" class="status" role="status" aria-live="polite"></div>
+    </main>
+
+    <footer class="page-footer">
+        <a href="privacy.html">Privacy Policy</a>
+        <span>·</span>
+        <a href="support.html">Support</a>
+        <span>·</span>
+        <a href="index.html">undercroftvault.com</a>
+    </footer>
+</div>
+
+<script>
+    const TARGET_ENDPOINT = "https://worker.crabkingslair.com/api/support";
+
+    document.getElementById('supportForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const formContainer = document.getElementById('formContainer');
+
+        const email = document.getElementById('userEmail').value.trim();
+        const subject = document.getElementById('subject').value.trim();
+        const message = document.getElementById('message').value.trim();
+
+        if (!email || !subject || !message) {
+            showStatus('Please add your email address, a subject, and a message before submitting.', 'error');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sending ticket…';
+        statusMsg.className = 'status';
+
+        const fileInput = document.getElementById('screenshot');
+        let screenshotBase64 = null;
+
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            try {
+                screenshotBase64 = await shrinkScreenshot(fileInput.files[0]);
+            } catch (error) {
+                console.error('Screenshot read failed:', error);
+                showStatus('We could not attach that image. Please try a smaller screenshot, or send your request without one.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Submit ticket';
+                return;
+            }
+        }
+
+        const payload = {
+            name: document.getElementById('userName').value.trim(),
+            email: email,
+            subject: subject,
+            message: message,
+            screenshot: screenshotBase64
+        };
+
+        try {
+            const response = await fetch(TARGET_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const serverText = await response.text();
+
+            if (response.ok && (serverText.includes("success") || serverText.includes("true"))) {
+                formContainer.style.display = 'none';
+                showStatus('Thank you — your support ticket has been submitted. We will reply to ' + email + '.', 'success');
+            } else {
+                console.error('Support endpoint rejected the ticket:', response.status, serverText);
+                showStatus('We could not send your ticket just now. Please try again in a moment, or email support@undercroftvault.com.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Submit ticket';
+            }
+        } catch (error) {
+            console.error('Support endpoint request failed:', error);
+            showStatus('We could not reach the support service. Please check your connection and try again.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Submit ticket';
+        }
+    });
+
+    /**
+     * Shrinks a chosen screenshot before it is sent.
+     *
+     * A raw phone photo is several megabytes, and base64 encoding adds another
+     * third on top. That is far too large to sit inside the ticket email, so
+     * the image is redrawn on a canvas at a sensible size first. Anything the
+     * browser cannot decode is sent unchanged rather than losing the ticket.
+     */
+    async function shrinkScreenshot(file) {
+        const MAX_EDGE = 1600;
+        const JPEG_QUALITY = 0.8;
+
+        try {
+            const bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+            const width = Math.round(bitmap.width * scale);
+            const height = Math.round(bitmap.height * scale);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            // JPEG has no transparency, so paint a white base first to stop
+            // transparent screenshots coming out with black backgrounds.
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            bitmap.close();
+
+            return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        } catch (error) {
+            console.warn('Could not resize the image, sending it as chosen:', error);
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    function showStatus(text, type) {
+        const statusMsg = document.getElementById('statusMsg');
+        statusMsg.innerText = text;
+        statusMsg.className = `status ${type}`;
+    }
+</script>
+</body>
+</html>

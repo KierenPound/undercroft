@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy · UnderCroft</title>
+    <meta name="description" content="How UnderCroft collects, uses and protects your personal information.">
+    <style>
+        :root {
+            color-scheme: light;
+
+            /* UnderCroft palette */
+            --ivory: #F5F1E8;
+            --sand: #EDE6D6;
+            --sage: #5B7C6A;
+            --sage-strong: #47614F;
+            --sage-tint: rgba(91, 124, 106, 0.08);
+            --sage-line: rgba(91, 124, 106, 0.18);
+            --ink: #2B302A;
+            --ink-body: #3A4038;
+            --ink-soft: #5A6157;
+            --ink-faint: #7C8579;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 28px 16px 48px;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--ink-body);
+            background: linear-gradient(180deg, var(--ivory) 0%, var(--sand) 100%);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+            padding: 0 4px 14px;
+        }
+
+        .brand {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--sage);
+            text-decoration: none;
+        }
+
+        .brand-divider {
+            color: var(--sage-line);
+        }
+
+        .page-name {
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            color: var(--ink-faint);
+        }
+
+        .card {
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: clamp(24px, 4vw, 40px);
+            box-shadow: 0 8px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .updated {
+            margin: 0 0 10px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        h1 {
+            margin: 0 0 18px;
+            font-size: clamp(1.6rem, 3.6vw, 2.05rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: var(--ink);
+        }
+
+        h2 {
+            margin: 32px 0 10px;
+            padding-bottom: 8px;
+            font-size: 1.02rem;
+            font-weight: 600;
+            color: var(--sage-strong);
+            border-bottom: 1px solid var(--sage-line);
+        }
+
+        p, li {
+            font-size: 0.965rem;
+            margin: 0 0 12px;
+        }
+
+        ul {
+            margin: 0 0 12px;
+            padding-left: 20px;
+        }
+
+        li { margin-bottom: 6px; }
+
+        strong { color: var(--ink); }
+
+        a {
+            color: var(--sage-strong);
+            text-decoration: underline;
+            text-decoration-color: rgba(91, 124, 106, 0.4);
+            text-underline-offset: 2px;
+        }
+
+        a:hover { text-decoration-color: currentColor; }
+
+        .callout {
+            margin: 20px 0;
+            padding: 16px 18px;
+            background: var(--sage-tint);
+            border-left: 3px solid var(--sage);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .callout p:last-child { margin-bottom: 0; }
+
+        .callout-title {
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--sage-strong);
+        }
+
+        .page-footer {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--ink-faint);
+        }
+
+        .page-footer a {
+            color: var(--ink-soft);
+            text-decoration: none;
+        }
+
+        .page-footer a:hover { color: var(--sage-strong); }
+
+        .page-footer span { padding: 0 6px; }
+
+        :focus-visible {
+            outline: 2px solid var(--sage);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 18px 12px 40px; }
+            h2 { margin-top: 26px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="page-header">
+            <a class="brand" href="index.html">UnderCroft</a>
+            <span class="brand-divider">·</span>
+            <span class="page-name">Privacy Policy</span>
+        </header>
+
+        <main class="card">
+            <p class="updated">App: UnderCroft · Last updated October 2026</p>
+            <h1>Privacy Policy</h1>
+
+            <p>This Privacy Policy explains how <strong>UnderCroft</strong> ("we", "our", or "us") collects, uses, stores, and protects your personal information when you use our mobile application. We are committed to protecting your privacy in compliance with UK GDPR and the UK Data Protection Act 2018.</p>
+
+            <h2>1. Information we collect</h2>
+            <p>To provide core app functionality, we collect and process the following information:</p>
+            <ul>
+                <li><strong>Account information:</strong> your email address and authentication credentials used to secure your account.</li>
+                <li><strong>Your vault data:</strong> personal records, files, or information you explicitly enter into the app. All user data is secured in cloud databases protected by Row Level Security (RLS).</li>
+                <li><strong>Technical data:</strong> basic device information required for app operation, security, and authentication sessions.</li>
+            </ul>
+
+            <h2>2. How we use your information</h2>
+            <p>We use your data strictly to:</p>
+            <ul>
+                <li>Authenticate your identity and grant secure access to your account.</li>
+                <li>Store and retrieve your vault entries across your devices.</li>
+                <li>Respond to support requests or security inquiries.</li>
+            </ul>
+
+            <h2>3. Data storage and security</h2>
+            <p>Your data is hosted securely using cloud infrastructure (Supabase) located in secure data centres. We implement strict access controls, encryption in transit and at rest, and Row Level Security (RLS) so that only you can access your records.</p>
+
+            <h2>4. Data sharing and third parties</h2>
+            <p>We <strong>do not sell, rent, or trade</strong> your personal information to third parties or advertising networks. Data is only shared with backend infrastructure providers (such as Supabase) strictly to host and serve the app's functionality.</p>
+
+            <h2>5. Your rights &amp; account deletion</h2>
+            <p>Under UK GDPR, you have rights regarding your personal data, including the right to access, rectify, or erase your information.</p>
+
+            <div class="callout">
+                <p class="callout-title">Deleting your account in the app</p>
+                <p>You can delete your account and all associated personal data directly within the app at any time:</p>
+                <ol>
+                    <li>Open UnderCroft and sign in.</li>
+                    <li>Go to <strong>Settings</strong>.</li>
+                    <li>Tap <strong>Delete my account</strong> at the end of the page.</li>
+                    <li>Confirm the deletion.</li>
+                </ol>
+                <p><strong>What is deleted immediately:</strong></p>
+                <ul>
+                    <li>Your account login credentials (email and password).</li>
+                    <li>All estate data you created, including sections, documents, contacts, arrangements, and notes.</li>
+                    <li>All files you uploaded to the estate's storage folder.</li>
+                    <li>If you are an estate owner, the entire estate and any executor or co-owner access is removed.</li>
+                    <li>If you are an executor or co-owner, only your own access is removed; the estate owner's data remains.</li>
+                </ul>
+                <p><strong>What is kept:</strong></p>
+                <ul>
+                    <li>No personal data is retained by UnderCroft after deletion.</li>
+                    <li>Transaction records for any in-app purchase are kept by Apple and Google for accounting and tax purposes and are not controlled by UnderCroft.</li>
+                </ul>
+                <p>If you cannot access the app, email <a href="mailto:support@undercroftvault.com">support@undercroftvault.com</a> from the email address registered to your account and we will delete it on your behalf.</p>
+            </div>
+
+            <h2>6. Contact &amp; support</h2>
+            <p>If you have any questions about this Privacy Policy, wish to exercise your data rights, or need help with account deletion, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> <a href="mailto:support@undercroftvault.com">support@undercroftvault.com</a></li>
+                <li><strong>Support form:</strong> <a href="support.html">undercroftvault.com/support</a></li>
+            </ul>
+        </main>
+
+        <footer class="page-footer">
+            <a href="privacy.html">Privacy Policy</a>
+            <span>·</span>
+            <a href="terms.html">Terms of Service</a>
+            <span>·</span>
+            <a href="support.html">Support</a>
+        </footer>
+    </div>
+</body>
+</html>

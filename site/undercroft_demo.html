@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Undercroft Demo</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-color: #38bdf8;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.5;
+      padding: clamp(0.75rem, 2vw, 1.5rem);
+      /* Top-left alignment */
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .slideshow-container {
+      width: 100%;
+      max-width: 1080px; /* Scaled up ~20% */
+      position: relative;
+    }
+
+    .slide {
+      display: none;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: clamp(0.75rem, 2vw, 1.25rem);
+      box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.4);
+      text-align: left;
+    }
+
+    .slide.active {
+      display: block;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-header {
+      margin-bottom: 0.45rem;
+    }
+
+    .app-title-group h2 {
+      font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+      color: var(--text-color);
+      margin-bottom: 0;
+      line-height: 1.2;
+    }
+
+    .slide-image-container {
+      margin: 0.5rem 0;
+      text-align: center;
+    }
+
+    .slide-image {
+      width: 100%;
+      max-height: min(55vh, 620px);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      object-fit: contain;
+      background-color: #020617;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      cursor: zoom-in;
+    }
+
+    /* Keyboard entry point for the enlargement: the slide image itself is
+       click-only, so it needs a focusable equivalent next to it. */
+    .btn-enlarge {
+      margin-top: 0.5rem;
+    }
+
+    /* Lightbox for enlarging screenshots */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background-color: rgba(2, 6, 23, 0.94);
+      z-index: 1000;
+      overflow: auto;
+    }
+
+    .lightbox.open {
+      display: flex;
+    }
+
+    .lightbox-image {
+      max-width: 96vw;
+      max-height: 92vh;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: #020617;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      cursor: zoom-out;
+    }
+
+    /* Click the enlarged image to view it at full resolution and scroll to pan */
+    .lightbox-image.zoomed {
+      max-width: none;
+      max-height: none;
+      cursor: zoom-in;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    .lightbox-close:hover {
+      background-color: var(--accent-color);
+      color: #0f172a;
+    }
+
+    .lightbox-hint {
+      position: fixed;
+      bottom: 0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      text-align: center;
+      z-index: 1001;
+      pointer-events: none;
+    }
+
+    .script-box {
+      background-color: rgba(15, 23, 42, 0.7);
+      border-left: 4px solid var(--accent-color);
+      padding: 0.7rem 0.9rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      font-style: italic;
+      margin-top: 0.65rem;
+    }
+
+    .script-box strong {
+      font-style: normal;
+      color: var(--accent-color);
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+
+    /* Controls & Indicators Bar */
+    .controls-bar {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-control {
+      background-color: var(--border-color);
+      color: var(--text-color);
+      border: none;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-control:hover {
+      background-color: var(--accent-color);
+      color: #0f172a;
+    }
+
+    .btn-control:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .slide-counter {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+      margin-left: 0.25rem;
+    }
+
+    .topic-select {
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.8rem;
+      max-width: 240px;
+      margin-left: auto;
+    }
+
+    .topic-select:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+
+    .dots-wrapper {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      height: 8px;
+      width: 8px;
+      padding: 0;
+      border: none;
+      appearance: none;
+      background-color: var(--border-color);
+      border-radius: 50%;
+      display: inline-block;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background-color: var(--accent-color);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .dot:focus-visible {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 3px;
+    }
+
+    .load-status {
+      color: var(--text-muted);
+      padding: 1rem 0;
+    }
+
+    .playback-status {
+      color: #fca5a5;
+      flex: 1 0 100%;
+      font-size: 0.75rem;
+      max-width: none;
+      padding: 0;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="slideshow-container" id="slideshow-container">
+    
+    <p id="load-status" class="load-status" role="status" aria-live="polite">Loading demo...</p>
+
+    <div id="slides-wrapper" style="display: none;">
+      <!-- Slides injected here -->
+    </div>
+
+    <!-- Controls Bar (Previous, Pause/Play, Next) -->
+    <div id="controls-bar" class="controls-bar" style="display: none;">
+      <button id="btn-prev" class="btn-control" type="button" onclick="prevSlide()">◀ Previous</button>
+      <button id="btn-pause-play" class="btn-control" type="button" onclick="togglePausePlay()">⏸ Pause</button>
+      <button id="btn-next" class="btn-control" type="button" onclick="nextSlideManual()">Next ▶</button>
+      <span id="slide-counter" class="slide-counter" aria-live="polite"></span>
+      <select id="topic-select" class="topic-select" aria-label="Jump to a topic"></select>
+      <p id="playback-status" class="load-status playback-status" role="status" aria-live="polite" style="display: none;"></p>
+    </div>
+
+    <!-- Dot Indicators -->
+    <div class="dots-wrapper" id="dots-wrapper" style="display: none;"></div>
+  </div>
+
+  <!-- Screenshot lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged screenshot" aria-hidden="true">
+    <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close enlarged screenshot">&times;</button>
+    <img class="lightbox-image" id="lightbox-image" src="" alt="">
+    <p class="lightbox-hint">Click the image to zoom &middot; Click outside or press Esc to close</p>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    let autoPlayTimer = null;
+    let transitionPauseTimer = null;
+    let appData = [];
+    let isPlaying = false;
+    let isEnded = false;
+    let speechCharIndex = 0;   // absolute index into the current slide's narration text
+    let speechBaseOffset = 0;  // offset used when resuming a slide mid-narration
+    let availableVoices = [];
+    const narrationEnabled = true;
+    const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    // Function to load and cache voices properly
+    function loadVoices() {
+      if (speechSupported) {
+        availableVoices = window.speechSynthesis.getVoices();
+        console.log("Available Voices:", availableVoices.map(v => `${v.name} (${v.lang})`));
+      }
+    }
+
+    function cancelSpeech() {
+      if (speechSupported) window.speechSynthesis.cancel();
+    }
+
+    if (speechSupported) {
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    async function loadWalkthroughData() {
+      try {
+        const response = await fetch('app_walkthrough_project_v1.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        appData = await response.json();
+        
+        if (!Array.isArray(appData)) {
+          appData = appData.apps || appData.slides || appData.steps || Object.values(appData)[0];
+        }
+
+        buildSlides();
+        if (!Array.isArray(appData) || appData.length === 0) {
+          throw new Error('No walkthrough slides were found.');
+        }
+        startWalkthrough();
+      } catch (error) {
+        console.error('Failed to load walkthrough JSON:', error);
+        const loadStatus = document.getElementById('load-status');
+        loadStatus.setAttribute('role', 'alert');
+        loadStatus.innerHTML = `
+          <strong style="color: #f87171;">Error loading demo</strong>
+          <p>Could not load <strong>app_walkthrough_project_v1.json</strong> from the server.</p>
+        `;
+      }
+    }
+
+    function buildSlides() {
+      const slidesWrapper = document.getElementById('slides-wrapper');
+      const dotsWrapper = document.getElementById('dots-wrapper');
+      const topicSelect = document.getElementById('topic-select');
+
+      slidesWrapper.innerHTML = '';
+      dotsWrapper.innerHTML = '';
+      topicSelect.innerHTML = '';
+
+      if (!appData || appData.length === 0) return;
+
+      appData.forEach((item, index) => {
+        const slide = document.createElement('div');
+        slide.className = `slide ${index === 0 ? 'active' : ''}`;
+        
+        const title = item.title || `Step ${index + 1}`;
+        const script = item.script || '';
+        const imgSrc = item.image || '';
+
+        slide.innerHTML = `
+          <div class="slide-header">
+            <div class="app-title-group">
+              <h2>${title}</h2>
+            </div>
+          </div>
+          
+          ${imgSrc ? `
+            <div class="slide-image-container">
+              <img src="${imgSrc}" alt="${title}" class="slide-image">
+              <button type="button" class="btn-control btn-enlarge">Enlarge screenshot</button>
+            </div>
+          ` : ''}
+
+          ${script ? `
+            <div class="script-box">
+              <strong>Narration Script</strong>
+              "${script}"
+            </div>
+          ` : ''}
+        `;
+        slidesWrapper.appendChild(slide);
+
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = `dot ${index === 0 ? 'active' : ''}`;
+        dot.setAttribute('aria-label', `Go to slide ${index + 1} of ${appData.length}: ${title}`);
+        if (index === 0) dot.setAttribute('aria-current', 'true');
+        dot.addEventListener('click', () => goToSlide(index));
+        dotsWrapper.appendChild(dot);
+
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = `${index + 1}. ${title}`;
+        topicSelect.appendChild(option);
+      });
+
+      topicSelect.value = '0';
+      topicSelect.addEventListener('change', () => goToSlide(Number(topicSelect.value)));
+    }
+
+    function startWalkthrough() {
+      document.getElementById('load-status').style.display = 'none';
+      document.getElementById('slides-wrapper').style.display = 'block';
+      document.getElementById('controls-bar').style.display = 'flex';
+      document.getElementById('dots-wrapper').style.display = 'flex';
+
+      // The topic selector is a native pulldown, so it works on every platform.
+      loadVoices();
+
+      if (!speechSupported) {
+        const status = document.getElementById('playback-status');
+        status.textContent = 'Narration is not supported in this browser. Slides will advance automatically.';
+        status.style.display = 'block';
+      }
+
+      isEnded = false;
+      isPlaying = true;
+      playCurrentSlideAudioAndAdvance();
+    }
+
+    function showSlide(index) {
+      const slides = document.querySelectorAll('.slide');
+      const dots = document.querySelectorAll('.dot');
+
+      if (slides.length === 0) return;
+
+      if (index >= slides.length) currentSlide = slides.length - 1;
+      else if (index < 0) currentSlide = 0;
+      else currentSlide = index;
+
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === currentSlide);
+      });
+
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide);
+        if (i === currentSlide) dot.setAttribute('aria-current', 'true');
+        else dot.removeAttribute('aria-current');
+      });
+
+      const controlsBar = document.getElementById('controls-bar');
+      const activeHeader = slides[currentSlide].querySelector('.slide-header');
+      if (activeHeader && controlsBar.parentElement !== activeHeader) {
+        // Moving the controls bar detaches it, which would drop keyboard focus.
+        // Remember which control was focused and restore it afterwards.
+        const focused = document.activeElement;
+        const focusedId = (focused && controlsBar.contains(focused)) ? focused.id : null;
+        activeHeader.appendChild(controlsBar);
+        if (focusedId) {
+          const restored = document.getElementById(focusedId);
+          if (restored) restored.focus();
+        }
+      }
+
+      updateCounter();
+    }
+
+    function updateCounter() {
+      const counter = document.getElementById('slide-counter');
+      if (counter && appData.length) {
+        counter.textContent = `Slide ${currentSlide + 1} of ${appData.length}`;
+      }
+      const topicSelect = document.getElementById('topic-select');
+      if (topicSelect) topicSelect.value = String(currentSlide);
+    }
+
+    function playCurrentSlideAudioAndAdvance(startCharIndex = 0) {
+      cancelSpeech();
+      clearTimeout(transitionPauseTimer);
+      clearTimeout(autoPlayTimer);
+
+      if (!isPlaying) return;
+
+      const currentItem = appData[currentSlide];
+      const fullText = currentItem?.script || currentItem?.description || currentItem?.title || '';
+
+      showSlide(currentSlide);
+
+      // No narration support, nothing to read, or narration turned off: fall back to a timed advance.
+      if (!narrationEnabled || !fullText || !speechSupported) {
+        fallbackTimer();
+        return;
+      }
+
+      speechBaseOffset = startCharIndex;
+      const utterance = new SpeechSynthesisUtterance(fullText.slice(startCharIndex));
+      utterance.rate = 1.0;
+
+      // Prefer Fiona, then use the available UK English Flo voice.
+      if (availableVoices.length === 0) {
+        availableVoices = window.speechSynthesis.getVoices();
+      }
+
+      const fionaVoice = availableVoices.find(voice => voice.name.toLowerCase().includes('fiona'));
+      const floVoice = availableVoices.find(voice =>
+        voice.name.toLowerCase().includes('flo') && voice.lang.toLowerCase() === 'en-gb'
+      );
+      const ukEnglishVoice = availableVoices.find(voice =>
+        voice.lang.toLowerCase() === 'en-gb'
+      );
+      const selectedVoice = fionaVoice || floVoice || ukEnglishVoice;
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        console.log("Using voice:", selectedVoice.name, selectedVoice.lang);
+      } else {
+        console.log("No preferred UK voice found. Using browser default.");
+      }
+
+      // Track how far through the narration we are so Pause/Play can resume in place.
+      utterance.onboundary = (event) => {
+        if (typeof event.charIndex === 'number') {
+          speechCharIndex = speechBaseOffset + event.charIndex;
+        }
+      };
+
+      utterance.onstart = () => {
+        document.getElementById('playback-status').style.display = 'none';
+      };
+
+      utterance.onend = () => {
+        // A cancelled utterance (pause/skip) also fires onend in some browsers;
+        // only treat it as a real finish when we are still playing, and keep the
+        // resume position until the next slide actually starts.
+        if (!isPlaying) return;
+        speechCharIndex = 0;
+        transitionPauseTimer = setTimeout(() => {
+          if (isPlaying) advanceToNextSlide();
+        }, 2000);
+      };
+
+      utterance.onerror = (event) => {
+        if (event.error === 'not-allowed') {
+          isPlaying = false;
+          document.getElementById('btn-pause-play').textContent = '▶ Play';
+          const status = document.getElementById('playback-status');
+          status.textContent = 'Your browser blocked narration. Press Play to start it.';
+          status.style.display = 'block';
+          return;
+        }
+        // Cancellations happen when the user pauses or skips to another slide.
+        if (event.error === 'canceled' || event.error === 'interrupted') return;
+        fallbackTimer();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Move to the next slide, or finish the walkthrough when we reach the last one.
+    function advanceToNextSlide() {
+      if (currentSlide < appData.length - 1) {
+        speechCharIndex = 0;
+        currentSlide += 1;
+        playCurrentSlideAudioAndAdvance();
+      } else {
+        endWalkthrough();
+      }
+    }
+
+    function endWalkthrough() {
+      isPlaying = false;
+      isEnded = true;
+      speechCharIndex = 0;
+      clearTimeout(transitionPauseTimer);
+      clearTimeout(autoPlayTimer);
+      document.getElementById('btn-pause-play').textContent = '▶ Play';
+      const status = document.getElementById('playback-status');
+      status.textContent = 'The demo has finished. Press Play to start it again';
+      status.style.display = 'block';
+    }
+
+    function fallbackTimer() {
+      clearTimeout(autoPlayTimer);
+      autoPlayTimer = setTimeout(() => {
+        if (isPlaying) advanceToNextSlide();
+      }, 6000);
+    }
+
+    function goToSlide(index) {
+      cancelSpeech();
+      clearTimeout(transitionPauseTimer);
+      clearTimeout(autoPlayTimer);
+      isEnded = false;
+      speechCharIndex = 0;
+      currentSlide = index;
+      if (isPlaying) {
+        playCurrentSlideAudioAndAdvance();
+      } else {
+        showSlide(currentSlide);
+      }
+    }
+
+    function nextSlideManual() {
+      cancelSpeech();
+      clearTimeout(transitionPauseTimer);
+      clearTimeout(autoPlayTimer);
+      isEnded = false;
+      speechCharIndex = 0;
+      if (currentSlide >= appData.length - 1) {
+        showSlide(currentSlide);
+        endWalkthrough();
+        return;
+      }
+      currentSlide += 1;
+      if (isPlaying) {
+        playCurrentSlideAudioAndAdvance();
+      } else {
+        showSlide(currentSlide);
+      }
+    }
+
+    function prevSlide() {
+      cancelSpeech();
+      clearTimeout(transitionPauseTimer);
+      clearTimeout(autoPlayTimer);
+      isEnded = false;
+      speechCharIndex = 0;
+      currentSlide = (currentSlide - 1 + appData.length) % appData.length;
+      if (isPlaying) {
+        playCurrentSlideAudioAndAdvance();
+      } else {
+        showSlide(currentSlide);
+      }
+    }
+
+    function togglePausePlay() {
+      const btn = document.getElementById('btn-pause-play');
+
+      // After the walkthrough has finished, this button becomes Replay.
+      if (isEnded) {
+        isEnded = false;
+        speechCharIndex = 0;
+        currentSlide = 0;
+        isPlaying = true;
+        btn.textContent = '⏸ Pause';
+        playCurrentSlideAudioAndAdvance();
+        return;
+      }
+
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        btn.textContent = '⏸ Pause';
+        // Resume the current slide from where it was paused.
+        playCurrentSlideAudioAndAdvance(speechCharIndex);
+      } else {
+        btn.textContent = '▶ Play';
+        cancelSpeech();
+        clearTimeout(transitionPauseTimer);
+        clearTimeout(autoPlayTimer);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Screenshot lightbox (click any slide image to enlarge)
+    // ------------------------------------------------------------------
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxClose = document.getElementById('lightbox-close');
+    // Element that had focus when the dialog opened, so it can be restored on close.
+    let lightboxReturnFocus = null;
+
+    function openLightbox(sourceImg) {
+      lightboxReturnFocus = document.activeElement;
+      lightboxImage.src = sourceImg.currentSrc || sourceImg.src;
+      lightboxImage.alt = sourceImg.alt || 'Enlarged screenshot';
+      lightboxImage.classList.remove('zoomed');
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      // Move focus into the dialog, otherwise it is left on the trigger behind it.
+      lightboxClose.focus();
+    }
+
+    function closeLightbox() {
+      const returnFocus = lightboxReturnFocus;
+      lightboxReturnFocus = null;
+      lightbox.classList.remove('open');
+      lightboxImage.classList.remove('zoomed');
+      lightboxImage.src = '';
+      // Hand focus back to whatever opened the dialog, if it is still around.
+      if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
+      lightbox.setAttribute('aria-hidden', 'true');
+    }
+
+    // Delegate clicks so dynamically built slide images are covered.
+    // The image is the mouse route; the button is the keyboard route.
+    document.getElementById('slides-wrapper').addEventListener('click', (event) => {
+      const img = event.target.closest('.slide-image');
+      if (img) {
+        openLightbox(img);
+        return;
+      }
+      const enlargeBtn = event.target.closest('.btn-enlarge');
+      if (enlargeBtn) {
+        const slideImg = enlargeBtn.closest('.slide-image-container')?.querySelector('.slide-image');
+        if (slideImg) openLightbox(slideImg);
+      }
+    });
+
+    // Click the enlarged image to toggle between fit-to-screen and full resolution
+    lightboxImage.addEventListener('click', (event) => {
+      event.stopPropagation();
+      lightboxImage.classList.toggle('zoomed');
+    });
+
+    // Click the dark backdrop (but not the image) to close
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) closeLightbox();
+    });
+
+    lightboxClose.addEventListener('click', closeLightbox);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadWalkthroughData);
+  </script>
+  
+</body>
+</html>
