@@ -388,27 +388,79 @@
             .montage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
-        .toast {
+        .modal-overlay {
             position: fixed;
-            left: 50%;
-            bottom: 28px;
-            transform: translateX(-50%) translateY(20px);
-            padding: 12px 22px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #FFFFFF;
-            background: var(--ink);
-            border-radius: 10px;
-            box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.45);
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(43, 48, 42, 0.55);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            z-index: 50;
+            transition: opacity 0.2s ease;
+            z-index: 100;
         }
 
-        .toast--visible {
+        .modal-overlay--visible {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 400px;
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 32px 28px 24px;
+            text-align: center;
+            box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+            transform: translateY(12px) scale(0.97);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay--visible .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-title {
+            margin: 14px 0 8px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        .modal-text {
+            margin: 0 0 22px;
+            font-size: 0.96rem;
+            color: var(--ink-body);
+            line-height: 1.6;
+        }
+
+        .modal-close {
+            display: inline-block;
+            padding: 10px 28px;
+            font: inherit;
+            font-weight: 600;
+            color: #FFFFFF;
+            background: var(--sage);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.16s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--sage-strong);
+        }
+
+        .modal-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto;
+            fill: var(--sage);
         }
 
         @media (max-width: 520px) {
@@ -640,21 +692,32 @@
     </footer>
 </div>
 
-<div id="comingSoonToast" class="toast" role="status" aria-live="polite">
-    Google Play — coming soon
+<div id="comingSoonModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="comingSoonTitle" onclick="if(event.target===this)hideComingSoon()">
+    <div class="modal">
+        <svg class="modal-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18v-2H3v2zm1.2-3.5 7.8-9 7.8 9H4.2zM12 5.5 5.5 13h13L12 5.5z"/></svg>
+        <h2 id="comingSoonTitle" class="modal-title">Coming soon to Google Play</h2>
+        <p class="modal-text">UnderCroft is available on the App Store now. The Android version is on the way — check back soon.</p>
+        <button class="modal-close" onclick="hideComingSoon()">Got it</button>
+    </div>
 </div>
 
 <script>
     function showComingSoon(event) {
         if (event) event.preventDefault();
-        var toast = document.getElementById('comingSoonToast');
-        if (!toast) return;
-        toast.classList.add('toast--visible');
-        clearTimeout(showComingSoon._t);
-        showComingSoon._t = setTimeout(function () {
-            toast.classList.remove('toast--visible');
-        }, 2200);
+        var modal = document.getElementById('comingSoonModal');
+        if (!modal) return;
+        modal.classList.add('modal-overlay--visible');
+        document.body.style.overflow = 'hidden';
     }
+    function hideComingSoon() {
+        var modal = document.getElementById('comingSoonModal');
+        if (!modal) return;
+        modal.classList.remove('modal-overlay--visible');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideComingSoon();
+    });
 </script>
 
 </body>
