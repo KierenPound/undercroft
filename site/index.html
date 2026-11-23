@@ -166,6 +166,60 @@
             border-color: transparent;
         }
 
+        .store-btn-coming-soon {
+            position: relative;
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .store-btn-coming-soon:hover {
+            transform: none;
+            color: var(--sage-strong);
+            background: var(--sage-tint);
+            border-color: var(--sage-line);
+        }
+
+        .store-btn-coming-soon::after {
+            content: "Coming soon to Google Play";
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            white-space: nowrap;
+            color: #FFFFFF;
+            background: var(--ink);
+            border-radius: 6px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 5;
+        }
+
+        .store-btn-coming-soon::before {
+            content: "";
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--ink);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .store-btn-coming-soon:hover::after,
+        .store-btn-coming-soon:focus-visible::after,
+        .store-btn-coming-soon:hover::before,
+        .store-btn-coming-soon:focus-visible::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         .store-note {
             margin: 12px 0 0;
             font-size: 0.84rem;
@@ -334,6 +388,29 @@
             .montage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%) translateY(20px);
+            padding: 12px 22px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            background: var(--ink);
+            border-radius: 10px;
+            box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 50;
+        }
+
+        .toast--visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         @media (max-width: 520px) {
             body { padding: 18px 12px 40px; }
             .page-header { padding-bottom: 16px; }
@@ -372,8 +449,7 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.26 3.06-.99 1.03-2.14 1.62-3.35 1.53-.03-.12-.05-.26-.05-.42 0-1.09.46-2.19 1.25-3.02.4-.42.9-.77 1.5-1.05.6-.28 1.17-.43 1.71-.46.02.12.04.25.04.36l.16 0zm4.3 16.44c-.4.92-.59 1.33-1.1 2.14-.72 1.13-1.73 2.54-2.99 2.55-1.12.01-1.4-.73-2.92-.72-1.51.01-1.83.74-2.95.73-1.26-.01-2.22-1.28-2.93-2.41C6.02 17.02 5.8 13.06 7.24 10.9c1.02-1.53 2.64-2.43 4.16-2.43 1.55 0 2.52.73 3.8.73 1.24 0 2-.73 3.79-.73 1.35 0 2.79.74 3.81 2.01-3.35 1.84-2.8 6.62 1.87 8.39z"/></svg>
                     Download on the App&nbsp;Store
                 </a>
-                <!-- TODO: paste the live Play Store URL into href -->
-                <a class="store-btn store-btn-secondary" href="#" aria-label="Get UnderCroft on Google Play">
+                <a class="store-btn store-btn-secondary store-btn-coming-soon" href="#" aria-label="Get UnderCroft on Google Play — coming soon" onclick="showComingSoon(event)">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 1.8c-.3.3-.5.8-.5 1.4v17.6c0 .6.2 1.1.5 1.4l.1.1 9.9-9.9v-.2L3.7 1.7l-.1.1zm11.6 11.6-2.9-2.9 2.9-2.9 3.5 2c1 .6 1 1.5 0 2.1l-3.5 2v-.3zm-1.1.7L5 21.6c.4.5 1.1.5 1.9.1l9.9-5.6-2.7-1.5-.4-.1.4-.4zm0-7.2 2.7-1.5-9.9-5.6c-.8-.4-1.5-.4-1.9.1l9.1 9.1.4-.4-.4-.1z"/></svg>
                     Get it on Google&nbsp;Play
                 </a>
@@ -541,8 +617,7 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.26 3.06-.99 1.03-2.14 1.62-3.35 1.53-.03-.12-.05-.26-.05-.42 0-1.09.46-2.19 1.25-3.02.4-.42.9-.77 1.5-1.05.6-.28 1.17-.43 1.71-.46.02.12.04.25.04.36l.16 0zm4.3 16.44c-.4.92-.59 1.33-1.1 2.14-.72 1.13-1.73 2.54-2.99 2.55-1.12.01-1.4-.73-2.92-.72-1.51.01-1.83.74-2.95.73-1.26-.01-2.22-1.28-2.93-2.41C6.02 17.02 5.8 13.06 7.24 10.9c1.02-1.53 2.64-2.43 4.16-2.43 1.55 0 2.52.73 3.8.73 1.24 0 2-.73 3.79-.73 1.35 0 2.79.74 3.81 2.01-3.35 1.84-2.8 6.62 1.87 8.39z"/></svg>
                     Download on the App&nbsp;Store
                 </a>
-                <!-- TODO: paste the live Play Store URL into href -->
-                <a class="store-btn store-btn-secondary" href="#" aria-label="Get UnderCroft on Google Play">
+                <a class="store-btn store-btn-secondary store-btn-coming-soon" href="#" aria-label="Get UnderCroft on Google Play — coming soon" onclick="showComingSoon(event)">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 1.8c-.3.3-.5.8-.5 1.4v17.6c0 .6.2 1.1.5 1.4l.1.1 9.9-9.9v-.2L3.7 1.7l-.1.1zm11.6 11.6-2.9-2.9 2.9-2.9 3.5 2c1 .6 1 1.5 0 2.1l-3.5 2v-.3zm-1.1.7L5 21.6c.4.5 1.1.5 1.9.1l9.9-5.6-2.7-1.5-.4-.1.4-.4zm0-7.2 2.7-1.5-9.9-5.6c-.8-.4-1.5-.4-1.9.1l9.1 9.1.4-.4-.4-.1z"/></svg>
                     Get it on Google&nbsp;Play
                 </a>
@@ -564,6 +639,23 @@
         </p>
     </footer>
 </div>
+
+<div id="comingSoonToast" class="toast" role="status" aria-live="polite">
+    Google Play — coming soon
+</div>
+
+<script>
+    function showComingSoon(event) {
+        if (event) event.preventDefault();
+        var toast = document.getElementById('comingSoonToast');
+        if (!toast) return;
+        toast.classList.add('toast--visible');
+        clearTimeout(showComingSoon._t);
+        showComingSoon._t = setTimeout(function () {
+            toast.classList.remove('toast--visible');
+        }, 2200);
+    }
+</script>
 
 </body>
 </html>
