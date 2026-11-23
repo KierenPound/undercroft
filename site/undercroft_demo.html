@@ -527,12 +527,9 @@
     }
 
     function playCurrentSlideAudioAndAdvance(startCharIndex = 0) {
-      // Only cancel if something is actually speaking. On iOS, calling cancel()
-      // immediately followed by speak() in the same tick silently drops the
-      // utterance, so avoid an unnecessary cancel.
-      if (speechSupported && (window.speechSynthesis.speaking || window.speechSynthesis.paused)) {
-        window.speechSynthesis.cancel();
-      }
+      // Always cancel synchronously. On iOS this clears the queue and resets
+      // state; speak() must follow in the same tick.
+      if (speechSupported) window.speechSynthesis.cancel();
       clearTimeout(transitionPauseTimer);
       clearTimeout(autoPlayTimer);
 
@@ -552,6 +549,7 @@
       speechBaseOffset = startCharIndex;
       const utterance = new SpeechSynthesisUtterance(fullText.slice(startCharIndex));
       utterance.rate = 1.0;
+      utterance.volume = 1;
 
       // Always refresh the voice list right before speaking. Some browsers (especially
       // iOS Safari) return an empty list until voiceschanged has fired, and the cached
@@ -593,10 +591,9 @@
         document.getElementById('playback-status').style.display = 'none';
       };
 
-      // iOS Safari sometimes pauses speech synthesis mid-utterance; resume it.
-      utterance.onpause = () => {
-        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
-      };
+      // iOS Safari: do NOT call resume() here — it can silence playback.
+      // cancel() synchronously clears the queue, then speak() runs immediately
+      // within the user gesture, which is the pattern iOS requires.
 
       utterance.onend = () => {
         // A cancelled utterance (pause/skip) also fires onend in some browsers;
@@ -624,10 +621,8 @@
       };
 
       // iOS Safari requires speak() to be called synchronously within the user
-      // gesture (e.g. a button tap). Deferring even to setTimeout(0) breaks the
-      // gesture chain and iOS silently refuses to play. resume() is still needed
-      // to wake the engine after a cancel().
-      try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
+      // gesture and WITHOUT a preceding resume() — resume() can silence it.
+      // cancel() was already called at the top of this function.
       window.speechSynthesis.speak(utterance);
     }
 
