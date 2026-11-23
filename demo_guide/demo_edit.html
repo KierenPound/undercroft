@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>App Showcase & Interactive Walkthrough Studio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .mockup-shadow { box-shadow: 0 0 60px -15px rgba(99, 102, 241, 0.25); }
+    .hotspot-pulse { animation: pulseGlow 2s infinite; }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+      70% { box-shadow: 0 0 0 14px rgba(99, 102, 241, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
+
+  <!-- ================= TOP TOOLBAR / HEADER ================= -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i data-lucide="smartphone" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base sm:text-lg leading-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            App Showcase Studio
+          </h1>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Interactive Walkthrough & Synthetic Voice Builder</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center">
+          <button id="deviceIphoneBtn" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 text-white shadow transition flex items-center gap-1">
+            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">iOS</span>
+          </button>
+          <button id="deviceAndroidBtn" class="px-2.5 py-1 text-xs font-medium rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1">
+            <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+            <span class="hidden md:inline">Android</span>
+          </button>
+        </div>
+
+        <button id="addSlideBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs sm:text-sm font-semibold transition">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Add Slide</span>
+        </button>
+
+        <button id="exportProjectBtn" class="p-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs transition" title="Export Project JSON">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
+        <label for="importProjectInput" class="p-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs transition cursor-pointer" title="Import Project JSON">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <input type="file" id="importProjectInput" accept=".json" class="hidden" />
+        </label>
+
+        <button id="startPresentationBtn" class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-500 hover:from-brand-500 hover:to-indigo-400 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-brand-500/25 transition transform active:scale-95">
+          <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+          <span>Play Walkthrough</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="editorStatusBar" class="hidden w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3">
+    <p id="editorStatus" class="text-[11px] text-slate-300"></p>
+  </div>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <div id="editorLayout" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+    
+    <!-- LEFT PANEL -->
+    <aside class="lg:col-span-3 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 backdrop-blur flex flex-col h-[300px] lg:h-auto overflow-hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i data-lucide="layers" class="w-4 h-4 text-brand-500"></i>
+          Walkthrough Steps (<span id="slideCountNum">0</span>)
+        </h2>
+        <button id="resetDefaultsBtn" class="text-[11px] text-slate-500 hover:text-slate-300 underline">Reset Demo</button>
+      </div>
+      <div id="slidesThumbnailsContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1"></div>
+    </aside>
+
+    <!-- CENTER PANEL -->
+    <main class="lg:col-span-5 flex flex-col items-center justify-between min-h-[520px]">
+      <div class="w-full max-w-xs mb-3 flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs">
+        <span class="text-slate-400 font-medium">Screen Preview</span>
+        <span class="text-slate-200 font-bold">Step <span id="currentStepBadge">1</span></span>
+      </div>
+
+      <div id="phoneDeviceFrame" class="relative w-full max-w-[310px] sm:max-w-[330px] aspect-[9/19] bg-slate-900 rounded-[44px] p-3 border-4 border-slate-800 shadow-2xl mockup-shadow flex flex-col justify-between transition-all duration-300">
+        <div id="phoneNotch" class="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-between px-3">
+          <div class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800"></div>
+          <div class="w-2 h-2 rounded-full bg-indigo-900/40"></div>
+        </div>
+
+        <div id="screenDropArea" class="relative w-full h-full bg-slate-950 rounded-[34px] overflow-hidden border border-slate-800 flex flex-col justify-between group">
+          <div class="relative w-full h-full flex items-center justify-center overflow-hidden bg-slate-950">
+            <img id="activeSlideImage" src="" alt="App Screen" class="w-full h-full object-contain transition-opacity duration-300" />
+
+            <label for="slideImageInput" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center cursor-pointer z-20">
+              <div class="w-10 h-10 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center mb-2">
+                <i data-lucide="image-plus" class="w-5 h-5"></i>
+              </div>
+              <p class="text-xs font-semibold text-slate-200">Replace Screenshot</p>
+              <p class="text-[10px] text-slate-400 mt-1">Upload PNG/JPG or drag & drop</p>
+              <input type="file" id="slideImageInput" accept="image/*" class="hidden" />
+            </label>
+
+            <div id="hotspotContainer" class="absolute z-20 hidden">
+              <button id="activeHotspotBtn" class="hotspot-pulse px-3 py-1.5 rounded-full bg-brand-600/90 text-white font-semibold text-xs border border-indigo-300/40 shadow-xl backdrop-blur flex items-center gap-1 transform hover:scale-105 transition">
+                <span id="hotspotBtnText">Tap Next</span>
+                <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="editorSubtitleBar" class="absolute bottom-4 left-3 right-3 z-20">
+            <div class="bg-slate-950/90 border border-slate-800 text-slate-200 text-xs font-medium px-3 py-2 rounded-xl text-center backdrop-blur shadow-lg leading-snug">
+              <span id="editorSubtitleText" class="italic text-slate-300">"Voice script subtitles preview..."</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="absolute bottom-5 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-700/60 rounded-full z-30"></div>
+      </div>
+
+      <div class="w-full max-w-xs mt-4 flex items-center justify-between gap-3">
+        <button id="editorPrevBtn" class="flex-1 py-2 px-3 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-1">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i> Prev
+        </button>
+        <button id="editorTestAudioBtn" class="py-2 px-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-xs font-semibold text-indigo-300 transition flex items-center gap-1">
+          <i data-lucide="volume-2" class="w-4 h-4"></i> Preview Audio
+        </button>
+        <button id="editorNextBtn" class="flex-1 py-2 px-3 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-1">
+          Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="lg:col-span-4 space-y-5 overflow-y-auto pr-1">
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur space-y-4">
+        <h3 class="font-bold text-sm text-slate-200 flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="edit-3" class="w-4 h-4 text-brand-400"></i>
+            Step Content Inspector
+          </span>
+          <span id="currentSlideBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">Slide #1</span>
+        </h3>
+
+        <div>
+          <label for="slideTitleInput" class="block text-xs font-medium text-slate-400 mb-1">Step Title</label>
+          <input type="text" id="slideTitleInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition" />
+        </div>
+
+        <div>
+          <label for="slideCategoryInput" class="block text-xs font-medium text-slate-400 mb-1">Category Badge</label>
+          <input type="text" id="slideCategoryInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition" />
+        </div>
+
+        <div>
+          <label for="slideDescInput" class="block text-xs font-medium text-slate-400 mb-1">Step Description</label>
+          <textarea id="slideDescInput" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500 resize-none transition"></textarea>
+        </div>
+
+        <div>
+          <label for="slideScriptInput" class="block text-xs font-medium text-slate-400 mb-1">AI Voice Script (Subtitles)</label>
+          <textarea id="slideScriptInput" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500 resize-none transition"></textarea>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800/80">
+          <div class="flex items-center justify-between mb-2">
+            <label for="enableHotspotToggle" class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="enableHotspotToggle" class="rounded border-slate-700 bg-slate-950 text-brand-500 focus:ring-brand-500 w-3.5 h-3.5" />
+              <span>Enable Interactive Hotspot Overlay</span>
+            </label>
+          </div>
+
+          <div id="hotspotConfigFields" class="space-y-3 hidden pl-2 border-l-2 border-slate-800">
+            <div>
+              <label for="hotspotLabelInput" class="block text-[11px] font-medium text-slate-400 mb-1">Button Label</label>
+              <input type="text" id="hotspotLabelInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500" />
+            </div>
+            <div>
+              <label for="hotspotTargetSelect" class="block text-[11px] font-medium text-slate-400 mb-1">Target Action</label>
+              <select id="hotspotTargetSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur space-y-4">
+        <h3 class="font-bold text-sm text-slate-200 flex items-center gap-1.5">
+          <i data-lucide="bot" class="w-4 h-4 text-brand-400"></i>
+          AI Synthetic Voice Settings
+        </h3>
+
+        <div>
+          <label for="voiceSelect" class="block text-xs font-medium text-slate-400 mb-1">Voice Accent / Engine</label>
+          <select id="voiceSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-brand-500 transition">
+            <option value="">Default System Voice</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label for="rateInput" class="text-[11px] font-medium text-slate-400">Pacing (Speed)</label>
+              <span id="rateVal" class="text-[11px] font-bold text-slate-300">1.0x</span>
+            </div>
+            <input type="range" id="rateInput" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-brand-500 bg-slate-950 rounded-lg h-1.5 cursor-pointer" />
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label for="pitchInput" class="text-[11px] font-medium text-slate-400">Voice Pitch</label>
+              <span id="pitchVal" class="text-[11px] font-bold text-slate-300">1.0</span>
+            </div>
+            <input type="range" id="pitchInput" min="0.5" max="1.5" step="0.1" value="1.0" class="w-full accent-brand-500 bg-slate-950 rounded-lg h-1.5 cursor-pointer" />
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label for="volumeInput" class="text-[11px] font-medium text-slate-400">Master Audio Volume</label>
+            <span id="volumeVal" class="text-[11px] font-bold text-slate-300">100%</span>
+          </div>
+          <input type="range" id="volumeInput" min="0" max="1" step="0.05" value="1" class="w-full accent-brand-500 bg-slate-950 rounded-lg h-1.5 cursor-pointer" />
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ================= PRESENTATION OVERLAY ================= -->
+  <div id="presentationOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 hidden">
+    <div class="max-w-6xl w-full mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span id="presCategoryBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"></span>
+        <h2 id="presSlideTitle" class="text-lg sm:text-xl font-bold text-white"></h2>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="presToggleAudioBtn" class="p-2.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300 transition" title="Toggle Sound On/Off">
+          <i data-lucide="volume-2" id="presAudioOnIcon" class="w-5 h-5"></i>
+          <i data-lucide="volume-x" id="presAudioOffIcon" class="w-5 h-5 hidden text-rose-400"></i>
+        </button>
+        <button id="exitPresentationBtn" class="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-semibold transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+          <span>Exit Walkthrough</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 flex flex-col items-center justify-center my-4 relative">
+      <div id="presPhoneFrame" class="relative w-full max-w-[320px] sm:max-w-[360px] aspect-[9/19] bg-slate-900 rounded-[48px] p-3.5 border-4 border-slate-800 shadow-2xl mockup-shadow flex flex-col justify-between transition-all duration-300">
+        <div class="absolute top-5 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-between px-3">
+          <div class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800"></div>
+          <div class="w-2 h-2 rounded-full bg-indigo-900/40"></div>
+        </div>
+
+        <div class="relative w-full h-full bg-slate-950 rounded-[38px] overflow-hidden border border-slate-800/80 flex flex-col justify-between">
+          <img id="presSlideImage" src="" alt="App Showcase" class="w-full h-full object-contain transition-opacity duration-300" />
+          <div id="presHotspotContainer" class="absolute z-30 hidden">
+            <button id="presHotspotBtn" class="hotspot-pulse px-4 py-2 rounded-full bg-brand-600 text-white font-semibold text-xs border border-indigo-300/50 shadow-2xl flex items-center gap-1.5 transform hover:scale-105 active:scale-95 transition">
+              <span id="presHotspotLabel">Continue</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="absolute bottom-5 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-700/60 rounded-full z-30"></div>
+      </div>
+    </div>
+
+    <div class="max-w-2xl w-full mx-auto mb-4">
+      <div class="bg-slate-900/90 border border-slate-800 text-slate-100 px-6 py-3.5 rounded-2xl text-center backdrop-blur-md shadow-2xl">
+        <p id="presSubtitleText" class="text-sm sm:text-base font-medium leading-relaxed tracking-wide text-slate-200"></p>
+      </div>
+    </div>
+
+    <div class="max-w-4xl w-full mx-auto flex items-center justify-between gap-4">
+      <button id="presPrevBtn" class="flex items-center space-x-2 px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40">
+        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        <span class="hidden sm:inline">Previous</span>
+      </button>
+
+      <div class="flex items-center space-x-3">
+        <button id="presRestartBtn" class="p-3 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-300 transition" title="Restart Walkthrough">
+          <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+        </button>
+
+        <button id="presPlayPauseBtn" class="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-500 hover:from-brand-500 hover:to-indigo-400 text-white shadow-lg shadow-brand-500/30 flex items-center justify-center transition transform active:scale-95">
+          <i data-lucide="play" id="presPlayIcon" class="w-6 h-6 ml-0.5 fill-current"></i>
+          <i data-lucide="pause" id="presPauseIcon" class="w-6 h-6 hidden fill-current"></i>
+        </button>
+
+        <div id="presDotsContainer" class="flex items-center gap-1.5 ml-2"></div>
+      </div>
+
+      <button id="presNextBtn" class="flex items-center space-x-2 px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs sm:text-sm font-semibold transition disabled:opacity-40">
+        <span class="hidden sm:inline">Next</span>
+        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= APPLICATION LOGIC ================= -->
+  <script>
+    function generateMockSVG(title, subtitle, bgGrad1, bgGrad2) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="360" height="760" viewBox="0 0 360 760" fill="none">
+          <rect width="360" height="760" fill="#090d16"/>
+          <rect x="20" y="50" width="100" height="12" rx="6" fill="#1e293b"/>
+          <circle cx="320" cy="56" r="10" fill="#1e293b"/>
+          <rect x="20" y="85" width="320" height="190" rx="24" fill="url(#grad)"/>
+          <text x="40" y="140" fill="#ffffff" font-family="sans-serif" font-weight="bold" font-size="22">${title}</text>
+          <text x="40" y="168" fill="#ffffff" opacity="0.8" font-family="sans-serif" font-size="14">${subtitle}</text>
+          <rect x="40" y="200" width="110" height="36" rx="18" fill="#ffffff" fill-opacity="0.25"/>
+          <text x="65" y="223" fill="#ffffff" font-family="sans-serif" font-weight="600" font-size="12">Explore Now</text>
+          <rect x="20" y="300" width="150" height="130" rx="20" fill="#1e293b"/>
+          <circle cx="50" cy="335" r="16" fill="${bgGrad1}"/>
+          <rect x="40" y="370" width="90" height="10" rx="5" fill="#334155"/>
+          <rect x="40" y="390" width="60" height="8" rx="4" fill="#334155"/>
+          <rect x="190" y="300" width="150" height="130" rx="20" fill="#1e293b"/>
+          <circle cx="220" cy="335" r="16" fill="${bgGrad2}"/>
+          <rect x="210" y="370" width="90" height="10" rx="5" fill="#334155"/>
+          <rect x="210" y="390" width="60" height="8" rx="4" fill="#334155"/>
+          <rect x="20" y="450" width="320" height="75" rx="20" fill="#1e293b"/>
+          <rect x="40" y="470" width="35" height="35" rx="12" fill="${bgGrad1}"/>
+          <rect x="90" y="475" width="140" height="10" rx="5" fill="#475569"/>
+          <rect x="90" y="493" width="90" height="8" rx="4" fill="#334155"/>
+          <rect x="20" y="540" width="320" height="75" rx="20" fill="#1e293b"/>
+          <rect x="40" y="560" width="35" height="35" rx="12" fill="${bgGrad2}"/>
+          <rect x="90" y="565" width="140" height="10" rx="5" fill="#475569"/>
+          <rect x="90" y="583" width="90" height="8" rx="4" fill="#334155"/>
+          <rect x="20" y="675" width="320" height="60" rx="30" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+          <circle cx="80" cy="705" r="12" fill="${bgGrad1}"/>
+          <circle cx="180" cy="705" r="12" fill="#334155"/>
+          <circle cx="280" cy="705" r="12" fill="#334155"/>
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="320" y2="190" gradientUnits="userSpaceOnUse">
+              <stop stop-color="${bgGrad1}"/>
+              <stop offset="1" stop-color="${bgGrad2}"/>
+            </linearGradient>
+          </defs>
+        </svg>`;
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    const defaultSlides = [
+      {
+        id: "slide-1",
+        title: "Welcome Onboarding",
+        category: "Onboarding",
+        description: "Initial splash screen welcoming new app users to your solution.",
+        script: "Welcome to our application! Here you can quickly set up your account and explore personalized features.",
+        image: generateMockSVG("Welcome Back", "Modern Flutter Prototype", "#4f46e5", "#818cf8"),
+        hotspot: { enabled: true, label: "Start Tour", targetIndex: 1, top: "215px", left: "40px" }
+      },
+      {
+        id: "slide-2",
+        title: "Analytics Dashboard",
+        category: "Core Feature",
+        description: "Overview of key metrics, user activity, and progress graphs.",
+        script: "This is your analytics dashboard. Track daily active usage, revenue stats, and system performance metrics in real time.",
+        image: generateMockSVG("Analytics", "+48.2% Growth", "#0284c7", "#38bdf8"),
+        hotspot: { enabled: true, label: "View Reports", targetIndex: 2, top: "315px", left: "200px" }
+      },
+      {
+        id: "slide-3",
+        title: "Smart Messaging",
+        category: "Communication",
+        description: "Encrypted team chat and instant notification center.",
+        script: "Stay synchronized with smart messaging and instant automated notifications across all your devices.",
+        image: generateMockSVG("Messages", "3 Unread Chats", "#0d9488", "#2dd4bf"),
+        hotspot: { enabled: false, label: "Next Step", targetIndex: 0, top: "200px", left: "100px" }
+      }
+    ];
+
+    const STORAGE_KEY = 'app_showcase_slides_v4';
+    const PROJECT_FILE = 'app_walkthrough_project_v1.json';
+    const MAX_LOCAL_SAVE = 4 * 1024 * 1024; // localStorage tops out around 5MB
+
+    let slides = [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      slides = saved ? JSON.parse(saved) : defaultSlides;
+    } catch (e) {
+      slides = defaultSlides;
+    }
+    if (!Array.isArray(slides) || slides.length === 0) slides = defaultSlides;
+
+    const editorStatusBar = document.getElementById('editorStatusBar');
+    const editorStatus = document.getElementById('editorStatus');
+
+    function setStatus(message, tone) {
+      if (!editorStatusBar || !editorStatus) return;
+      if (!message) {
+        editorStatusBar.classList.add('hidden');
+        return;
+      }
+      editorStatus.className = tone === 'warn'
+        ? 'text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2'
+        : 'text-[11px] text-slate-300 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2';
+      editorStatus.textContent = message;
+      editorStatusBar.classList.remove('hidden');
+    }
+
+    async function loadProjectFile() {
+      try {
+        const response = await fetch(`${PROJECT_FILE}?t=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) return false;
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          slides = data;
+          setStatus(`Loaded ${slides.length} slides from ${PROJECT_FILE}. Edit away, then Export to write the changes back.`);
+          return true;
+        }
+      } catch (e) {
+        console.warn('Could not load the project file; using local state instead.', e);
+      }
+      return false;
+    }
+
+    let currentIndex = 0;
+    let synth = window.speechSynthesis;
+    let currentUtterance = null;
+    let voices = [];
+    let isPlayingAudio = false;
+    let audioMuted = false;
+
+    const slideCountNum = document.getElementById('slideCountNum');
+    const slidesThumbnailsContainer = document.getElementById('slidesThumbnailsContainer');
+    const currentStepBadge = document.getElementById('currentStepBadge');
+    const phoneDeviceFrame = document.getElementById('phoneDeviceFrame');
+    const phoneNotch = document.getElementById('phoneNotch');
+    const activeSlideImage = document.getElementById('activeSlideImage');
+    const slideImageInput = document.getElementById('slideImageInput');
+    const screenDropArea = document.getElementById('screenDropArea');
+    const editorSubtitleText = document.getElementById('editorSubtitleText');
+
+    const hotspotContainer = document.getElementById('hotspotContainer');
+    const activeHotspotBtn = document.getElementById('activeHotspotBtn');
+    const hotspotBtnText = document.getElementById('hotspotBtnText');
+    const enableHotspotToggle = document.getElementById('enableHotspotToggle');
+    const hotspotConfigFields = document.getElementById('hotspotConfigFields');
+    const hotspotLabelInput = document.getElementById('hotspotLabelInput');
+    const hotspotTargetSelect = document.getElementById('hotspotTargetSelect');
+
+    const currentSlideBadge = document.getElementById('currentSlideBadge');
+    const slideTitleInput = document.getElementById('slideTitleInput');
+    const slideCategoryInput = document.getElementById('slideCategoryInput');
+    const slideDescInput = document.getElementById('slideDescInput');
+    const slideScriptInput = document.getElementById('slideScriptInput');
+
+    const voiceSelect = document.getElementById('voiceSelect');
+    const rateInput = document.getElementById('rateInput');
+    const pitchInput = document.getElementById('pitchInput');
+    const volumeInput = document.getElementById('volumeInput');
+    const rateVal = document.getElementById('rateVal');
+    const pitchVal = document.getElementById('pitchVal');
+    const volumeVal = document.getElementById('volumeVal');
+
+    const presentationOverlay = document.getElementById('presentationOverlay');
+    const presSlideTitle = document.getElementById('presSlideTitle');
+    const presCategoryBadge = document.getElementById('presCategoryBadge');
+    const presSlideImage = document.getElementById('presSlideImage');
+    const presSubtitleText = document.getElementById('presSubtitleText');
+    const presHotspotContainer = document.getElementById('presHotspotContainer');
+    const presHotspotBtn = document.getElementById('presHotspotBtn');
+    const presHotspotLabel = document.getElementById('presHotspotLabel');
+
+    const presPlayPauseBtn = document.getElementById('presPlayPauseBtn');
+    const presPlayIcon = document.getElementById('presPlayIcon');
+    const presPauseIcon = document.getElementById('presPauseIcon');
+    const presPrevBtn = document.getElementById('presPrevBtn');
+    const presNextBtn = document.getElementById('presNextBtn');
+    const presRestartBtn = document.getElementById('presRestartBtn');
+    const presDotsContainer = document.getElementById('presDotsContainer');
+    const presToggleAudioBtn = document.getElementById('presToggleAudioBtn');
+    const presAudioOnIcon = document.getElementById('presAudioOnIcon');
+    const presAudioOffIcon = document.getElementById('presAudioOffIcon');
+
+    async function init() {
+      lucide.createIcons();
+      populateVoices();
+      if (synth && synth.onvoiceschanged !== undefined) {
+        synth.onvoiceschanged = populateVoices;
+      }
+      const loadedFromFile = await loadProjectFile();
+      if (!loadedFromFile && slides === defaultSlides) {
+        setStatus('Showing the example slides. Use Import to open a project JSON file.', 'warn');
+      }
+      renderThumbnails();
+      renderCurrentSlide();
+      setupEventListeners();
+    }
+
+    function populateVoices() {
+      if (!synth) return;
+      voices = synth.getVoices().sort((a, b) => a.name.localeCompare(b.name));
+      voiceSelect.innerHTML = '';
+
+      if (voices.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'Default System Voice';
+        voiceSelect.appendChild(option);
+        return;
+      }
+
+      voices.forEach((voice) => {
+        const option = document.createElement('option');
+        option.textContent = `${voice.name} (${voice.lang})`;
+        option.setAttribute('data-name', voice.name);
+        if (voice.default || voice.lang.includes('en')) option.selected = true;
+        voiceSelect.appendChild(option);
+      });
+    }
+
+    function renderThumbnails() {
+      slideCountNum.textContent = slides.length;
+      slidesThumbnailsContainer.innerHTML = '';
+
+      slides.forEach((slide, idx) => {
+        const card = document.createElement('div');
+        const isActive = idx === currentIndex;
+        card.className = `group relative flex items-center gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
+          isActive ? 'bg-brand-500/10 border-brand-500/50 text-white shadow-md' : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-900 text-slate-400'
+        }`;
+        card.innerHTML = `
+          <div class="w-10 h-14 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden flex-shrink-0 relative">
+            <img src="${slide.image}" class="w-full h-full object-contain" />
+            <span class="absolute top-1 left-1 bg-slate-950/80 text-[9px] font-bold px-1 rounded text-slate-300">${idx + 1}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs font-bold truncate text-slate-200">${slide.title || 'Untitled Step'}</h4>
+            <p class="text-[10px] text-slate-400 truncate mt-0.5">${slide.category || 'Step'}</p>
+          </div>
+          <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button class="delete-slide-btn p-1 hover:text-rose-400 text-slate-500" data-index="${idx}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            <button class="duplicate-slide-btn p-1 hover:text-indigo-400 text-slate-500" data-index="${idx}"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+          </div>
+        `;
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.delete-slide-btn') || e.target.closest('.duplicate-slide-btn')) return;
+          currentIndex = idx;
+          renderCurrentSlide();
+        });
+        slidesThumbnailsContainer.appendChild(card);
+      });
+
+      lucide.createIcons();
+      updateHotspotTargetDropdown();
+    }
+
+    function renderCurrentSlide() {
+      if (slides.length === 0) return;
+      stopSpeech();
+
+      const slide = slides[currentIndex];
+      currentStepBadge.textContent = `${currentIndex + 1} / ${slides.length}`;
+      currentSlideBadge.textContent = `Slide #${currentIndex + 1}`;
+
+      activeSlideImage.src = slide.image;
+      editorSubtitleText.textContent = slide.script ? `"${slide.script}"` : '"No narration script..."';
+
+      slideTitleInput.value = slide.title || '';
+      slideCategoryInput.value = slide.category || '';
+      slideDescInput.value = slide.description || '';
+      slideScriptInput.value = slide.script || '';
+
+      if (slide.hotspot && slide.hotspot.enabled) {
+        enableHotspotToggle.checked = true;
+        hotspotConfigFields.classList.remove('hidden');
+        hotspotLabelInput.value = slide.hotspot.label || 'Next Step';
+        hotspotTargetSelect.value = slide.hotspot.targetIndex ?? ((currentIndex + 1) % slides.length);
+
+        hotspotContainer.classList.remove('hidden');
+        hotspotContainer.style.top = slide.hotspot.top || '200px';
+        hotspotContainer.style.left = slide.hotspot.left || '40px';
+        hotspotBtnText.textContent = slide.hotspot.label || 'Next Step';
+      } else {
+        enableHotspotToggle.checked = false;
+        hotspotConfigFields.classList.add('hidden');
+        hotspotContainer.classList.add('hidden');
+      }
+
+      renderThumbnails();
+    }
+
+    function updateHotspotTargetDropdown() {
+      hotspotTargetSelect.innerHTML = '';
+      slides.forEach((s, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Jump to Step ${i + 1}: ${s.title}`;
+        hotspotTargetSelect.appendChild(option);
+      });
+    }
+
+    function saveState() {
+      try {
+        const serialised = JSON.stringify(slides);
+        if (serialised.length > MAX_LOCAL_SAVE) {
+          setStatus('This project is too big for the browser to auto-save, so changes live in this tab only. Export the JSON before you reload.', 'warn');
+          return;
+        }
+        localStorage.setItem(STORAGE_KEY, serialised);
+      } catch (e) {
+        console.error("Storage limit reached or blocked", e);
+        setStatus('Could not auto-save in the browser. Export the JSON before you reload.', 'warn');
+      }
+    }
+
+    function speakScript(text, onComplete) {
+      stopSpeech();
+      if (!text || audioMuted || !synth) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      currentUtterance = new SpeechSynthesisUtterance(text);
+      const selectedVoiceName = voiceSelect.selectedOptions[0]?.getAttribute('data-name');
+      if (selectedVoiceName) {
+        const matchedVoice = voices.find(v => v.name === selectedVoiceName);
+        if (matchedVoice) currentUtterance.voice = matchedVoice;
+      }
+
+      currentUtterance.rate = parseFloat(rateInput.value);
+      currentUtterance.pitch = parseFloat(pitchInput.value);
+      currentUtterance.volume = parseFloat(volumeInput.value);
+
+      currentUtterance.onend = () => {
+        isPlayingAudio = false;
+        updatePresPlayBtnUI(false);
+        if (onComplete) onComplete();
+      };
+
+      currentUtterance.onerror = () => {
+        isPlayingAudio = false;
+        updatePresPlayBtnUI(false);
+      };
+
+      isPlayingAudio = true;
+      updatePresPlayBtnUI(true);
+
+      if (synth.paused) {
+        synth.resume();
+      }
+      synth.speak(currentUtterance);
+    }
+
+    function stopSpeech() {
+      if (synth && synth.speaking) {
+        synth.cancel();
+      }
+      isPlayingAudio = false;
+      updatePresPlayBtnUI(false);
+    }
+
+    function updatePresPlayBtnUI(playing) {
+      if (playing) {
+        presPlayIcon.classList.add('hidden');
+        presPauseIcon.classList.remove('hidden');
+      } else {
+        presPlayIcon.classList.remove('hidden');
+        presPauseIcon.classList.add('hidden');
+      }
+    }
+
+    function renderPresentationSlide() {
+      const slide = slides[currentIndex];
+      presSlideTitle.textContent = slide.title || `Step ${currentIndex + 1}`;
+      presCategoryBadge.textContent = slide.category || 'App Walkthrough';
+      presSlideImage.src = slide.image;
+      presSubtitleText.textContent = slide.script ? `"${slide.script}"` : '';
+
+      presPrevBtn.disabled = currentIndex === 0;
+      presNextBtn.disabled = currentIndex === slides.length - 1;
+
+      if (slide.hotspot && slide.hotspot.enabled) {
+        presHotspotContainer.classList.remove('hidden');
+        presHotspotContainer.style.top = slide.hotspot.top || '200px';
+        presHotspotContainer.style.left = slide.hotspot.left || '40px';
+        presHotspotLabel.textContent = slide.hotspot.label || 'Continue';
+      } else {
+        presHotspotContainer.classList.add('hidden');
+      }
+
+      renderPresentationDots();
+      speakScript(slide.script);
+    }
+
+    function renderPresentationDots() {
+      presDotsContainer.innerHTML = '';
+      slides.forEach((_, idx) => {
+        const dot = document.createElement('button');
+        dot.className = `h-2 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-6 bg-brand-500' : 'w-2 bg-slate-800 hover:bg-slate-700'}`;
+        dot.addEventListener('click', () => {
+          currentIndex = idx;
+          renderPresentationSlide();
+        });
+        presDotsContainer.appendChild(dot);
+      });
+    }
+
+    function setupEventListeners() {
+      document.getElementById('deviceIphoneBtn').addEventListener('click', () => {
+        phoneDeviceFrame.classList.remove('rounded-[24px]');
+        phoneDeviceFrame.classList.add('rounded-[44px]');
+        phoneNotch.classList.remove('hidden');
+      });
+
+      document.getElementById('deviceAndroidBtn').addEventListener('click', () => {
+        phoneDeviceFrame.classList.remove('rounded-[44px]');
+        phoneDeviceFrame.classList.add('rounded-[24px]');
+        phoneNotch.classList.add('hidden');
+      });
+
+      document.getElementById('addSlideBtn').addEventListener('click', () => {
+        const newSlide = {
+          id: `slide-${Date.now()}`,
+          title: `Step ${slides.length + 1}`,
+          category: "New Screen",
+          description: "Describe this app screen step.",
+          script: "Enter speech narration text for this step.",
+          image: generateMockSVG(`Step ${slides.length + 1}`, "Custom Screen", "#4f46e5", "#06b6d4"),
+          hotspot: { enabled: false, label: "Next", targetIndex: 0, top: "200px", left: "40px" }
+        };
+        slides.push(newSlide);
+        currentIndex = slides.length - 1;
+        saveState();
+        renderCurrentSlide();
+      });
+
+      slidesThumbnailsContainer.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.delete-slide-btn');
+        if (delBtn) {
+          const idx = parseInt(delBtn.getAttribute('data-index'));
+          if (slides.length <= 1) {
+            alert('Your walkthrough must have at least one slide.');
+            return;
+          }
+          slides.splice(idx, 1);
+          if (currentIndex >= slides.length) currentIndex = slides.length - 1;
+          saveState();
+          renderCurrentSlide();
+        }
+
+        const dupBtn = e.target.closest('.duplicate-slide-btn');
+        if (dupBtn) {
+          const idx = parseInt(dupBtn.getAttribute('data-index'));
+          const clone = JSON.parse(JSON.stringify(slides[idx]));
+          clone.id = `slide-${Date.now()}`;
+          clone.title += " (Copy)";
+          slides.splice(idx + 1, 0, clone);
+          currentIndex = idx + 1;
+          saveState();
+          renderCurrentSlide();
+        }
+      });
+
+      slideTitleInput.addEventListener('input', (e) => { slides[currentIndex].title = e.target.value; saveState(); renderThumbnails(); });
+      slideCategoryInput.addEventListener('input', (e) => { slides[currentIndex].category = e.target.value; saveState(); });
+      slideDescInput.addEventListener('input', (e) => { slides[currentIndex].description = e.target.value; saveState(); });
+      slideScriptInput.addEventListener('input', (e) => {
+        slides[currentIndex].script = e.target.value;
+        editorSubtitleText.textContent = e.target.value ? `"${e.target.value}"` : '"No narration..."';
+        saveState();
+      });
+
+      enableHotspotToggle.addEventListener('change', (e) => {
+        if (!slides[currentIndex].hotspot) {
+          slides[currentIndex].hotspot = { enabled: false, label: "Next", targetIndex: 0, top: "200px", left: "40px" };
+        }
+        slides[currentIndex].hotspot.enabled = e.target.checked;
+        saveState();
+        renderCurrentSlide();
+      });
+
+      hotspotLabelInput.addEventListener('input', (e) => {
+        slides[currentIndex].hotspot.label = e.target.value;
+        hotspotBtnText.textContent = e.target.value;
+        saveState();
+      });
+
+      hotspotTargetSelect.addEventListener('change', (e) => {
+        slides[currentIndex].hotspot.targetIndex = parseInt(e.target.value);
+        saveState();
+      });
+
+      document.getElementById('editorPrevBtn').addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; renderCurrentSlide(); } });
+      document.getElementById('editorNextBtn').addEventListener('click', () => { if (currentIndex < slides.length - 1) { currentIndex++; renderCurrentSlide(); } });
+      document.getElementById('editorTestAudioBtn').addEventListener('click', () => speakScript(slides[currentIndex].script));
+
+      rateInput.addEventListener('input', (e) => { rateVal.textContent = parseFloat(e.target.value).toFixed(1) + 'x'; });
+      pitchInput.addEventListener('input', (e) => { pitchVal.textContent = parseFloat(e.target.value).toFixed(1); });
+      volumeInput.addEventListener('input', (e) => { volumeVal.textContent = Math.round(parseFloat(e.target.value) * 100) + '%'; });
+
+      slideImageInput.addEventListener('change', (e) => { if (e.target.files[0]) handleImageUpload(e.target.files[0]); });
+
+      screenDropArea.addEventListener('dragover', (e) => { e.preventDefault(); screenDropArea.classList.add('border-brand-500'); });
+      screenDropArea.addEventListener('dragleave', () => { screenDropArea.classList.remove('border-brand-500'); });
+      screenDropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        screenDropArea.classList.remove('border-brand-500');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) handleImageUpload(e.dataTransfer.files[0]);
+      });
+
+      document.getElementById('startPresentationBtn').addEventListener('click', () => {
+        presentationOverlay.classList.remove('hidden');
+        renderPresentationSlide();
+      });
+
+      document.getElementById('exitPresentationBtn').addEventListener('click', () => {
+        stopSpeech();
+        presentationOverlay.classList.add('hidden');
+      });
+
+      presPrevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; renderPresentationSlide(); } });
+      presNextBtn.addEventListener('click', () => { if (currentIndex < slides.length - 1) { currentIndex++; renderPresentationSlide(); } });
+      presRestartBtn.addEventListener('click', () => { currentIndex = 0; renderPresentationSlide(); });
+
+      presPlayPauseBtn.addEventListener('click', () => {
+        if (synth && synth.speaking) {
+          if (synth.paused) { synth.resume(); updatePresPlayBtnUI(true); }
+          else { synth.pause(); updatePresPlayBtnUI(false); }
+        } else {
+          speakScript(slides[currentIndex].script);
+        }
+      });
+
+      presToggleAudioBtn.addEventListener('click', () => {
+        audioMuted = !audioMuted;
+        if (audioMuted) {
+          stopSpeech();
+          presAudioOnIcon.classList.add('hidden');
+          presAudioOffIcon.classList.remove('hidden');
+        } else {
+          presAudioOnIcon.classList.remove('hidden');
+          presAudioOffIcon.classList.add('hidden');
+          speakScript(slides[currentIndex].script);
+        }
+      });
+
+      presHotspotBtn.addEventListener('click', () => {
+        const slide = slides[currentIndex];
+        if (slide.hotspot && slide.hotspot.targetIndex !== undefined) {
+          currentIndex = slide.hotspot.targetIndex;
+          renderPresentationSlide();
+        }
+      });
+
+      activeHotspotBtn.addEventListener('click', () => {
+        const slide = slides[currentIndex];
+        if (slide.hotspot && slide.hotspot.targetIndex !== undefined) {
+          currentIndex = slide.hotspot.targetIndex;
+          renderCurrentSlide();
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+        if (e.key === 'ArrowLeft') {
+          if (!presentationOverlay.classList.contains('hidden')) presPrevBtn.click();
+          else document.getElementById('editorPrevBtn').click();
+        } else if (e.key === 'ArrowRight') {
+          if (!presentationOverlay.classList.contains('hidden')) presNextBtn.click();
+          else document.getElementById('editorNextBtn').click();
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          if (!presentationOverlay.classList.contains('hidden')) presPlayPauseBtn.click();
+          else document.getElementById('editorTestAudioBtn').click();
+        } else if (e.key === 'Escape') {
+          if (!presentationOverlay.classList.contains('hidden')) document.getElementById('exitPresentationBtn').click();
+        }
+      });
+
+      document.getElementById('exportProjectBtn').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(slides, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", url);
+        dlAnchor.setAttribute("download", PROJECT_FILE);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus(`Exported ${slides.length} slides as ${PROJECT_FILE}. Drop it in this folder and overwrite the old one.`);
+      });
+
+      document.getElementById('importProjectInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (Array.isArray(imported) && imported.length > 0) {
+              slides = imported;
+              currentIndex = 0;
+              saveState();
+              renderCurrentSlide();
+              setStatus(`Imported ${slides.length} slides from ${file.name}.`);
+            }
+          } catch (err) { alert('Invalid JSON file format.'); }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById('resetDefaultsBtn').addEventListener('click', () => {
+        if (confirm('Reset walkthrough back to example default slides?')) {
+          slides = [...defaultSlides];
+          currentIndex = 0;
+          saveState();
+          renderCurrentSlide();
+        }
+      });
+    }
+
+    function handleImageUpload(file) {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        slides[currentIndex].image = e.target.result;
+        saveState();
+        renderCurrentSlide();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
