@@ -650,6 +650,36 @@
         </section>
 
         <section class="section">
+            <h2 class="section-title">How it is built</h2>
+            <p class="section-lede">
+                Built by me, Kieren Pound, as a small, independent product. No venture
+                capital, no data-hungry platform. The architecture is deliberately simple,
+                and I am happy to talk through any of it.
+            </p>
+
+            <div class="panel">
+                <ul class="trust-list">
+                    <li>
+                        <strong>Flutter, Supabase and Cloudflare R2</strong>
+                        A native app on a secure backend, with files stored on Cloudflare's object storage.
+                    </li>
+                    <li>
+                        <strong>Row Level Security</strong>
+                        Every record is locked to the estate it belongs to. The database itself enforces who can read what — not just the app.
+                    </li>
+                    <li>
+                        <strong>Encrypted in transit and at rest</strong>
+                        Data is encrypted on the way in and out, and again where it is stored.
+                    </li>
+                    <li>
+                        <strong>Account passwords are not stored by design</strong>
+                        Most organisations require formal notification from an executor — handing over credentials would not help and would create a false sense of security. UnderCroft points you towards the right process instead.
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
             <h2 class="section-title">Shared with the right people</h2>
             <p class="section-lede">
                 Preparing an estate is rarely a solo job. An owner can invite an executor or a
