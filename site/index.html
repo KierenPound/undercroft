@@ -226,22 +226,6 @@
             color: var(--ink-faint);
         }
 
-        /* --- Photo montage ------------------------------------------------ */
-        .montage {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .montage img {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            object-fit: cover;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lift);
-        }
-
         /* --- Sections ----------------------------------------------------- */
         .section { margin-top: clamp(44px, 7vw, 68px); }
 
@@ -279,6 +263,52 @@
             width: 100%;
             aspect-ratio: 16 / 10;
             object-fit: cover;
+        }
+
+        .feature-menu {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            padding: 6px 10px;
+            background: var(--ivory);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .feature-menu-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feature-menu-icon {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 16px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-menu-icon svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
+        }
+
+        .feature-menu-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--ink);
+            white-space: nowrap;
+        }
+
+        .feature-menu-chevron {
+            margin-left: auto;
+            color: var(--ink-faint);
+            font-size: 0.7rem;
+            line-height: 1;
         }
 
         .feature-body { padding: 20px 22px 24px; }
@@ -413,10 +443,6 @@
             border-radius: 4px;
         }
 
-        @media (max-width: 720px) {
-            .montage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -538,22 +564,69 @@
             <p class="store-note">Available for iPhone, iPad and Android. Your vault stays private to you and the people you choose to share it with.</p>
         </section>
 
-        <div class="montage">
-            <img src="assets/default_wtdf.jpeg" alt="A quiet moment of preparation" loading="lazy">
-            <img src="assets/default_legal_documents.jpeg" alt="Paperwork and legal documents" loading="lazy">
-            <img src="assets/default_running_house.jpeg" alt="A home kept running" loading="lazy">
-            <img src="assets/default_who_to_notify.jpeg" alt="Contact details for the people to tell" loading="lazy">
-        </div>
-
         <section class="section">
             <h2 class="section-title">What's inside</h2>
             <p class="section-lede">
-                Eight guided sections cover the practical side of an estate. Each one holds its own
+                Nine guided sections cover the practical side of an estate. Each one holds its own
                 checklist, notes, photos and documents, and tells you where to go next rather than
                 leaving you to work it out.
             </p>
 
             <div class="grid">
+                <article class="feature">
+                    <div class="feature-menu" role="img" aria-label="UnderCroft app menu with nine sections: Readiness, My Letter to You, What to Do First, Legal Documents, Who to Notify, Running the House, Funeral Arrangements, Cars, and Probate.">
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#D7E1D9;color:#4A6B57"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6a1 1 0 0 1 1 1v1H8V3a1 1 0 0 1 1-1zm6 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-3.3 12.3-3.3-3.3 1.4-1.4 1.9 1.9 4-4 1.4 1.4-5.4 5.4z"/></svg></span>
+                            <span class="feature-menu-label">Readiness</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#E3D5C4;color:#8B6F47"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.5l8 5 8-5V6H4zm16 3.3-7.4 4.6a1 1 0 0 1-1.2 0L4 9.3V18h16V9.3z"/></svg></span>
+                            <span class="feature-menu-label">My Letter to You</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#F3D9D5;color:#C75B52"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3a1 1 0 0 1 1 1v17a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zm3 2h11l-2 4 2 4H8V5z"/></svg></span>
+                            <span class="feature-menu-label">What to Do First</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#D2DEF2;color:#4A6FB0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm9 1.5V8h4.5L15 3.5zM8 12h8a1 1 0 1 0 0-2H8a1 1 0 1 0 0 2zm0 3h8a1 1 0 1 0 0-2H8a1 1 0 1 0 0 2zm0 3h5a1 1 0 1 0 0-2H8a1 1 0 1 0 0 2z"/></svg></span>
+                            <span class="feature-menu-label">Legal Documents</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#D4E7DA;color:#4A8C5E"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a6 6 0 0 0-6 6v3.5L4.5 14a1 1 0 0 0 .8 1.6h13.4a1 1 0 0 0 .8-1.6L18 11.5V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 2.8-2H9.2A3 3 0 0 0 12 22z"/></svg></span>
+                            <span class="feature-menu-label">Who to Notify</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#F5DEC7;color:#D18B4A"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v10h5v-6h4v6h5V11h3L12 3z"/></svg></span>
+                            <span class="feature-menu-label">Running the House</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#E2D4F0;color:#8A5FB0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
+                            <span class="feature-menu-label">Funeral Arrangements</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#D2DDE8;color:#4A78A0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1v1a1 1 0 1 1-2 0v-1H7v1a1 1 0 1 1-2 0v-1H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h1zm2.2-4L6 11h12l-1.2-4H7.2zM6 13v2h2v-2H6zm10 0v2h2v-2h-2z"/></svg></span>
+                            <span class="feature-menu-label">Cars</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                        <div class="feature-menu-row">
+                            <span class="feature-menu-icon" style="background:#D4E7DA;color:#3F8A5C"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 1.8 3-.1 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.1L12 22l-2.4-1.8-3 .1-1-2.8L3 16l.9-2.9L3 10.2l2.6-1.5 1-2.8 3 .1L12 2zm-1 13 6-6-1.4-1.4L11 12.2l-2.6-2.6L7 11l4 4z"/></svg></span>
+                            <span class="feature-menu-label">Probate</span>
+                            <span class="feature-menu-chevron" aria-hidden="true">›</span>
+                        </div>
+                    </div>
+                    <div class="feature-body">
+                        <h3>Everything in one calm menu</h3>
+                        <p>Open the app and every part of the estate is one tap away — nine sections, each with its own checklist, notes, photos and documents, laid out in plain language.</p>
+                    </div>
+                </article>
+
                 <article class="feature">
                     <img src="assets/default_wtdf.jpeg" alt="" loading="lazy">
                     <div class="feature-body">
@@ -704,9 +777,35 @@
                         <strong>Account passwords are not stored by design</strong>
                         Most organisations require formal notification from an executor — handing over credentials would not help and would create a false sense of security. UnderCroft points you towards the right process instead.
                     </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Code Review and Testing</h2>
+            <p class="section-lede">
+                A product this personal is only as good as the care taken over how it is made.
+                AI is woven through the workflow, with clear lines between what the tools do and
+                where the responsibility sits.
+            </p>
+
+            <div class="panel">
+                <ul class="trust-list">
                     <li>
-                        <strong>Designed and built with AI as a core collaborator</strong>
-                        The product and architecture are mine, but much of the implementation was built with <strong>Trae</strong> as my primary coding partner — writing code, refactoring, and diagnosing issues alongside me. The wider review chain: code review and testing by Claude, automated app testing by ChatGPT, and content and UI review by Gemini — all alongside human external beta testers. AI is woven into the process; the decisions and the responsibility for the result are mine.
+                        <strong>Built with AI as a core collaborator</strong>
+                        The product and architecture are mine, but much of the implementation was built with <strong>Trae</strong> as my primary coding partner — writing code, refactoring and diagnosing issues alongside me.
+                    </li>
+                    <li>
+                        <strong>Code review and testing</strong>
+                        Claude reviews code changes and works through test scenarios before anything ships.
+                    </li>
+                    <li>
+                        <strong>Automated app testing</strong>
+                        ChatGPT drives automated app testing, working through user flows on device.
+                    </li>
+                    <li>
+                        <strong>Content, UI and human review</strong>
+                        Gemini reviews content and the interface, and everything is also tested by external human beta testers.
                     </li>
                 </ul>
             </div>
