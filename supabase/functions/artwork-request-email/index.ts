@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 const NOTIFICATION_EMAIL = "poundmatt@live.com";
+const NOTIFICATION_CC = "kieren@hotmail.co.uk";
 const NOTIFICATION_FROM = "support@undercroftvault.com";
 
 serve(async (req) => {
@@ -73,6 +74,7 @@ serve(async (req) => {
         body: JSON.stringify({
           sender: { name: "Crab Kings Lair Requests", email: NOTIFICATION_FROM },
           to: [{ email: NOTIFICATION_EMAIL }],
+          cc: [{ email: NOTIFICATION_CC }],
           replyTo: customerEmail !== "N/A" ? { email: customerEmail, name: customerName } : undefined,
           subject: `[New Request] ${cardName} (${artworkType})`,
           htmlContent: htmlContent,
