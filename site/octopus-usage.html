@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB" data-theme="dark">
+<html lang="en-GB" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -321,6 +321,15 @@ input::placeholder { color: var(--muted); opacity: .7; }
         </label>
 
         <label class="field">
+          <span class="label">Octopus Account Number <span class="hint">(optional)</span></span>
+          <span class="input-wrap">
+            <input id="f_accountNumber" type="text" placeholder="A-1234ABCD" autocomplete="off" spellcheck="false">
+            <button class="ghost-btn" type="button" id="autoFillBtn">Auto-fill</button>
+          </span>
+          <span class="hint">If supplied, <strong>Auto-fill</strong> queries the Octopus account endpoint and fills in the Import/Export MPANs, meter serials and active tariff code — no need to look them up on a bill.</span>
+        </label>
+
+        <label class="field">
           <span class="label">Import MPAN</span>
           <input id="f_importMpan" type="text" placeholder="e.g. 1900012345678" autocomplete="off" spellcheck="false">
           <span class="hint">13-digit Meter Point Administration Number for your import supply.</span>
@@ -342,6 +351,12 @@ input::placeholder { color: var(--muted); opacity: .7; }
           <span class="label">Export Meter Serial <span class="hint">(optional)</span></span>
           <input id="f_exportSerial" type="text" placeholder="Leave blank for import-only" autocomplete="off" spellcheck="false">
           <span class="hint">On SMETS2 meters this is often the <strong>same</strong> serial as the import meter.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Octopus Tariff Code <span class="hint">(optional, for cost)</span></span>
+          <input id="f_tariffCode" type="text" placeholder="e.g. E-1R-GO-22-11-01-A" autocomplete="off" spellcheck="false">
+          <span class="hint">Used to look up your per-slot unit rates from the Octopus API so we can show off-peak vs peak costs. Found in your Octopus account or bill.</span>
         </label>
       </div>
 
@@ -377,6 +392,16 @@ input::placeholder { color: var(--muted); opacity: .7; }
           <span class="label">Hanchu Battery Active From Date</span>
           <input id="f_batteryActiveFrom" type="date">
           <span class="hint">Dates <strong>before</strong> this have no battery: off-peak draws above the base load become EV if over 1.0 kWh, otherwise Home Low. Default 2026-11-27.</span>
+        </label>
+        <label class="field">
+          <span class="label">Manual Peak / Day Rate <span class="hint">(optional, p/kWh)</span></span>
+          <input id="f_manualDayRate" type="number" step="0.01" min="0" placeholder="Auto from tariff">
+          <span class="hint">Override the day/peak unit rate. If the Octopus API can't find your tariff's day rate, enter it here (e.g. from your bill). Leave blank to use the API rate.</span>
+        </label>
+        <label class="field">
+          <span class="label">Manual Off-Peak / Night Rate <span class="hint">(optional, p/kWh)</span></span>
+          <input id="f_manualNightRate" type="number" step="0.01" min="0" placeholder="Auto from tariff">
+          <span class="hint">Override the night/off-peak unit rate. Leave blank to use the API rate.</span>
         </label>
       </div>
 
@@ -455,6 +480,15 @@ input::placeholder { color: var(--muted); opacity: .7; }
     </div>
   </section>
 
+  <!-- ======================= COST SUMMARY ======================= -->
+  <section class="card cost-card" id="costCard" style="display:none">
+    <div class="chart-head">
+      <h2>Cost summary</h2>
+      <span class="meta" id="costMeta">Based on your Octopus tariff unit rates (incl. VAT)</span>
+    </div>
+    <div class="kpi-grid" id="costGrid"></div>
+  </section>
+
   <!-- ======================= LOG ======================= -->
   <section class="card">
     <div class="log" id="log"></div>
@@ -510,16 +544,20 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
   const FIELDS = {
     apiKey:       'f_apiKey',
+    accountNumber:'f_accountNumber',
     importMpan:   'f_importMpan',
     importSerial: 'f_importSerial',
     exportMpan:   'f_exportMpan',
     exportSerial: 'f_exportSerial',
+    tariffCode:   'f_tariffCode',
     offPeakStart: 'f_offPeakStart',
     offPeakEnd:   'f_offPeakEnd',
     baseLoad:     'f_baseLoad',
     minBattery:   'f_minBattery',
     fallbackEV:   'f_fallbackEV',
     batteryActiveFrom: 'f_batteryActiveFrom',
+    manualDayRate:  'f_manualDayRate',
+    manualNightRate:'f_manualNightRate',
     zappiHub:     'f_zappiHub',
     zappiKey:     'f_zappiKey',
     zappiProxy:   'f_zappiProxy',
@@ -528,10 +566,12 @@ input::placeholder { color: var(--muted); opacity: .7; }
   };
 
   const DEFAULT_SETTINGS = {
-    apiKey: '', importMpan: '', importSerial: '', exportMpan: '', exportSerial: '',
+    apiKey: '', accountNumber: '', importMpan: '', importSerial: '', exportMpan: '', exportSerial: '',
+    tariffCode: '',
     offPeakStart: '23:30', offPeakEnd: '05:30',
     baseLoad: 0.25, minBattery: 1.20, fallbackEV: 2.5,
     batteryActiveFrom: '2026-11-27',
+    manualDayRate: '', manualNightRate: '',
     zappiHub: '', zappiKey: '', zappiProxy: '',
     startDate: '', endDate: ''
   };
@@ -553,6 +593,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
     importMpan:       'importMpan',
     importSerial:     'serial',
     exportMpan:       'exportMpan',
+    tariffCode:       'tariffCode',
     offPeakStart:     'offPeakStart',
     offPeakEnd:       'offPeakEnd',
     baseLoad:         'baseLoadPerSlot',
@@ -905,6 +946,318 @@ input::placeholder { color: var(--muted); opacity: .7; }
     return rows;
   }
 
+  /**
+   * Derive the Octopus product code from a tariff code.
+   * Tariff codes look like "E-1R-GO-22-11-01-A" or "E-1R-AGILE-24-04-01-A".
+   * The product code is everything between the rate indicator (1R/2R) and the
+   * region letter, i.e. parts[2..-2] joined by "-".
+   */
+  function productCodeFromTariff(tariffCode) {
+    if (!tariffCode) return '';
+    const parts = tariffCode.trim().split('-');
+    if (parts.length < 4) return '';
+    return parts.slice(2, -1).join('-');
+  }
+
+  /**
+   * Fetch unit rates for a tariff. Returns { standard: [...], night: [...] }
+   * where each entry is { valid_from, valid_to, value_inc_vat }.
+   *
+   * For two-rate tariffs (Go): standard-unit-rates = peak/day,
+   * night-unit-rates = off-peak. For single-rate tariffs (Agile, Flexible)
+   * night-unit-rates returns 404 and we fall back to the standard rate for
+   * off-peak intervals too.
+   */
+  async function fetchTariffRates({ tariffCode, apiKey, fromIso, toIso }) {
+    if (!tariffCode) return { standard: [], night: [] };
+
+    const productCode = productCodeFromTariff(tariffCode);
+    log(`Fetching tariff rates for "${tariffCode}" (product "${productCode}")…`);
+    if (!productCode) {
+      log(`Could not derive product code from tariff "${tariffCode}". Costs will be skipped.`, 'warn');
+      return { standard: [], night: [] };
+    }
+
+    const base = `https://api.octopus.energy/v1/products/${encodeURIComponent(productCode)}/electricity-tariffs/${encodeURIComponent(tariffCode)}`;
+    const params = new URLSearchParams({ period_from: fromIso, period_to: toIso, page_size: '1500' });
+    const auth = 'Basic ' + btoa(apiKey + ':');
+
+    /**
+     * Fetch a rate schedule, trying multiple endpoint aliases.
+     * Octopus tariff families use different names:
+     *   - Go / IOG / dual-register: day-unit-rates & night-unit-rates
+     *   - Flexible / Agile / single-register: standard-unit-rates
+     * Returns the first non-empty result (or [] if all fail).
+     */
+    async function fetchRatesAliases(endpoints, label) {
+      for (const endpoint of endpoints) {
+        const url = `${base}/${endpoint}/?${params}`;
+        let res;
+        try { res = await fetch(url, { headers: { Authorization: auth } }); }
+        catch (e) {
+          log(`Tariff ${label} rates (${endpoint}): network/CORS error — skipping.`, 'warn');
+          continue;
+        }
+        if (res.status === 404) continue;   // wrong alias for this tariff
+        if (!res.ok) {
+          log(`Tariff ${label} rates (${endpoint}): HTTP ${res.status} — skipping.`, 'warn');
+          continue;
+        }
+        const payload = await res.json();
+        if (Array.isArray(payload.results) && payload.results.length) {
+          // Paginate within this endpoint.
+          const rows = [...payload.results];
+          let nextUrl = payload.next || null;
+          while (nextUrl) {
+            let nRes;
+            try { nRes = await fetch(nextUrl, { headers: { Authorization: auth } }); }
+            catch (e) { break; }
+            if (!nRes.ok) break;
+            const nPayload = await nRes.json();
+            if (Array.isArray(nPayload.results)) rows.push(...nPayload.results);
+            nextUrl = nPayload.next || null;
+          }
+          log(`Tariff ${label} rates: ${rows.length} period(s) via ${endpoint}.`);
+          return rows;
+        }
+      }
+      log(`Tariff ${label} rates: no periods found (tried ${endpoints.join(', ')}).`, 'warn');
+      return [];
+    }
+
+    const [standard, night] = await Promise.all([
+      fetchRatesAliases(['day-unit-rates', 'standard-unit-rates'], 'day (peak)'),
+      fetchRatesAliases(['night-unit-rates'], 'night (off-peak)')
+    ]);
+
+    // Fallback: if either rate schedule is missing, fetch the product endpoint
+    // which returns the current flat unit rates (works for fixed tariffs where
+    // the schedule endpoint sometimes returns nothing).
+    if (!standard.length || !night.length) {
+      const flat = await fetchProductFlatRates({ productCode, apiKey });
+      if (flat) {
+        if (!standard.length && flat.day) {
+          log(`Using flat day rate ${flat.day} p/kWh from the product endpoint.`, 'warn');
+          standard.push({ valid_from: '2000-01-01T00:00:00Z', valid_to: null, value_inc_vat: flat.day });
+        }
+        if (!night.length && flat.night) {
+          log(`Using flat night rate ${flat.night} p/kWh from the product endpoint.`, 'warn');
+          night.push({ valid_from: '2000-01-01T00:00:00Z', valid_to: null, value_inc_vat: flat.night });
+        }
+      }
+    }
+
+    log(`Tariff rates: ${standard.length} standard, ${night.length} night (product ${productCode}).`);
+
+    // If rates came back but none cover the requested window, warn the user —
+    // this usually means the tariff code is for a different period than the
+    // selected date range.
+    if (standard.length) {
+      const first = standard[standard.length - 1];   // API returns newest-first
+      const last  = standard[0];
+      log(`Standard rate coverage: ${first.valid_from} → ${last.valid_to || 'ongoing'}.`);
+    }
+    if (night.length) {
+      const first = night[night.length - 1];
+      const last  = night[0];
+      log(`Night rate coverage: ${first.valid_from} → ${last.valid_to || 'ongoing'}.`);
+    }
+
+    return { standard, night };
+  }
+
+  /**
+   * Fetch the current flat unit rates from the Octopus product endpoint.
+   * Returns { day: p/kWh, night: p/kWh } or null. This is a fallback for
+   * fixed tariffs where the per-slot rate schedule endpoint returns nothing.
+   * Tries multiple field-name variants because Octopus's product schema
+   * varies between tariff families (Go, IOG, Agile, etc.).
+   */
+  async function fetchProductFlatRates({ productCode, apiKey }) {
+    const url = `https://api.octopus.energy/v1/products/${encodeURIComponent(productCode)}/`;
+    let res;
+    // The product endpoint is public — try without auth first (some keys
+    // don't have product-scope and would 403). Fall back to auth if needed.
+    try { res = await fetch(url); } catch (e) { /* ignore */ }
+    if (!res || !res.ok) {
+      const auth = 'Basic ' + btoa(apiKey + ':');
+      try { res = await fetch(url, { headers: { Authorization: auth } }); }
+      catch (e) { return null; }
+    }
+    if (!res || !res.ok) return null;
+    const payload = await res.json();
+
+    // Helper to find any numeric rate field in an object by candidate names.
+    const pick = (obj, names) => {
+      if (!obj) return 0;
+      for (const n of names) { if (obj[n] != null && isFinite(+obj[n])) return +obj[n]; }
+      return 0;
+    };
+
+    // Dual-register tariff (day/night) — try every region.
+    const dual = payload && payload.dual_register_electricity_tariffs;
+    if (dual) {
+      for (const region of Object.keys(dual)) {
+        const t = dual[region];
+        const day   = pick(t.electricity_day,   ['standard_unit_rate_inc_vat', 'standard_unit_rate_exc_vat']);
+        const night = pick(t.electricity_night, ['night_unit_rate_inc_vat', 'night_unit_rate_exc_vat', 'standard_unit_rate_inc_vat']);
+        log(`Product ${productCode} [${region}]: day=${day}p, night=${night}p.`);
+        if (day || night) return { day: day || 0, night: night || 0 };
+      }
+    }
+
+    // Single-register tariff (one rate).
+    const single = payload && payload.single_register_electricity_tariffs;
+    if (single) {
+      for (const region of Object.keys(single)) {
+        const t = single[region];
+        const rate = pick(t.electricity_standard, ['standard_unit_rate_inc_vat', 'standard_unit_rate_exc_vat']);
+        log(`Product ${productCode} [${region}]: single rate=${rate}p.`);
+        if (rate) return { day: rate, night: rate };
+      }
+    }
+
+    log(`Product ${productCode}: no flat rates found in ${Object.keys(payload).join(', ')}.`, 'warn');
+    return null;
+  }
+
+  /**
+   * Find the VAT-inclusive unit rate (p/kWh) covering a given instant,
+   * from a list of rate periods [{valid_from, valid_to, value_inc_vat}].
+   */
+  function rateFor(rateList, startMs) {
+    for (const r of rateList) {
+      const from = Date.parse(r.valid_from);
+      const to = r.valid_to ? Date.parse(r.valid_to) : Infinity;
+      if (startMs >= from && startMs < to) return num(r.value_inc_vat);
+    }
+    return 0;
+  }
+
+  /* ==========================================================================
+   * 4b. OCTOPUS ACCOUNT ENDPOINT (auto-fill MPAN / serials / tariff)
+   * --------------------------------------------------------------------------
+   * A single GET to /v1/accounts/{accountNumber}/ returns every electricity
+   * meter point, its meters and active agreement — so we can populate the
+   * Import/Export MPANs, serial numbers and active tariff code in one call.
+   * ======================================================================== */
+
+  /**
+   * Fetch the account payload and extract the active electricity meter points.
+   * Returns { importMpan, importSerial, exportMpan, exportSerial, tariffCode }
+   * or throws on network/auth errors.
+   */
+  async function fetchAccountDetails({ accountNumber, apiKey }) {
+    if (!accountNumber) throw new Error('Account number is required (e.g. A-1234ABCD).');
+    if (!apiKey) throw new Error('API key is required to read your account.');
+
+    const url = `https://api.octopus.energy/v1/accounts/${encodeURIComponent(accountNumber)}/`;
+    const auth = 'Basic ' + btoa(apiKey + ':');
+
+    let res;
+    try { res = await fetch(url, { headers: { Authorization: auth } }); }
+    catch (e) { throw new Error(`Account: network/CORS error — ${e.message}.`); }
+
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('Account: 401 Unauthorised — check your Octopus API key.');
+      if (res.status === 403) throw new Error('Account: 403 Forbidden — this key cannot read that account.');
+      if (res.status === 404) throw new Error('Account: 404 Not found — check the account number.');
+      throw new Error(`Account: HTTP ${res.status} ${res.statusText}.`);
+    }
+
+    const payload = await res.json();
+    const props = payload && Array.isArray(payload.properties) ? payload.properties : [];
+
+    let importMpan = '', importSerial = '', exportMpan = '', exportSerial = '', tariffCode = '';
+
+    for (const prop of props) {
+      const points = prop && Array.isArray(prop.electricity_meter_points) ? prop.electricity_meter_points : [];
+      for (const point of points) {
+        const mpan = (point.mpan || '').trim();
+        const isExport = !!point.is_export;
+        // Active agreement = the one with valid_to == null (or the latest).
+        const agreements = Array.isArray(point.agreements) ? point.agreements : [];
+        const active = agreements.find((a) => !a.valid_to)
+                    || agreements.sort((a, b) => (b.valid_from || '').localeCompare(a.valid_from || ''))[0];
+        // A MPAN can have multiple meters (e.g. after a smart meter swap).
+        // The last entry in the array is the most recently installed / current one.
+        const meters = Array.isArray(point.meters) ? point.meters : [];
+        const serial = (meters.length && meters[meters.length - 1].serial_number) || '';
+        if (meters.length > 1) {
+          const all = meters.map((m) => m.serial_number).join(', ');
+          log(`MPAN ${mpan}: ${meters.length} meters found (${all}). Using the latest: ${serial}.`, 'warn');
+        }
+
+        if (isExport) {
+          if (!exportMpan) { exportMpan = mpan; exportSerial = serial; }
+        } else {
+          if (!importMpan) {
+            importMpan = mpan;
+            importSerial = serial;
+            if (active && active.tariff_code) tariffCode = active.tariff_code;
+          }
+        }
+      }
+    }
+
+    return { importMpan, importSerial, exportMpan, exportSerial, tariffCode };
+  }
+
+  /** Auto-fill the Octopus fields from the account endpoint. */
+  async function autoFillFromAccount() {
+    const accountNumber = ($('f_accountNumber') || {}).value.trim();
+    const apiKey        = ($('f_apiKey') || {}).value.trim();
+
+    showOverlay('Reading your Octopus account…');
+    try {
+      const d = await fetchAccountDetails({ accountNumber, apiKey });
+      if (!d.importMpan) throw new Error('No import MPAN found on this account.');
+
+      $('f_importMpan').value   = d.importMpan;
+      $('f_importSerial').value = d.importSerial;
+      if (d.exportMpan) {
+        $('f_exportMpan').value   = d.exportMpan;
+        $('f_exportSerial').value = d.exportSerial;
+      }
+      if (d.tariffCode) $('f_tariffCode').value = d.tariffCode;
+
+      onFieldChange();   // persist the auto-filled values + active profile
+
+      // --- Detect the current unit rates for the tariff -------------------
+      if (d.tariffCode) {
+        const today = todayUK();
+        const fromIso = toApiIso(ukLocalToUtc(addDays(today, -1), '00:00'));
+        const toIso   = toApiIso(ukLocalToUtc(addDays(today, 1), '00:00'));
+        try {
+          const rates = await fetchTariffRates({ tariffCode: d.tariffCode, apiKey, fromIso, toIso });
+          const dayRate   = rates.standard[0] && num(rates.standard[0].value_inc_vat);
+          const nightRate = rates.night[0]    && num(rates.night[0].value_inc_vat);
+          if (dayRate)   $('f_manualDayRate').value   = dayRate;
+          if (nightRate) $('f_manualNightRate').value = nightRate;
+          onFieldChange();
+          log(
+            `Detected rates for ${d.tariffCode}: day ${dayRate || '?'} p/kWh, night ${nightRate || '?'} p/kWh.` +
+            (dayRate || nightRate ? ' Applied as manual overrides.' : ''),
+            'ok'
+          );
+        } catch (e) {
+          log(`Rate detection failed: ${e.message || e}. You can enter the rates manually below.`, 'warn');
+        }
+      }
+
+      log(
+        `Auto-filled from account ${accountNumber}: import MPAN ${d.importMpan}` +
+        (d.exportMpan ? `, export MPAN ${d.exportMpan}` : '') +
+        (d.tariffCode ? `, tariff ${d.tariffCode}` : '') + '.',
+        'ok'
+      );
+    } catch (err) {
+      log(err.message || String(err), 'err');
+    } finally {
+      hideOverlay();
+    }
+  }
+
   /* ==========================================================================
    * 5. ZAPPI (myenergi) INGESTION
    * --------------------------------------------------------------------------
@@ -1133,15 +1486,35 @@ input::placeholder { color: var(--muted); opacity: .7; }
    * @param {Array} importRows raw import intervals
    * @param {Array} exportRows raw export intervals (may be empty)
    * @param {Object} s        settings snapshot
+   * @param {Object} [rates]  { standard: [...], night: [...] } tariff rate periods
    */
-  function categorise(importRows, exportRows, s) {
+  function categorise(importRows, exportRows, s, rates) {
     const baseLoad   = num(s.baseLoad);
     const minBattery = num(s.minBattery);
     const fallbackEV = num(s.fallbackEV);
 
+    // Tariff rate periods (may be empty if no tariff code was supplied).
+    const standardRates = (rates && rates.standard) || [];
+    const nightRates    = (rates && rates.night)    || [];
+
+    // Manual rate overrides (p/kWh) — take priority over API rates when set.
+    const manualDay   = num(s.manualDayRate);
+    const manualNight = num(s.manualNightRate);
+
     // Hanchu battery was only installed from this date onward. Empty = no gate.
     const activeFrom = String(s.batteryActiveFrom || '').trim();
     const batteryInstalled = (ukDate) => !activeFrom || ukDate >= activeFrom;
+
+    // Unit rate for an interval: off-peak → night rate, peak → standard rate.
+    // Manual overrides take priority; otherwise the API schedule is used,
+    // falling back to the other rate type if the preferred one isn't available.
+    function rateForInterval(startMs, offPeak) {
+      if (offPeak && manualNight > 0) return manualNight;
+      if (!offPeak && manualDay > 0)   return manualDay;
+      const primary   = offPeak ? rateFor(nightRates, startMs)    : rateFor(standardRates, startMs);
+      const secondary = offPeak ? rateFor(standardRates, startMs) : rateFor(nightRates, startMs);
+      return primary || secondary || 0;
+    }
 
     // Interval records keyed by UTC start ISO string.
     const records = new Map();
@@ -1152,7 +1525,10 @@ input::placeholder { color: var(--muted); opacity: .7; }
           startIso: iso,
           startMs: Date.parse(iso),
           date: uk.date,
-          importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0
+          importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0,
+          // Cost fields (GBP). standardRate is p/kWh applied to peak; offPeakRate to off-peak.
+          standardRate: 0, offPeakRate: 0,
+          standardCost: 0, homeLowCost: 0, batteryCost: 0, evCost: 0, importCost: 0
         };
         records.set(iso, r);
       }
@@ -1174,11 +1550,21 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
       r.importKwh += kwh;
 
-      if (!isOffPeak(uk.minutes, s)) {
+      const offPeak = isOffPeak(uk.minutes, s);
+      const rate = rateForInterval(r.startMs, offPeak);     // p/kWh for this slot
+      const costPerKwh = rate / 100;                          // £/kWh
+
+      if (!offPeak) {
         // Peak window: 100% of import → Standard.
         r.standardKwh += kwh;
+        r.standardRate = rate;
+        r.standardCost += kwh * costPerKwh;
+        r.importCost   += kwh * costPerKwh;
         continue;
       }
+
+      // Off-peak rate applies to home low, EV and battery.
+      r.offPeakRate = rate;
 
       /* Off-peak ------------------------------------------------------------
          Pre-battery dates have a different rule: no Hanchu battery at all, and
@@ -1191,9 +1577,13 @@ input::placeholder { color: var(--muted); opacity: .7; }
         if (above > PRE_ACTIVATION_EV_THRESHOLD) {
           r.homeLowKwh += preHomeLow;
           r.evKwh      += above;
+          r.homeLowCost += preHomeLow * costPerKwh;
+          r.evCost      += above * costPerKwh;
         } else {
           r.homeLowKwh += kwh;      // small residual stays Home Low, no battery
+          r.homeLowCost += kwh * costPerKwh;
         }
+        r.importCost += kwh * costPerKwh;
         continue;
       }
 
@@ -1221,6 +1611,11 @@ input::placeholder { color: var(--muted); opacity: .7; }
       r.homeLowKwh += homeLow + extraHomeLow;
       r.evKwh      += ev;
       r.batteryKwh += battery;
+
+      r.homeLowCost += (homeLow + extraHomeLow) * costPerKwh;
+      r.evCost      += ev * costPerKwh;
+      r.batteryCost += battery * costPerKwh;
+      r.importCost  += kwh * costPerKwh;
     }
 
     /* -------- export intervals ------------------------------------------- */
@@ -1239,20 +1634,27 @@ input::placeholder { color: var(--muted); opacity: .7; }
     for (const r of intervals) {
       let d = dailyMap.get(r.date);
       if (!d) {
-        d = { date: r.date, importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0 };
+        d = { date: r.date, importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0,
+              standardCost: 0, homeLowCost: 0, batteryCost: 0, evCost: 0, importCost: 0 };
         dailyMap.set(r.date, d);
       }
-      d.importKwh   += r.importKwh;
-      d.standardKwh += r.standardKwh;
-      d.homeLowKwh  += r.homeLowKwh;
-      d.batteryKwh  += r.batteryKwh;
-      d.evKwh       += r.evKwh;
-      d.exportKwh   += r.exportKwh;
+      d.importKwh    += r.importKwh;
+      d.standardKwh  += r.standardKwh;
+      d.homeLowKwh   += r.homeLowKwh;
+      d.batteryKwh   += r.batteryKwh;
+      d.evKwh        += r.evKwh;
+      d.exportKwh    += r.exportKwh;
+      d.standardCost += r.standardCost;
+      d.homeLowCost  += r.homeLowCost;
+      d.batteryCost  += r.batteryCost;
+      d.evCost       += r.evCost;
+      d.importCost   += r.importCost;
     }
 
     // Ensure every day in the requested range appears on the chart, even when
     // Octopus hasn't ingested that day's intervals yet (common for "today").
-    const empty = () => ({ importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0 });
+    const empty = () => ({ importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0,
+                           standardCost: 0, homeLowCost: 0, batteryCost: 0, evCost: 0, importCost: 0 });
     if (s.startDate && s.endDate && s.startDate <= s.endDate) {
       for (let d = s.startDate; d <= s.endDate; d = addDays(d, 1)) {
         if (!dailyMap.has(d)) dailyMap.set(d, Object.assign({ date: d }, empty()));
@@ -1306,6 +1708,57 @@ input::placeholder { color: var(--muted); opacity: .7; }
         `<div class="kpi-value">${fmtKwh(c.value)}<span class="unit">kWh</span></div>` +
         (c.share ? `<div class="kpi-share">${c.share}</div>` : '');
       grid.appendChild(card);
+    }
+  }
+
+  /** Format a GBP value, e.g. £12.34 or £0.00. */
+  function fmtGbp(v) {
+    return '£' + num(v).toFixed(2);
+  }
+
+  /**
+   * Render the cost summary cards below the chart. Only shown when tariff
+   * rates are available (i.e. a tariff code was supplied and the API returned
+   * rates). Costs are split into Off-Peak (Home Low + Battery + EV) and
+   * Standard (Peak).
+   */
+  function renderCosts(daily) {
+    const card    = $('costCard');
+    const grid    = $('costGrid');
+    const meta    = $('costMeta');
+    const hasCosts = daily.some((d) => num(d.importCost) > 0);
+
+    if (!hasCosts) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    grid.innerHTML = '';
+
+    const standardCost = sumBy(daily, 'standardCost');
+    const offPeakCost  = sumBy(daily, 'homeLowCost') + sumBy(daily, 'batteryCost') + sumBy(daily, 'evCost');
+    const totalCost    = standardCost + offPeakCost;
+
+    const standardKwh = sumBy(daily, 'standardKwh');
+    const offPeakKwh  = sumBy(daily, 'homeLowKwh') + sumBy(daily, 'batteryKwh') + sumBy(daily, 'evKwh');
+
+    const blended = (totalCost, kwh) => (kwh > 0 ? (totalCost / kwh * 100).toFixed(1) + ' p/kWh' : '—');
+
+    const cards = [
+      { label: 'Off-Peak (Home Low + Battery + EV)', value: offPeakCost,  color: COLORS.homeLow,  kwh: offPeakKwh },
+      { label: 'Standard / Peak',                    value: standardCost, color: COLORS.standard, kwh: standardKwh },
+      { label: 'Total Import Cost',                  value: totalCost,    color: 'var(--accent)' }
+    ];
+
+    for (const c of cards) {
+      const el = document.createElement('div');
+      el.className = 'kpi';
+      el.style.setProperty('--kpi-color', c.color);
+      const share = c.kwh !== undefined
+        ? `${fmtKwh(c.kwh)} kWh · ${blended(c.value, c.kwh)}`
+        : `${blended(totalCost, standardKwh + offPeakKwh)} blended`;
+      el.innerHTML =
+        `<div class="kpi-label"><span class="swatch" style="background:${c.color}"></span>${c.label}</div>` +
+        `<div class="kpi-value">${fmtGbp(c.value)}<span class="unit">GBP</span></div>` +
+        `<div class="kpi-share">${share}</div>`;
+      grid.appendChild(el);
     }
   }
 
@@ -1427,7 +1880,9 @@ input::placeholder { color: var(--muted); opacity: .7; }
     const header = [
       'Date', 'Interval_Start_UK', 'Interval_End_UK', 'Import_kWh',
       'Standard_kWh', 'Home_Low_kWh', 'Hanchu_Battery_kWh', 'EV_Zappi_kWh',
-      'Export_kWh', 'Net_kWh'
+      'Export_kWh', 'Net_kWh',
+      'Standard_Rate_p_per_kWh', 'OffPeak_Rate_p_per_kWh',
+      'Cost_Standard_GBP', 'Cost_OffPeak_GBP', 'Cost_Total_GBP'
     ];
     const lines = [header.join(',')];
 
@@ -1435,6 +1890,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
       const start = ukParts(r.startMs);
       const end   = ukParts(r.startMs + 1800000);
       const net   = r.importKwh - r.exportKwh;
+      const offPeakCost = r.homeLowCost + r.batteryCost + r.evCost;
       lines.push([
         r.date,
         start.stamp,
@@ -1445,7 +1901,12 @@ input::placeholder { color: var(--muted); opacity: .7; }
         round(r.batteryKwh),
         round(r.evKwh),
         round(r.exportKwh),
-        round(net)
+        round(net),
+        round(r.standardRate, 4),
+        round(r.offPeakRate, 4),
+        round(r.standardCost, 4),
+        round(offPeakCost, 4),
+        round(r.importCost, 4)
       ].map(csvEscape).join(','));
     }
 
@@ -1593,14 +2054,18 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
     showOverlay('Fetching usage from Octopus…');
     try {
-      // Import and export are fetched concurrently.
-      const [importRows, exportRows] = await Promise.all([
+      // Import, export, and tariff rates are fetched concurrently.
+      // The tariff rate fetch is wrapped so it can never block the chart —
+      // if the tariff code is wrong or the endpoint fails, we just skip costs.
+      const [importRows, exportRows, rates] = await Promise.all([
         fetchConsumption({ mpan: s.importMpan, serial: s.importSerial, apiKey: s.apiKey,
                            fromIso, toIso, label: 'Import' }),
         hasExport
           ? fetchConsumption({ mpan: s.exportMpan, serial: s.exportSerial, apiKey: s.apiKey,
                                fromIso, toIso, label: 'Export' })
-          : Promise.resolve([])
+          : Promise.resolve([]),
+        fetchTariffRates({ tariffCode: s.tariffCode, apiKey: s.apiKey, fromIso, toIso })
+          .catch((err) => { log(`Tariff rates skipped: ${err.message || err}`, 'warn'); return { standard: [], night: [] }; })
       ]);
 
       if (!importRows.length) {
@@ -1619,11 +2084,27 @@ input::placeholder { color: var(--muted); opacity: .7; }
       }
 
       // --- categorise + render -------------------------------------------
-      const result = categorise(importRows, exportRows, s);
-      lastResult = { intervals: result.intervals, daily: result.daily, hasExport: hasExport, settings: s };
+      const result = categorise(importRows, exportRows, s, rates);
+      lastResult = { intervals: result.intervals, daily: result.daily, hasExport: hasExport, settings: s, rates };
+
+      // Diagnostics: confirm peak vs off-peak split and whether rates matched.
+      const peakIntervals = result.intervals.filter((r) => r.standardKwh > 0).length;
+      const offPeakIntervals = result.intervals.filter((r) => (r.homeLowKwh + r.batteryKwh + r.evKwh) > 0).length;
+      const totalStandardCost = sumBy(result.daily, 'standardCost');
+      const totalOffPeakCost  = sumBy(result.daily, 'homeLowCost') + sumBy(result.daily, 'batteryCost') + sumBy(result.daily, 'evCost');
+      log(`Split: ${peakIntervals} peak slots, ${offPeakIntervals} off-peak slots. ` +
+          `Standard cost £${totalStandardCost.toFixed(2)}, Off-Peak cost £${totalOffPeakCost.toFixed(2)}.`);
+
+      // If there's peak usage but zero standard cost, the tariff rates probably
+      // don't cover the selected date range.
+      const standardKwh = sumBy(result.daily, 'standardKwh');
+      if (standardKwh > 0 && totalStandardCost === 0 && s.tariffCode) {
+        log('Peak usage found but £0 cost — check that your tariff code covers this date range.', 'warn');
+      }
 
       renderKpis(result.daily, hasExport);
       renderChart(result.daily, hasExport);
+      renderCosts(result.daily);
       $('csvBtn').disabled = result.intervals.length === 0;
 
       const perImport = Math.max(0, num(s.baseLoad));
@@ -1645,9 +2126,9 @@ input::placeholder { color: var(--muted); opacity: .7; }
    * ======================================================================== */
 
   function init() {
-    // Restore theme (default dark).
-    let theme = 'dark';
-    try { theme = localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) { /* ignore */ }
+    // Restore theme (default light to match the UnderCroft site).
+    let theme = 'light';
+    try { theme = localStorage.getItem(THEME_KEY) || 'light'; } catch (e) { /* ignore */ }
     applyTheme(theme);
 
     // Migrate any old single-settings into a profile, then load profiles.
@@ -1703,6 +2184,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
     $('fetchBtn').addEventListener('click', runFetch);
     $('csvBtn').addEventListener('click', exportCsv);
     $('zappiFetchBtn').addEventListener('click', fetchZappiViaProxy);
+    $('autoFillBtn').addEventListener('click', autoFillFromAccount);
 
     // Profile actions.
     $('saveProfileBtn').addEventListener('click', () => {
