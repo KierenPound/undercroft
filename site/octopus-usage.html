@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Octopus Usage · Import, Battery &amp; Export Breakdown</title>
+
+<!-- Chart.js from CDN (no build step required) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+/* ============================================================================
+   THEME TOKENS
+   ========================================================================== */
+:root {
+  --bg:        #0b1220;
+  --panel:     #111a2b;
+  --panel-2:   #16213a;
+  --text:      #e8eefc;
+  --muted:     #93a4c4;
+  --border:    #22304d;
+  --accent:    #ec0f9a;
+  --accent-2:  #38bdf8;
+  --shadow:    0 10px 30px rgba(0, 0, 0, .38);
+  --radius:    14px;
+
+  /* Data colours (must stay in sync with JS COLOR map) */
+  --home-low:  #06b6d4;   /* Home Low  – teal/cyan        */
+  --battery:   #10b981;   /* Hanchu    – emerald          */
+  --ev:        #6366f1;   /* EV/Zappi  – indigo           */
+  --standard:  #ec0f9a;   /* Peak      – Octopus magenta  */
+  --export:    #f59e0b;   /* Solar exp – amber/gold       */
+}
+html[data-theme="light"] {
+  --bg:        linear-gradient(180deg, #f5f1e8 0%, #ede6d6 100%);
+  --panel:     #ffffff;
+  --panel-2:   #f7f4ec;
+  --text:      #1b232d;
+  --muted:     #6b6a5e;
+  --border:    #e3dccb;
+  --accent:    #5b7c6a;
+  --accent-2:  #5b7c6a;
+  --shadow:    0 10px 30px rgba(91, 124, 106, .14);
+}
+
+/* ============================================================================
+   BASE
+   ========================================================================== */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 18px 18px 60px; }
+a { color: var(--accent-2); }
+
+/* ============================================================================
+   HEADER
+   ========================================================================== */
+.topbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 0 18px;
+}
+.topbar h1 { font-size: 21px; margin: 0; letter-spacing: -.2px; }
+.topbar .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.topbar .spacer { flex: 1 1 auto; }
+
+/* --- UnderCroft brand bar (links back to the main site) ---------------- */
+.brand-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0 16px;
+}
+.brand-bar .brand {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent); text-decoration: none;
+  transition: opacity .15s;
+}
+.brand-bar .brand:hover { opacity: .75; }
+.brand-bar .brand-sub { font-size: 12px; color: var(--muted); }
+
+.icon-btn {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: 13px;
+  transition: background .15s, border-color .15s;
+}
+.icon-btn:hover { border-color: var(--accent-2); }
+
+/* ============================================================================
+   CARDS / PANELS
+   ========================================================================== */
+.card, .panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.panel > summary {
+  list-style: none; cursor: pointer; padding: 16px 18px;
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+}
+.panel > summary::-webkit-details-marker { display: none; }
+.panel > summary::before {
+  content: "▸"; color: var(--accent-2); font-size: 12px; transition: transform .18s;
+  transform: translateY(-1px);
+}
+.panel[open] > summary::before { transform: rotate(90deg) translateX(-1px); }
+.panel-title { font-weight: 650; font-size: 15px; }
+.panel-sub { color: var(--muted); font-size: 12.5px; }
+.panel-body { padding: 4px 18px 20px; border-top: 1px solid var(--border); }
+.card-body { padding: 4px 18px 20px; }
+
+.group-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); font-weight: 650; margin: 18px 0 10px;
+}
+.group-title:first-child { margin-top: 10px; }
+
+/* ============================================================================
+   FORM FIELDS
+   ========================================================================== */
+.field-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field .label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.field .hint { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+
+input[type="text"], input[type="password"], input[type="number"],
+input[type="time"], input[type="date"], select {
+  width: 100%; padding: 9px 11px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  font-size: 13.5px; font-family: inherit; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(56,189,248,.16); }
+input::placeholder { color: var(--muted); opacity: .7; }
+
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap input { padding-right: 62px; }
+.ghost-btn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 8px; font-size: 11px; padding: 4px 8px; cursor: pointer;
+}
+.ghost-btn:hover { color: var(--text); border-color: var(--accent-2); }
+
+/* Buttons */
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+.btn {
+  border: none; border-radius: 11px; padding: 10px 18px; font-size: 14px;
+  font-weight: 650; cursor: pointer; font-family: inherit;
+  transition: transform .06s, filter .15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent-2); }
+
+/* File picker as a button */
+.file-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.file-btn:hover { border-color: var(--accent-2); }
+.file-btn input[type="file"] { display: none; }
+
+/* ============================================================================
+   KPI CARDS
+   ========================================================================== */
+.kpi-grid {
+  display: grid; gap: 12px; margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+}
+.kpi {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 15px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.kpi::after {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--kpi-color, var(--accent-2));
+}
+.kpi .kpi-label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 650; }
+.kpi .kpi-value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -.5px; }
+.kpi .kpi-value .unit { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+.kpi .kpi-share { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.kpi .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; vertical-align: 1px; }
+
+/* ============================================================================
+   CHART
+   ========================================================================== */
+.chart-card { padding: 16px 18px 20px; }
+.chart-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.chart-head h2 { font-size: 15px; margin: 0; }
+.chart-head .meta { color: var(--muted); font-size: 12.5px; }
+.chart-holder { position: relative; height: 420px; width: 100%; }
+.empty-state {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; color: var(--muted); font-size: 14px; padding: 20px; line-height: 1.6;
+}
+
+/* ============================================================================
+   LOG / STATUS
+   ========================================================================== */
+.log {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; color: var(--muted); max-height: 190px; overflow: auto;
+  padding: 12px 14px; line-height: 1.6;
+}
+.log .ok  { color: #34d399; }
+.log .err { color: #f87171; }
+.log .warn{ color: #fbbf24; }
+.log .ts  { opacity: .55; margin-right: 6px; }
+
+/* ============================================================================
+   SPINNER OVERLAY
+   ========================================================================== */
+.overlay {
+  position: fixed; inset: 0; background: rgba(4, 9, 20, .62);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+  backdrop-filter: blur(2px);
+}
+.overlay.show { display: flex; }
+.overlay .box {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px 26px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow);
+}
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent-2);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 560px) {
+  .chart-holder { height: 320px; }
+  .topbar h1 { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ======================= UNDERCROFT BRAND ======================= -->
+  <div class="brand-bar">
+    <a class="brand" href="index.html">UnderCroft</a>
+    <span class="brand-sub">Octopus Energy usage breakdown</span>
+  </div>
+
+  <!-- ======================= HEADER ======================= -->
+  <div class="topbar">
+    <div>
+      <h1>Octopus Usage Breakdown</h1>
+      <div class="sub">Grid import split into Standard · Home Low · Hanchu Battery · EV (Zappi), with solar export</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="themeToggle" type="button">Light mode</button>
+  </div>
+
+  <!-- ======================= SETTINGS PANEL ======================= -->
+  <details class="panel" id="settingsPanel">
+    <summary>
+      <span class="panel-title">API &amp; Tariff Settings</span>
+      <span class="panel-sub">Everything is saved automatically to this browser's <code>localStorage</code></span>
+    </summary>
+    <div class="panel-body">
+
+      <!-- --- Profiles --- -->
+      <div class="group-title">Profiles (saved per MPAN)</div>
+      <div class="field-grid">
+        <label class="field">
+          <span class="label">Saved profiles</span>
+          <select id="profileSelect">
+            <option value="">No saved profiles</option>
+          </select>
+          <span class="hint">Switch to load a saved meter &amp; tariff set. The chart re-fetches automatically.</span>
+        </label>
+        <label class="field">
+          <span class="label">Profile label</span>
+          <input id="f_profileLabel" type="text" placeholder="e.g. Home / Cottage" autocomplete="off" spellcheck="false">
+          <span class="hint">A friendly name for this MPAN. Used in the dropdown as <code>label (MPAN)</code>.</span>
+        </label>
+        <div class="field">
+          <span class="label">&nbsp;</span>
+          <div class="actions" style="margin-top:0">
+            <button class="btn btn-primary" id="saveProfileBtn" type="button">+ Save Profile</button>
+            <button class="btn btn-secondary" id="exportJsonBtn" type="button">Export JSON</button>
+            <label class="file-btn">
+              Import JSON
+              <input id="f_profilesFile" type="file" accept=".json,application/json">
+            </label>
+          </div>
+          <label class="checkbox-line" style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;">
+            <input id="includeApiKey" type="checkbox" checked>
+            Include API key in JSON export
+          </label>
+        </div>
+      </div>
+
+      <!-- --- Octopus Energy --- -->
+      <div class="group-title">Octopus Energy</div>
+      <div class="field-grid">
+        <label class="field">
+          <span class="label">Octopus API Key</span>
+          <span class="input-wrap">
+            <input id="f_apiKey" type="password" placeholder="sk_live_..." autocomplete="off" spellcheck="false">
+            <button class="ghost-btn" type="button" data-toggle-for="f_apiKey">Show</button>
+          </span>
+          <span class="hint">Found in your Octopus account. Requests go straight from this browser to Octopus.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Import MPAN</span>
+          <input id="f_importMpan" type="text" placeholder="e.g. 1900012345678" autocomplete="off" spellcheck="false">
+          <span class="hint">13-digit Meter Point Administration Number for your import supply.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Import Meter Serial Number</span>
+          <input id="f_importSerial" type="text" placeholder="e.g. 23P1234567" autocomplete="off" spellcheck="false">
+          <span class="hint">Printed on the electricity meter itself.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Export MPAN <span class="hint">(optional)</span></span>
+          <input id="f_exportMpan" type="text" placeholder="Leave blank for import-only" autocomplete="off" spellcheck="false">
+          <span class="hint">If blank, export is skipped and only import is shown.</span>
+        </label>
+
+        <label class="field">
+          <span class="label">Export Meter Serial <span class="hint">(optional)</span></span>
+          <input id="f_exportSerial" type="text" placeholder="Leave blank for import-only" autocomplete="off" spellcheck="false">
+          <span class="hint">On SMETS2 meters this is often the <strong>same</strong> serial as the import meter.</span>
+        </label>
+      </div>
+
+      <!-- --- Tariff windows --- -->
+      <div class="group-title">Tariff &amp; Categorisation</div>
+      <div class="field-grid">
+        <label class="field">
+          <span class="label">Off-Peak Window Start</span>
+          <input id="f_offPeakStart" type="time" step="60">
+          <span class="hint">UK local time (Europe/London). Default 23:30.</span>
+        </label>
+        <label class="field">
+          <span class="label">Off-Peak Window End</span>
+          <input id="f_offPeakEnd" type="time" step="60">
+          <span class="hint">UK local time. Default 05:30.</span>
+        </label>
+        <label class="field">
+          <span class="label">Off-Peak House Base Load</span>
+          <input id="f_baseLoad" type="number" step="0.01" min="0">
+          <span class="hint">kWh per 30-min slot for fridge, freezer &amp; standby. Default 0.25.</span>
+        </label>
+        <label class="field">
+          <span class="label">Min Hanchu Battery Slot Threshold</span>
+          <input id="f_minBattery" type="number" step="0.01" min="0">
+          <span class="hint">kWh per 30-min slot. The Hanchu charger typically draws ~1.5–1.8 kWh per slot, whereas a dishwasher or trickle load stays under 1.0. Default 1.20.</span>
+        </label>
+        <label class="field">
+          <span class="label">Fallback Off-Peak EV Threshold</span>
+          <input id="f_fallbackEV" type="number" step="0.1" min="0">
+          <span class="hint">kWh per 30-min slot, used only on dates with no Zappi data. Default 2.5.</span>
+        </label>
+        <label class="field">
+          <span class="label">Hanchu Battery Active From Date</span>
+          <input id="f_batteryActiveFrom" type="date">
+          <span class="hint">Dates <strong>before</strong> this have no battery: off-peak draws above the base load become EV if over 1.0 kWh, otherwise Home Low. Default 2026-11-27.</span>
+        </label>
+      </div>
+
+      <!-- --- Zappi --- -->
+      <div class="group-title">Zappi (myenergi) — optional</div>
+      <div class="field-grid">
+        <label class="field">
+          <span class="label">Hub Serial</span>
+          <input id="f_zappiHub" type="text" placeholder="e.g. 12345678" autocomplete="off" spellcheck="false">
+          <span class="hint">Your myenergi hub serial number.</span>
+        </label>
+        <label class="field">
+          <span class="label">Zappi API Key</span>
+          <span class="input-wrap">
+            <input id="f_zappiKey" type="password" placeholder="myenergi API key" autocomplete="off" spellcheck="false">
+            <button class="ghost-btn" type="button" data-toggle-for="f_zappiKey">Show</button>
+          </span>
+          <span class="hint">Stored locally only.</span>
+        </label>
+        <label class="field">
+          <span class="label">Local Proxy Base URL <span class="hint">(optional)</span></span>
+          <input id="f_zappiProxy" type="text" placeholder="http://localhost:8787/zappi" autocomplete="off" spellcheck="false">
+          <span class="hint">myenergi uses Digest auth and blocks browser CORS, so a small local proxy is needed for live fetch. It must return JSON: <code>[{"timestamp":"...","kwh":3.2}, ...]</code> and will receive <code>?hub=&amp;key=&amp;from=&amp;to=</code>.</span>
+        </label>
+        <div class="field">
+          <span class="label">Import Zappi readings</span>
+          <div class="actions" style="margin-top:0">
+            <label class="file-btn">
+              Load Zappi CSV/JSON
+              <input id="f_zappiFile" type="file" accept=".csv,.json,.txt,application/json,text/csv">
+            </label>
+            <button class="btn btn-secondary" id="zappiFetchBtn" type="button">Fetch Zappi (proxy)</button>
+          </div>
+          <span class="hint" id="zappiStatus">No Zappi data loaded — off-peak EV will use the fallback threshold.</span>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- ============ DATE RANGE (always visible, sits below the settings) ============ -->
+  <section class="card">
+    <div class="card-body">
+      <div class="group-title">Date Range</div>
+      <div class="field-grid">
+        <label class="field">
+          <span class="label">Start Date</span>
+          <input id="f_startDate" type="date">
+        </label>
+        <label class="field">
+          <span class="label">End Date</span>
+          <input id="f_endDate" type="date">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="fetchBtn" type="button">Fetch Usage</button>
+        <button class="btn btn-secondary" id="csvBtn" type="button" disabled>Export Clean CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= KPI CARDS ======================= -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- ======================= CHART ======================= -->
+  <section class="card chart-card">
+    <div class="chart-head">
+      <h2>Daily usage</h2>
+      <span class="meta" id="chartMeta">Import stacks above zero · solar export hangs below zero</span>
+    </div>
+    <div class="chart-holder">
+      <canvas id="usageChart"></canvas>
+      <div class="empty-state" id="chartEmpty">
+        Enter your Octopus details above and press <strong>Fetch Usage</strong> to build the chart.
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= LOG ======================= -->
+  <section class="card">
+    <div class="log" id="log"></div>
+  </section>
+
+</div>
+
+<!-- ======================= SPINNER ======================= -->
+<div class="overlay" id="overlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <div id="overlayText">Fetching data…</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+ * Octopus Usage Dashboard
+ * ----------------------------------------------------------------------------
+ * A single-file, dependency-light dashboard that reads half-hourly electricity
+ * data straight from the Octopus Energy REST API and splits grid import into:
+ *
+ *   Standard (Peak)  – all import inside the peak window
+ *   Home Low         – off-peak base load (fridge/freezer/standby)
+ *   EV (Zappi)       – off-peak vehicle charging
+ *   Hanchu Battery   – off-peak residual above the noise threshold
+ *
+ * Solar export is summed per UK local calendar day and plotted below zero.
+ *
+ * Everything runs client-side; settings persist in localStorage.
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  /* ==========================================================================
+   * 1. CONSTANTS & SMALL HELPERS
+   * ======================================================================== */
+
+  const STORAGE_KEY  = 'octopusUsage.settings.v1';   // global (non-profile) fields
+  const PROFILES_KEY = 'energy_dashboard_profiles';  // MPAN-keyed profiles + activeMpan
+  const THEME_KEY    = 'octopusUsage.theme';
+
+  const API_BASE = 'https://api.octopus.energy/v1/electricity-meter-points';
+
+  /** Keep data colours in sync with the CSS custom properties. */
+  const COLORS = {
+    homeLow:  '#06b6d4',
+    battery:  '#10b981',
+    ev:       '#6366f1',
+    standard: '#ec0f9a',
+    export:   '#f59e0b'
+  };
+
+  const FIELDS = {
+    apiKey:       'f_apiKey',
+    importMpan:   'f_importMpan',
+    importSerial: 'f_importSerial',
+    exportMpan:   'f_exportMpan',
+    exportSerial: 'f_exportSerial',
+    offPeakStart: 'f_offPeakStart',
+    offPeakEnd:   'f_offPeakEnd',
+    baseLoad:     'f_baseLoad',
+    minBattery:   'f_minBattery',
+    fallbackEV:   'f_fallbackEV',
+    batteryActiveFrom: 'f_batteryActiveFrom',
+    zappiHub:     'f_zappiHub',
+    zappiKey:     'f_zappiKey',
+    zappiProxy:   'f_zappiProxy',
+    startDate:    'f_startDate',
+    endDate:      'f_endDate'
+  };
+
+  const DEFAULT_SETTINGS = {
+    apiKey: '', importMpan: '', importSerial: '', exportMpan: '', exportSerial: '',
+    offPeakStart: '23:30', offPeakEnd: '05:30',
+    baseLoad: 0.25, minBattery: 1.20, fallbackEV: 2.5,
+    batteryActiveFrom: '2026-11-27',
+    zappiHub: '', zappiKey: '', zappiProxy: '',
+    startDate: '', endDate: ''
+  };
+
+  /**
+   * Off-peak draw above the base load counts as EV (rather than Home Low) on
+   * dates before the Hanchu battery was installed. 1.0 kWh catches partial
+   * 15-minute Zappi ramp-up / ramp-down slots without capturing a dishwasher.
+   */
+  const PRE_ACTIVATION_EV_THRESHOLD = 1.0;
+
+  /**
+   * Map form field keys (left) to the keys stored inside each MPAN profile
+   * (right). Fields not listed here are "global" settings (date range, Zappi,
+   * fallback EV threshold, export serial) and live in the single-settings store.
+   */
+  const PROFILE_FIELD_MAP = {
+    apiKey:           'apiKey',
+    importMpan:       'importMpan',
+    importSerial:     'serial',
+    exportMpan:       'exportMpan',
+    offPeakStart:     'offPeakStart',
+    offPeakEnd:       'offPeakEnd',
+    baseLoad:         'baseLoadPerSlot',
+    minBattery:       'batteryThreshold',
+    batteryActiveFrom:'batteryActiveFrom'
+  };
+
+  /** Profile keys that should be coerced to numbers when read from storage. */
+  const PROFILE_NUMERIC_KEYS = new Set(['baseLoadPerSlot', 'batteryThreshold']);
+
+  const $ = (id) => document.getElementById(id);
+
+  /** Safe numeric coercion with a fallback. */
+  function num(v, fallback) {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : (fallback === undefined ? 0 : fallback);
+  }
+
+  /** Round to n decimal places (numeric, for CSV / internal maths). */
+  function round(v, dp) {
+    const f = Math.pow(10, dp === undefined ? 4 : dp);
+    return Math.round((num(v) + Number.EPSILON) * f) / f;
+  }
+
+  /** Format a kWh value for display. */
+  function fmtKwh(v) {
+    return num(v).toFixed(2);
+  }
+
+  /** Today's date (UK) as YYYY-MM-DD. */
+  function todayUK() {
+    return ukParts(new Date()).date;
+  }
+
+  /** Add n days to a YYYY-MM-DD string. */
+  function addDays(dateStr, n) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + n);
+    return dt.toISOString().slice(0, 10);
+  }
+
+  /* ==========================================================================
+   * 2. TIME-ZONE HANDLING (Europe/London)
+   * --------------------------------------------------------------------------
+   * We never rely on the browser's own timezone: every conversion explicitly
+   * targets Europe/London so BST/GMT transitions are handled correctly.
+   * ======================================================================== */
+
+  /** Formatter used to read wall-clock parts in London. */
+  const ukFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+
+  /** Formatter carrying seconds, used for offset maths. */
+  const tzOffsetFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+
+  /**
+   * Break any date-like value into UK local parts.
+   * @returns {{date:string, hm:string, minutes:number, stamp:string}}
+   */
+  function ukParts(value) {
+    const dt = (value instanceof Date) ? value : new Date(value);
+    const p = {};
+    for (const part of ukFormatter.formatToParts(dt)) p[part.type] = part.value;
+    const minutes = (+p.hour) * 60 + (+p.minute);
+    return {
+      date:  `${p.year}-${p.month}-${p.day}`,
+      hm:    `${p.hour}:${p.minute}`,
+      stamp: `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`,
+      minutes
+    };
+  }
+
+  /** UTC offset (ms) of Europe/London at a given instant. */
+  function londonOffsetMs(date) {
+    const p = {};
+    for (const part of tzOffsetFormatter.formatToParts(date)) p[part.type] = part.value;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second || 0);
+    return asUTC - date.getTime();
+  }
+
+  /** Convert a UK local date + time (HH:mm) into a real UTC Date. */
+  function ukLocalToUtc(dateStr, timeStr) {
+    const [y, m, d]  = dateStr.split('-').map(Number);
+    const [hh, mm]   = (timeStr || '00:00').split(':').map(Number);
+    const guess = Date.UTC(y, m - 1, d, hh, mm);
+    const offset = londonOffsetMs(new Date(guess));
+    return new Date(guess - offset);
+  }
+
+  /** ISO-8601 UTC string without milliseconds (what the Octopus API expects). */
+  function toApiIso(date) {
+    return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  }
+
+  /* ==========================================================================
+   * 3. SETTINGS PERSISTENCE (global fields + MPAN-keyed profiles)
+   * --------------------------------------------------------------------------
+   * Two stores:
+   *   - STORAGE_KEY  : global fields that aren't meter-specific (date range,
+   *                    Zappi credentials, fallback EV threshold, export serial).
+   *   - PROFILES_KEY : { profiles: { <importMpan>: profile }, activeMpan }
+   *
+   * Each profile holds the Octopus meter + tariff settings keyed by import MPAN.
+   * Switching profiles repopulates the form and re-fetches the chart.
+   * ======================================================================== */
+
+  function readSettings() {
+    const s = {};
+    for (const [key, id] of Object.entries(FIELDS)) {
+      const el = $(id);
+      s[key] = el ? el.value.trim() : DEFAULT_SETTINGS[key];
+    }
+    // Numeric coercion with the documented defaults.
+    s.baseLoad   = num(s.baseLoad,   DEFAULT_SETTINGS.baseLoad);
+    s.minBattery = num(s.minBattery, DEFAULT_SETTINGS.minBattery);
+    s.fallbackEV = num(s.fallbackEV, DEFAULT_SETTINGS.fallbackEV);
+    s.offPeakStart = s.offPeakStart || DEFAULT_SETTINGS.offPeakStart;
+    s.offPeakEnd   = s.offPeakEnd   || DEFAULT_SETTINGS.offPeakEnd;
+    return s;
+  }
+
+  /* ----- global (non-profile) fields ------------------------------------- */
+  function readGlobalSettings() {
+    const all = readSettings();
+    const out = {};
+    for (const key of Object.keys(all)) {
+      if (!PROFILE_FIELD_MAP[key]) out[key] = all[key];
+    }
+    return out;
+  }
+
+  function saveGlobalSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(readGlobalSettings())); }
+    catch (e) { /* storage may be unavailable (private mode) — ignore */ }
+  }
+
+  function loadGlobalSettings() {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch (e) { stored = {}; }
+
+    const merged = Object.assign({}, DEFAULT_SETTINGS, stored);
+    if (!merged.endDate)   merged.endDate = todayUK();
+    if (!merged.startDate) merged.startDate = addDays(merged.endDate, -13);
+
+    for (const [key, id] of Object.entries(FIELDS)) {
+      if (PROFILE_FIELD_MAP[key]) continue;   // profile fields are set elsewhere
+      const el = $(id);
+      if (el && merged[key] !== undefined && merged[key] !== null) el.value = merged[key];
+    }
+    return merged;
+  }
+
+  /* ----- profiles --------------------------------------------------------- */
+
+  /** Read the whole profiles store: { profiles, activeMpan }. */
+  function loadProfiles() {
+    let data = { profiles: {}, activeMpan: '' };
+    try {
+      const raw = localStorage.getItem(PROFILES_KEY);
+      if (raw) data = Object.assign({ profiles: {}, activeMpan: '' }, JSON.parse(raw));
+      if (!data.profiles || typeof data.profiles !== 'object') data.profiles = {};
+    } catch (e) { data = { profiles: {}, activeMpan: '' }; }
+    return data;
+  }
+
+  function saveProfiles(data) {
+    try { localStorage.setItem(PROFILES_KEY, JSON.stringify(data)); }
+    catch (e) { /* ignore */ }
+  }
+
+  /** Build a profile object from the current form values. */
+  function profileFromForm(label) {
+    const s = readSettings();
+    const profile = { label: label || s.importMpan || 'Unnamed' };
+    for (const [formKey, profKey] of Object.entries(PROFILE_FIELD_MAP)) {
+      profile[profKey] = s[formKey];
+    }
+    return profile;
+  }
+
+  /** Write one profile's values back into the form inputs. */
+  function applyProfileToForm(profile) {
+    if (!profile) return;
+    const reverse = {};
+    for (const [formKey, profKey] of Object.entries(PROFILE_FIELD_MAP)) reverse[profKey] = formKey;
+    for (const [profKey, value] of Object.entries(profile)) {
+      if (profKey === 'label') {
+        const labelEl = $('f_profileLabel');
+        if (labelEl) labelEl.value = value || '';
+        continue;
+      }
+      const formKey = reverse[profKey];
+      if (!formKey) continue;
+      const el = $(FIELDS[formKey]);
+      if (el && value !== undefined && value !== null) el.value = value;
+    }
+  }
+
+  /** Save the current form as a profile keyed by its import MPAN. */
+  function saveCurrentProfile(label) {
+    const s = readSettings();
+    if (!s.importMpan) { log('Enter an Import MPAN before saving a profile.', 'warn'); return null; }
+    const data = loadProfiles();
+    const profile = profileFromForm(label);
+    data.profiles[s.importMpan] = profile;
+    data.activeMpan = s.importMpan;
+    saveProfiles(data);
+    refreshProfileSelect(s.importMpan);
+    log(`Profile saved: ${profile.label} (${s.importMpan}).`, 'ok');
+    return profile;
+  }
+
+  /** Switch to the profile for the given MPAN: load fields + re-fetch. */
+  function switchProfile(mpan) {
+    const data = loadProfiles();
+    const profile = data.profiles[mpan];
+    if (!profile) { log(`No profile found for MPAN ${mpan}.`, 'warn'); return; }
+    data.activeMpan = mpan;
+    saveProfiles(data);
+    applyProfileToForm(profile);
+    saveGlobalSettings();
+    refreshProfileSelect(mpan);
+    log(`Switched to profile: ${profile.label} (${mpan}).`);
+    // Re-fetch so the chart matches the newly selected meter.
+    if (profile.apiKey && profile.importMpan && profile.serial) runFetch();
+  }
+
+  /** Rebuild the profile <select> options. */
+  function refreshProfileSelect(activeMpan) {
+    const sel = $('profileSelect');
+    if (!sel) return;
+    const data = loadProfiles();
+    const entries = Object.entries(data.profiles);
+    sel.innerHTML = '';
+    if (!entries.length) {
+      const opt = document.createElement('option');
+      opt.value = ''; opt.textContent = 'No saved profiles';
+      sel.appendChild(opt);
+      return;
+    }
+    for (const [mpan, p] of entries) {
+      const opt = document.createElement('option');
+      opt.value = mpan;
+      opt.textContent = `${p.label || mpan} (${mpan})`;
+      sel.appendChild(opt);
+    }
+    const active = activeMpan || data.activeMpan;
+    if (active && data.profiles[active]) sel.value = active;
+  }
+
+  /* ----- legacy migration ------------------------------------------------- */
+
+  /** If a user has old single-settings but no profiles, migrate them. */
+  function migrateLegacyToProfile() {
+    const data = loadProfiles();
+    if (Object.keys(data.profiles).length) return;   // already migrated
+
+    let legacy = {};
+    try { legacy = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch (e) { legacy = {}; }
+
+    if (!legacy.importMpan) return;                  // nothing to migrate
+
+    const profile = { label: 'Default' };
+    for (const [formKey, profKey] of Object.entries(PROFILE_FIELD_MAP)) {
+      if (legacy[formKey] !== undefined) profile[profKey] = legacy[formKey];
+    }
+    data.profiles[legacy.importMpan] = profile;
+    data.activeMpan = legacy.importMpan;
+    saveProfiles(data);
+  }
+
+  /** On every form change, persist global fields and update the active profile
+   *  if its MPAN matches (so edits are kept without an explicit save). */
+  function onFieldChange() {
+    saveGlobalSettings();
+    const s = readSettings();
+    const data = loadProfiles();
+    if (s.importMpan && data.profiles[s.importMpan]) {
+      const updated = Object.assign({}, data.profiles[s.importMpan]);
+      for (const [formKey, profKey] of Object.entries(PROFILE_FIELD_MAP)) {
+        updated[profKey] = s[formKey];
+      }
+      // Keep the human-readable label in sync.
+      const labelEl = $('f_profileLabel');
+      if (labelEl) updated.label = labelEl.value.trim() || updated.label || s.importMpan;
+      data.profiles[s.importMpan] = updated;
+      saveProfiles(data);
+    }
+  }
+
+  /* ==========================================================================
+   * 4. OCTOPUS API CLIENT
+   * ======================================================================== */
+
+  /**
+   * Fetch every half-hourly consumption interval for one meter, transparently
+   * following the `next` pagination link so long ranges are never truncated.
+   */
+  async function fetchConsumption({ mpan, serial, apiKey, fromIso, toIso, label }) {
+    if (!mpan || !serial) throw new Error(`${label}: MPAN and meter serial are required.`);
+
+    const params = new URLSearchParams({
+      period_from: fromIso,
+      period_to:   toIso,
+      order_by:    'period',
+      page_size:   '1500'
+    });
+    let url = `${API_BASE}/${encodeURIComponent(mpan)}/meters/${encodeURIComponent(serial)}/consumption/?${params}`;
+
+    const auth = 'Basic ' + btoa(apiKey + ':');
+    const rows = [];
+    let page = 0;
+
+    while (url) {
+      if (++page > 200) throw new Error(`${label}: pagination guard tripped (too many pages).`);
+
+      let res;
+      try {
+        res = await fetch(url, { headers: { Authorization: auth } });
+      } catch (e) {
+        throw new Error(`${label}: network/CORS error — ${e.message}. Check your connection.`);
+      }
+
+      if (!res.ok) {
+        if (res.status === 401) throw new Error(`${label}: 401 Unauthorised — check your Octopus API key.`);
+        if (res.status === 403) throw new Error(`${label}: 403 Forbidden — this key has no access to that MPAN.`);
+        if (res.status === 404) throw new Error(`${label}: 404 Not found — check the MPAN and meter serial.`);
+        throw new Error(`${label}: HTTP ${res.status} ${res.statusText}.`);
+      }
+
+      const payload = await res.json();
+      if (Array.isArray(payload.results)) rows.push(...payload.results);
+
+      url = payload.next || null;   // follow pagination
+    }
+
+    log(`Octopus ${label}: ${rows.length} intervals fetched across ${page} page(s).`, 'ok');
+    return rows;
+  }
+
+  /* ==========================================================================
+   * 5. ZAPPI (myenergi) INGESTION
+   * --------------------------------------------------------------------------
+   * Two routes: a file picker (CSV or JSON) and an optional local proxy fetch.
+   * Both normalise into: Map<floored-epoch-ms, kWh> for half-hour matching.
+   * ======================================================================== */
+
+  /** Half-hour floor in ms — the matching key shared by both datasets. */
+  function halfHourKey(value) {
+    const ms = (typeof value === 'number') ? value : Date.parse(value);
+    if (!Number.isFinite(ms)) return null;
+    return Math.floor(ms / 1800000) * 1800000;
+  }
+
+  /**
+   * Parse a JSON array of records into Zappi intervals.
+   * Tolerates a range of field names so myenergi-style payloads work.
+   */
+  function parseZappiJson(payload) {
+    let arr = payload;
+    // Unwrap common container shapes.
+    if (!Array.isArray(arr)) {
+      arr = payload.data || payload.results || payload.readings || payload.intervals || null;
+    }
+    if (!Array.isArray(arr)) return [];
+
+    const out = [];
+    for (const rec of arr) {
+      if (!rec || typeof rec !== 'object') continue;
+
+      // --- find a timestamp -------------------------------------------------
+      let ms = null;
+      if (Number.isFinite(rec.U)) ms = rec.U * 1000;                       // myenergi unix seconds
+      else if (Number.isFinite(rec.timestamp)) ms = rec.timestamp < 1e12 ? rec.timestamp * 1000 : rec.timestamp;
+      else {
+        const t = rec.timestamp || rec.time || rec.date || rec.interval_start || rec.start || rec.dt;
+        if (typeof t === 'number') ms = t < 1e12 ? t * 1000 : t;
+        else if (typeof t === 'string') ms = parseLooseDate(t);
+      }
+      if (ms === null) continue;
+
+      // --- find an energy value --------------------------------------------
+      let kwh = null;
+      const candidates = ['kwh', 'kWh', 'energy_kwh', 'energy', 'charge', 'value', 'div', 'gep', 'import'];
+      for (const c of candidates) {
+        if (rec[c] === undefined || rec[c] === null || rec[c] === '') continue;
+        let v = num(rec[c], NaN);
+        if (!Number.isFinite(v)) continue;
+        // myenergi 'div' / 'gep' are reported in Wh.
+        if (c === 'div' || c === 'gep') v = v / 1000;
+        kwh = v;
+        break;
+      }
+      if (kwh === null) continue;
+
+      out.push({ ms, kwh });
+    }
+    return out;
+  }
+
+  /** Parse a Zappi CSV: flexible about delimiters / column names. */
+  function parseZappiCsv(text) {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
+    if (!lines.length) return [];
+
+    // Detect delimiter from the header row.
+    const header = lines[0];
+    const delim = (header.split(';').length > header.split(',').length) ? ';'
+                : (header.split('\t').length > header.split(',').length) ? '\t' : ',';
+    const cols = splitCsvLine(header, delim).map((c) => c.trim().toLowerCase());
+
+    const timeIdx = cols.findIndex((c) => /date|time|start|stamp|interval|period/.test(c));
+    let kwhIdx    = cols.findIndex((c) => /kwh/.test(c));
+    if (kwhIdx < 0) kwhIdx = cols.findIndex((c) => /energy|charge|div|import|value|wh/.test(c));
+    if (timeIdx < 0 || kwhIdx < 0) return [];
+
+    const out = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = splitCsvLine(lines[i], delim);
+      const rawTime = (cells[timeIdx] || '').trim();
+      const rawKwh  = (cells[kwhIdx] || '').trim();
+      if (!rawTime || !rawKwh) continue;
+
+      const ms = parseLooseDate(rawTime);
+      if (ms === null) continue;
+
+      let kwh = parseFloat(rawKwh.replace(/[^\d.\-]/g, ''));
+      if (!Number.isFinite(kwh)) continue;
+      // Wh columns are typically large integers.
+      if (/wh/.test(cols[kwhIdx]) && !/kwh/.test(cols[kwhIdx])) kwh = kwh / 1000;
+
+      out.push({ ms, kwh });
+    }
+    return out;
+  }
+
+  /** Split one CSV line, honouring simple double-quoted cells. */
+  function splitCsvLine(line, delim) {
+    const cells = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === delim && !inQuotes) {
+        cells.push(cur); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells;
+  }
+
+  /**
+   * Parse a date-ish string. Accepts ISO with timezone, bare ISO (assumed UK
+   * local) and numeric unix seconds.
+   */
+  function parseLooseDate(text) {
+    const t = String(text).trim();
+    if (!t) return null;
+
+    if (/^\d{10}$/.test(t) || /^\d{13}$/.test(t)) {
+      const n = parseInt(t, 10);
+      return n < 1e12 ? n * 1000 : n;
+    }
+    // Explicit timezone → trust it.
+    if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(t)) {
+      const ms = Date.parse(t);
+      return Number.isFinite(ms) ? ms : null;
+    }
+    // Bare date/time → treat as UK local.
+    const m = t.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m) {
+      const dateStr = `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+      const timeStr = `${String(m[4] || '0').padStart(2, '0')}:${(m[5] || '00')}`;
+      return ukLocalToUtc(dateStr, timeStr).getTime();
+    }
+    const ms = Date.parse(t);
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  /* --- In-memory Zappi store ------------------------------------------------ */
+  const zappi = {
+    map: new Map(),      // floored epoch ms -> kWh
+    dates: new Set(),    // UK local dates that have any Zappi data
+    intervals: 0
+  };
+
+  function ingestZappi(entries, sourceLabel) {
+    if (!entries.length) {
+      log(`Zappi: no usable rows found in ${sourceLabel}.`, 'warn');
+      return;
+    }
+    zappi.map.clear();
+    zappi.dates.clear();
+
+    for (const e of entries) {
+      const key = halfHourKey(e.ms);
+      if (key === null) continue;
+      // Accumulate in case multiple rows land in the same half-hour slot.
+      zappi.map.set(key, (zappi.map.get(key) || 0) + e.kwh);
+      zappi.dates.add(ukParts(key).date);
+    }
+    zappi.intervals = zappi.map.size;
+
+    const summary = `Zappi: ${zappi.map.size} half-hour slots loaded across ${zappi.dates.size} date(s) from ${sourceLabel}.`;
+    $('zappiStatus').textContent = summary;
+    log(summary, 'ok');
+  }
+
+  /** Live fetch through the optional local proxy. */
+  async function fetchZappiViaProxy() {
+    const s = readSettings();
+    if (!s.zappiProxy) { log('Zappi: no proxy base URL set — use the file picker or add a proxy.', 'warn'); return; }
+    if (!s.zappiHub || !s.zappiKey) { log('Zappi: hub serial and API key are required for a proxy fetch.', 'warn'); return; }
+
+    const from = toApiIso(ukLocalToUtc(s.startDate, '00:00'));
+    const to   = toApiIso(ukLocalToUtc(addDays(s.endDate, 1), '00:00'));
+    const url  = `${s.zappiProxy}${s.zappiProxy.includes('?') ? '&' : '?'}` +
+                 new URLSearchParams({ hub: s.zappiHub, key: s.zappiKey, from, to });
+
+    showOverlay('Fetching Zappi data…');
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const payload = await res.json();
+      ingestZappi(parseZappiJson(payload), 'proxy');
+    } catch (e) {
+      log(`Zappi proxy fetch failed: ${e.message}. Use the file picker instead.`, 'err');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  /* ==========================================================================
+   * 6. CATEGORISATION
+   * ======================================================================== */
+
+  /** Minutes-since-midnight for an "HH:mm" string. */
+  function hhmmToMinutes(str) {
+    const [h, m] = String(str || '0:0').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+
+  /**
+   * Is this interval start inside the off-peak window (handles wrap-around)?
+   *
+   * The check runs on the interval_start time resolved in Europe/London, so for
+   * the default 23:30 → 05:30 window:
+   *   Off-Peak → starts at 23:30 … 05:00 inclusive
+   *   Standard → starts at 05:30 … 23:00 inclusive
+   */
+  function isOffPeak(startMinutes, s) {
+    const start = hhmmToMinutes(s.offPeakStart);
+    const end   = hhmmToMinutes(s.offPeakEnd);
+    return (start <= end)
+      ? (startMinutes >= start && startMinutes < end)          // same-day window
+      : (startMinutes >= start || startMinutes < end);         // wrap (e.g. 23:30→05:30)
+  }
+
+  /**
+   * Turn raw Octopus rows into per-interval records, then aggregate by UK day.
+   *
+   * @param {Array} importRows raw import intervals
+   * @param {Array} exportRows raw export intervals (may be empty)
+   * @param {Object} s        settings snapshot
+   */
+  function categorise(importRows, exportRows, s) {
+    const baseLoad   = num(s.baseLoad);
+    const minBattery = num(s.minBattery);
+    const fallbackEV = num(s.fallbackEV);
+
+    // Hanchu battery was only installed from this date onward. Empty = no gate.
+    const activeFrom = String(s.batteryActiveFrom || '').trim();
+    const batteryInstalled = (ukDate) => !activeFrom || ukDate >= activeFrom;
+
+    // Interval records keyed by UTC start ISO string.
+    const records = new Map();
+    function record(iso, uk) {
+      let r = records.get(iso);
+      if (!r) {
+        r = {
+          startIso: iso,
+          startMs: Date.parse(iso),
+          date: uk.date,
+          importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0
+        };
+        records.set(iso, r);
+      }
+      return r;
+    }
+
+    /* -------- import intervals ------------------------------------------- */
+    for (const row of importRows) {
+      const iso  = row.interval_start;
+      const kwh  = num(row.consumption);
+      if (!iso || !Number.isFinite(kwh)) continue;
+
+      const uk = ukParts(iso);
+      const r  = record(iso, uk);
+
+      // Always register the interval (even zero-import) so the day still
+      // appears on the chart while Octopus is still ingesting the data.
+      if (kwh <= 0) continue;
+
+      r.importKwh += kwh;
+
+      if (!isOffPeak(uk.minutes, s)) {
+        // Peak window: 100% of import → Standard.
+        r.standardKwh += kwh;
+        continue;
+      }
+
+      /* Off-peak ------------------------------------------------------------
+         Pre-battery dates have a different rule: no Hanchu battery at all, and
+         anything above the base load is EV when it's a meaningful draw (over
+         1.0 kWh, i.e. a real Zappi session incl. partial ramp slots), else it
+         stays in Home Low.                                                        */
+      if (!batteryInstalled(uk.date)) {
+        const preHomeLow = Math.min(kwh, baseLoad);
+        const above      = kwh - preHomeLow;
+        if (above > PRE_ACTIVATION_EV_THRESHOLD) {
+          r.homeLowKwh += preHomeLow;
+          r.evKwh      += above;
+        } else {
+          r.homeLowKwh += kwh;      // small residual stays Home Low, no battery
+        }
+        continue;
+      }
+
+      /* Off-peak: Home Low → EV → Hanchu Battery --------------------------- */
+      const homeLow = Math.min(kwh, baseLoad);
+      let remaining = kwh - homeLow;
+
+      // 2. EV (Zappi)
+      let ev = 0;
+      const key = halfHourKey(iso);
+      if (zappi.map.has(key)) {
+        ev = Math.min(zappi.map.get(key), remaining);
+      } else if (!zappi.dates.has(uk.date) && kwh >= fallbackEV) {
+        // No Zappi data for this date at all → use the fallback heuristic.
+        ev = Math.max(0, kwh - baseLoad);
+      }
+      remaining -= ev;
+
+      // 3. Hanchu Battery residual
+      const residual = Math.max(0, remaining);
+      let battery = 0, extraHomeLow = 0;
+      if (residual >= minBattery) battery = residual;
+      else extraHomeLow = residual;
+
+      r.homeLowKwh += homeLow + extraHomeLow;
+      r.evKwh      += ev;
+      r.batteryKwh += battery;
+    }
+
+    /* -------- export intervals ------------------------------------------- */
+    for (const row of exportRows) {
+      const iso = row.interval_start;
+      const kwh = num(row.consumption);
+      if (!iso || !Number.isFinite(kwh)) continue;
+      const uk = ukParts(iso);
+      record(iso, uk).exportKwh += kwh;
+    }
+
+    /* -------- sort + daily rollup ---------------------------------------- */
+    const intervals = Array.from(records.values()).sort((a, b) => a.startMs - b.startMs);
+
+    const dailyMap = new Map();
+    for (const r of intervals) {
+      let d = dailyMap.get(r.date);
+      if (!d) {
+        d = { date: r.date, importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0 };
+        dailyMap.set(r.date, d);
+      }
+      d.importKwh   += r.importKwh;
+      d.standardKwh += r.standardKwh;
+      d.homeLowKwh  += r.homeLowKwh;
+      d.batteryKwh  += r.batteryKwh;
+      d.evKwh       += r.evKwh;
+      d.exportKwh   += r.exportKwh;
+    }
+
+    // Ensure every day in the requested range appears on the chart, even when
+    // Octopus hasn't ingested that day's intervals yet (common for "today").
+    const empty = () => ({ importKwh: 0, standardKwh: 0, homeLowKwh: 0, batteryKwh: 0, evKwh: 0, exportKwh: 0 });
+    if (s.startDate && s.endDate && s.startDate <= s.endDate) {
+      for (let d = s.startDate; d <= s.endDate; d = addDays(d, 1)) {
+        if (!dailyMap.has(d)) dailyMap.set(d, Object.assign({ date: d }, empty()));
+      }
+    }
+
+    const daily = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    return { intervals, daily };
+  }
+
+  /* ==========================================================================
+   * 7. RENDERING — KPI CARDS
+   * ======================================================================== */
+
+  function sumBy(list, key) { return list.reduce((acc, d) => acc + num(d[key]), 0); }
+
+  function renderKpis(daily, hasExport) {
+    const grid = $('kpiGrid');
+    grid.innerHTML = '';
+    if (!daily.length) return;
+
+    const totalImport = sumBy(daily, 'importKwh');
+    const standard    = sumBy(daily, 'standardKwh');
+    const homeLow     = sumBy(daily, 'homeLowKwh');
+    const battery     = sumBy(daily, 'batteryKwh');
+    const ev          = sumBy(daily, 'evKwh');
+    const exportKwh   = sumBy(daily, 'exportKwh');
+
+    const pct = (v) => (totalImport > 0 ? `${((v / totalImport) * 100).toFixed(1)}% of import` : '—');
+
+    const cards = [
+      { label: 'Total Grid Import', value: totalImport, color: 'var(--accent-2)' },
+      { label: 'Standard / Peak',   value: standard,    color: COLORS.standard, share: pct(standard) },
+      { label: 'Home Low / Off-Peak', value: homeLow,   color: COLORS.homeLow,  share: pct(homeLow) },
+      { label: 'Hanchu Battery',    value: battery,     color: COLORS.battery,  share: pct(battery) },
+      { label: 'EV / Zappi',        value: ev,          color: COLORS.ev,       share: pct(ev) }
+    ];
+
+    if (hasExport) {
+      cards.push({ label: 'Solar Export', value: exportKwh, color: COLORS.export });
+      cards.push({ label: 'Net Grid Usage', value: totalImport - exportKwh, color: 'var(--accent-2)' });
+    }
+
+    for (const c of cards) {
+      const card = document.createElement('div');
+      card.className = 'kpi';
+      card.style.setProperty('--kpi-color', c.color);
+      card.innerHTML =
+        `<div class="kpi-label"><span class="swatch" style="background:${c.color}"></span>${c.label}</div>` +
+        `<div class="kpi-value">${fmtKwh(c.value)}<span class="unit">kWh</span></div>` +
+        (c.share ? `<div class="kpi-share">${c.share}</div>` : '');
+      grid.appendChild(card);
+    }
+  }
+
+  /* ==========================================================================
+   * 8. RENDERING — CHART (Chart.js)
+   * ======================================================================== */
+
+  let chart = null;
+
+  /** "DD MMM" label from a YYYY-MM-DD string. */
+  function dayLabel(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${String(d).padStart(2, '0')} ${months[m - 1]}`;
+  }
+
+  function renderChart(daily, hasExport) {
+    $('chartEmpty').style.display = daily.length ? 'none' : 'flex';
+    $('chartMeta').textContent = daily.length
+      ? `${dayLabel(daily[0].date)} → ${dayLabel(daily[daily.length - 1].date)} · import above zero, export below`
+      : 'Import stacks above zero · solar export hangs below zero';
+
+    if (chart) { chart.destroy(); chart = null; }
+    if (!daily.length || typeof Chart === 'undefined') {
+      if (typeof Chart === 'undefined') log('Chart.js failed to load (offline?). Figures are still available via CSV export.', 'warn');
+      return;
+    }
+
+    const labels = daily.map((d) => dayLabel(d.date));
+    const stack = 'usage';
+
+    /** Build one stacked bar dataset. */
+    function dataset(label, key, color, negate) {
+      return {
+        label,
+        data: daily.map((d) => negate ? -num(d[key]) : num(d[key])),
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 0,
+        borderRadius: 3,
+        borderSkipped: false,
+        stack,
+        _key: key
+      };
+    }
+
+    const datasets = [
+      dataset('Home Low',       'homeLowKwh',  COLORS.homeLow),
+      dataset('Hanchu Battery', 'batteryKwh',  COLORS.battery),
+      dataset('EV (Zappi)',     'evKwh',       COLORS.ev),
+      dataset('Standard (Peak)','standardKwh', COLORS.standard)
+    ];
+    if (hasExport) datasets.push(dataset('Solar Export', 'exportKwh', COLORS.export, true));
+
+    chart = new Chart($('usageChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.body).color,
+              usePointStyle: true, boxWidth: 9, padding: 14
+            }
+          },
+          tooltip: {
+            // Show every figure as a positive kWh value, then daily totals.
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${Math.abs(num(ctx.parsed.y)).toFixed(2)} kWh`,
+              footer: (items) => {
+                const d = daily[items[0].dataIndex];
+                const lines = [
+                  `Import total: ${fmtKwh(d.importKwh)} kWh`,
+                  `Export: ${fmtKwh(d.exportKwh)} kWh`,
+                  `Net: ${fmtKwh(d.importKwh - d.exportKwh)} kWh`
+                ];
+                return lines;
+              }
+            }
+          }
+        },
+        layout: { padding: { right: 24 } },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: getComputedStyle(document.body).color, maxRotation: 0, autoSkip: false, autoSkipPadding: 8, font: { size: 11 } }
+          },
+          y: {
+            stacked: true,
+            grid: { color: 'rgba(128,148,184,.18)' },
+            ticks: { color: getComputedStyle(document.body).color, callback: (v) => `${v} kWh` },
+            title: { display: true, text: 'kWh', color: getComputedStyle(document.body).color }
+          }
+        }
+      }
+    });
+  }
+
+  /* ==========================================================================
+   * 9. CSV EXPORT
+   * ======================================================================== */
+
+  let lastResult = null;   // { intervals, daily, hasExport, settings }
+
+  function csvEscape(v) {
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function exportCsv() {
+    if (!lastResult || !lastResult.intervals.length) {
+      log('Nothing to export yet — fetch some usage first.', 'warn');
+      return;
+    }
+    const header = [
+      'Date', 'Interval_Start_UK', 'Interval_End_UK', 'Import_kWh',
+      'Standard_kWh', 'Home_Low_kWh', 'Hanchu_Battery_kWh', 'EV_Zappi_kWh',
+      'Export_kWh', 'Net_kWh'
+    ];
+    const lines = [header.join(',')];
+
+    for (const r of lastResult.intervals) {
+      const start = ukParts(r.startMs);
+      const end   = ukParts(r.startMs + 1800000);
+      const net   = r.importKwh - r.exportKwh;
+      lines.push([
+        r.date,
+        start.stamp,
+        end.stamp,
+        round(r.importKwh),
+        round(r.standardKwh),
+        round(r.homeLowKwh),
+        round(r.batteryKwh),
+        round(r.evKwh),
+        round(r.exportKwh),
+        round(net)
+      ].map(csvEscape).join(','));
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `octopus-usage-${lastResult.settings.startDate}_to_${lastResult.settings.endDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`CSV exported: ${lastResult.intervals.length} intervals.`, 'ok');
+  }
+
+  /* ==========================================================================
+   * 9b. PROFILE EXPORT / IMPORT (JSON)
+   * ======================================================================== */
+
+  /** Download all saved MPAN profiles as JSON (optionally stripping API keys). */
+  function exportProfilesJson() {
+    const data = loadProfiles();
+    const includeKey = $('includeApiKey').checked;
+    const profiles = {};
+    for (const [mpan, p] of Object.entries(data.profiles)) {
+      const copy = Object.assign({}, p);
+      if (!includeKey) copy.apiKey = '';
+      profiles[mpan] = copy;
+    }
+    const payload = { profiles, activeMpan: data.activeMpan };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'octopus-dashboard-profiles.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    const n = Object.keys(profiles).length;
+    log(`Exported ${n} profile(s) to octopus-dashboard-profiles.json (API key${includeKey ? ' included' : ' omitted'}).`, 'ok');
+  }
+
+  /**
+   * Import a profiles JSON file: merge by MPAN, select activeMpan, load form, fetch.
+   */
+  function importProfilesJson(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      let payload;
+      try { payload = JSON.parse(String(reader.result || '')); }
+      catch (e) { log('Import failed: the file is not valid JSON.', 'err'); return; }
+
+      const incoming = payload && payload.profiles;
+      if (!incoming || typeof incoming !== 'object') {
+        log('Import failed: expected a JSON object with a "profiles" key.', 'err'); return;
+      }
+
+      const data = loadProfiles();
+      let merged = 0;
+      for (const [mpan, p] of Object.entries(incoming)) {
+        if (!p || typeof p !== 'object' || !p.importMpan) continue;
+        // Coerce numeric profile fields.
+        for (const k of PROFILE_NUMERIC_KEYS) {
+          if (p[k] !== undefined) p[k] = num(p[k]);
+        }
+        data.profiles[mpan] = p;
+        merged++;
+      }
+      if (!merged) { log('Import failed: no valid profiles found in the file.', 'err'); return; }
+
+      // Prefer the file's activeMpan if it exists, else keep current.
+      if (payload.activeMpan && data.profiles[payload.activeMpan]) {
+        data.activeMpan = payload.activeMpan;
+      } else if (!data.activeMpan || !data.profiles[data.activeMpan]) {
+        data.activeMpan = Object.keys(data.profiles)[0];
+      }
+      saveProfiles(data);
+
+      applyProfileToForm(data.profiles[data.activeMpan]);
+      saveGlobalSettings();
+      refreshProfileSelect(data.activeMpan);
+      log(`Imported ${merged} profile(s). Active: ${data.profiles[data.activeMpan].label || data.activeMpan}.`, 'ok');
+
+      // Auto-fetch for the newly activated profile.
+      const p = data.profiles[data.activeMpan];
+      if (p.apiKey && p.importMpan && p.serial) runFetch();
+    };
+    reader.onerror = () => log(`Could not read ${file.name}.`, 'err');
+    reader.readAsText(file);
+  }
+
+  /* ==========================================================================
+   * 10. UI PLUMBING (overlay, log, theme, password toggles)
+   * ======================================================================== */
+
+  function showOverlay(text) {
+    $('overlayText').textContent = text || 'Working…';
+    $('overlay').classList.add('show');
+  }
+  function hideOverlay() { $('overlay').classList.remove('show'); }
+
+  function log(message, level) {
+    const line = document.createElement('div');
+    const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    line.innerHTML = `<span class="ts">${time}</span><span class="${level || ''}">${escapeHtml(message)}</span>`;
+    $('log').appendChild(line);
+    $('log').scrollTop = $('log').scrollHeight;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    $('themeToggle').textContent = (theme === 'dark') ? 'Light mode' : 'Dark mode';
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* ignore */ }
+    // Chart colours follow the theme, so redraw if one exists.
+    if (chart && lastResult) renderChart(lastResult.daily, lastResult.hasExport);
+  }
+
+  /* ==========================================================================
+   * 11. MAIN FLOW
+   * ======================================================================== */
+
+  async function runFetch() {
+    const s = readSettings();
+    onFieldChange();
+
+    // --- validate ---------------------------------------------------------
+    if (!s.apiKey)        { log('Please enter your Octopus API key.', 'err'); return; }
+    if (!s.importMpan)    { log('Please enter the import MPAN.', 'err'); return; }
+    if (!s.importSerial)  { log('Please enter the import meter serial number.', 'err'); return; }
+    if (!s.startDate || !s.endDate) { log('Please choose a start and end date.', 'err'); return; }
+
+    const hasExport = !!(s.exportMpan && s.exportSerial);
+    if ((s.exportMpan && !s.exportSerial) || (!s.exportMpan && s.exportSerial)) {
+      log('Export MPAN and export serial must both be provided, or both left blank.', 'warn');
+    }
+
+    // --- period bounds (UK local day boundaries → UTC ISO) ----------------
+    const fromIso = toApiIso(ukLocalToUtc(s.startDate, '00:00'));
+    const toIso   = toApiIso(ukLocalToUtc(addDays(s.endDate, 1), '00:00'));
+    log(`Fetching ${s.startDate} → ${s.endDate} (UK) …`);
+
+    showOverlay('Fetching usage from Octopus…');
+    try {
+      // Import and export are fetched concurrently.
+      const [importRows, exportRows] = await Promise.all([
+        fetchConsumption({ mpan: s.importMpan, serial: s.importSerial, apiKey: s.apiKey,
+                           fromIso, toIso, label: 'Import' }),
+        hasExport
+          ? fetchConsumption({ mpan: s.exportMpan, serial: s.exportSerial, apiKey: s.apiKey,
+                               fromIso, toIso, label: 'Export' })
+          : Promise.resolve([])
+      ]);
+
+      if (!importRows.length) {
+        log('No import intervals returned for that range. Check the MPAN/serial and date range.', 'warn');
+      } else {
+        // Log the actual span of intervals Octopus returned so it's clear
+        // whether today's data made it back from the API.
+        const first = ukParts(importRows[0].interval_start).date;
+        const last  = ukParts(importRows[importRows.length - 1].interval_start).date;
+        log(`Import spans ${first} → ${last} (${importRows.length} intervals).`);
+
+        const today = todayUK();
+        if (last < today) {
+          log(`Note: the Octopus REST API hasn't published today (${today}) yet — the Octopus app may show newer data. Today's bar will fill in once the API catches up.`, 'warn');
+        }
+      }
+
+      // --- categorise + render -------------------------------------------
+      const result = categorise(importRows, exportRows, s);
+      lastResult = { intervals: result.intervals, daily: result.daily, hasExport: hasExport, settings: s };
+
+      renderKpis(result.daily, hasExport);
+      renderChart(result.daily, hasExport);
+      $('csvBtn').disabled = result.intervals.length === 0;
+
+      const perImport = Math.max(0, num(s.baseLoad));
+      log(
+        `Done: ${result.intervals.length} intervals across ${result.daily.length} day(s). ` +
+        `Base load ${perImport} kWh/slot, battery threshold ${num(s.minBattery)} kWh ` +
+        `(battery active from ${s.batteryActiveFrom || 'always'}), fallback EV ${num(s.fallbackEV)} kWh.`,
+        'ok'
+      );
+    } catch (err) {
+      log(err.message || String(err), 'err');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  /* ==========================================================================
+   * 12. INITIALISATION
+   * ======================================================================== */
+
+  function init() {
+    // Restore theme (default dark).
+    let theme = 'dark';
+    try { theme = localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) { /* ignore */ }
+    applyTheme(theme);
+
+    // Migrate any old single-settings into a profile, then load profiles.
+    migrateLegacyToProfile();
+
+    // Load global (non-profile) settings into the form first.
+    loadGlobalSettings();
+
+    // Apply the active profile (overwrites the profile-owned fields).
+    const profilesData = loadProfiles();
+    const active = profilesData.activeMpan && profilesData.profiles[profilesData.activeMpan]
+      ? profilesData.profiles[profilesData.activeMpan]
+      : null;
+    if (active) {
+      applyProfileToForm(active);
+      // Pre-fill the label input with the active profile's label.
+      const labelEl = $('f_profileLabel');
+      if (labelEl) labelEl.value = active.label || '';
+    }
+
+    // Populate the profile dropdown.
+    refreshProfileSelect();
+
+    // Persist on any change (global fields + active profile if MPAN matches).
+    for (const id of Object.values(FIELDS)) {
+      const el = $(id);
+      if (el) el.addEventListener('change', onFieldChange);
+      if (el) el.addEventListener('input', onFieldChange);
+    }
+    const labelEl = $('f_profileLabel');
+    if (labelEl) {
+      labelEl.addEventListener('change', onFieldChange);
+      labelEl.addEventListener('input', onFieldChange);
+    }
+
+    // Show/hide password toggles.
+    document.querySelectorAll('[data-toggle-for]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = $(btn.getAttribute('data-toggle-for'));
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        btn.textContent = showing ? 'Show' : 'Hide';
+      });
+    });
+
+    // Theme toggle.
+    $('themeToggle').addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    });
+
+    // Buttons.
+    $('fetchBtn').addEventListener('click', runFetch);
+    $('csvBtn').addEventListener('click', exportCsv);
+    $('zappiFetchBtn').addEventListener('click', fetchZappiViaProxy);
+
+    // Profile actions.
+    $('saveProfileBtn').addEventListener('click', () => {
+      const label = ($('f_profileLabel') || {}).value;
+      saveCurrentProfile(label);
+    });
+    $('exportJsonBtn').addEventListener('click', exportProfilesJson);
+    $('profileSelect').addEventListener('change', (e) => {
+      if (e.target.value) switchProfile(e.target.value);
+    });
+
+    // Profile JSON import.
+    $('f_profilesFile').addEventListener('change', (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (file) importProfilesJson(file);
+      ev.target.value = '';
+    });
+
+    // Zappi file picker.
+    $('f_zappiFile').addEventListener('change', (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || '');
+        const entries = /\.json$/i.test(file.name) || text.trim().startsWith('[') || text.trim().startsWith('{')
+          ? parseZappiJson(safeJson(text))
+          : parseZappiCsv(text);
+        ingestZappi(entries, file.name);
+      };
+      reader.onerror = () => log(`Could not read ${file.name}.`, 'err');
+      reader.readAsText(file);
+      ev.target.value = '';    // allow re-selecting the same file
+    });
+
+    log('Ready. Enter your Octopus API key, MPAN and meter serial, then press Fetch Usage.');
+  }
+
+  function safeJson(text) {
+    try { return JSON.parse(text); }
+    catch (e) { log('Zappi JSON could not be parsed — falling back to CSV reader.', 'warn'); return []; }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
