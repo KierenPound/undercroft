@@ -321,12 +321,12 @@ input::placeholder { color: var(--muted); opacity: .7; }
         </label>
 
         <label class="field">
-          <span class="label">Octopus Account Number <span class="hint">(optional)</span></span>
+          <span class="label">Octopus Account Number <span class="hint">(for Auto-fill)</span></span>
           <span class="input-wrap">
             <input id="f_accountNumber" type="text" placeholder="A-1234ABCD" autocomplete="off" spellcheck="false">
             <button class="ghost-btn" type="button" id="autoFillBtn">Auto-fill</button>
           </span>
-          <span class="hint">If supplied, <strong>Auto-fill</strong> queries the Octopus account endpoint and fills in the Import/Export MPANs, meter serials and active tariff code — no need to look them up on a bill.</span>
+          <span class="hint">Required for <strong>Auto-fill</strong>. Find it on your Octopus bill or in the app under "Account". Auto-fill then fills in your MPANs, meter serials, tariff code and unit rates automatically.</span>
         </label>
 
         <label class="field">
@@ -1137,10 +1137,32 @@ input::placeholder { color: var(--muted); opacity: .7; }
   /* ==========================================================================
    * 4b. OCTOPUS ACCOUNT ENDPOINT (auto-fill MPAN / serials / tariff)
    * --------------------------------------------------------------------------
-   * A single GET to /v1/accounts/{accountNumber}/ returns every electricity
-   * meter point, its meters and active agreement — so we can populate the
-   * Import/Export MPANs, serial numbers and active tariff code in one call.
+   * GET /v1/accounts/ (no account number) lists all accounts for the API key.
+   * GET /v1/accounts/{accountNumber}/ returns every electricity meter point,
+   * its meters and active agreement — so we can populate the Import/Export
+   * MPANs, serial numbers and active tariff code without the user looking them
+   * up on a bill. Auto-fill works from the API key alone.
    * ======================================================================== */
+
+  /**
+   * List all accounts for the given API key. Returns an array of account
+   * numbers (e.g. ['A-EE4346C1']).
+   */
+  async function listAccounts({ apiKey }) {
+    if (!apiKey) throw new Error('API key is required.');
+    const url = 'https://api.octopus.energy/v1/accounts/';
+    const auth = 'Basic ' + btoa(apiKey + ':');
+    let res;
+    try { res = await fetch(url, { headers: { Authorization: auth } }); }
+    catch (e) { throw new Error(`Accounts: network/CORS error — ${e.message}.`); }
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('Accounts: 401 Unauthorised — check your Octopus API key.');
+      throw new Error(`Accounts: HTTP ${res.status} ${res.statusText}.`);
+    }
+    const payload = await res.json();
+    const results = Array.isArray(payload.results) ? payload.results : [];
+    return results.map((a) => a.number).filter(Boolean);
+  }
 
   /**
    * Fetch the account payload and extract the active electricity meter points.
@@ -1205,8 +1227,11 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
   /** Auto-fill the Octopus fields from the account endpoint. */
   async function autoFillFromAccount() {
-    const accountNumber = ($('f_accountNumber') || {}).value.trim();
     const apiKey        = ($('f_apiKey') || {}).value.trim();
+    const accountNumber = ($('f_accountNumber') || {}).value.trim();
+
+    if (!apiKey)        { log('API key is required for auto-fill.', 'err'); return; }
+    if (!accountNumber) { log('Octopus Account Number is required for auto-fill (e.g. A-1234ABCD). Find it on your bill or in the Octopus app under "Account".', 'err'); return; }
 
     showOverlay('Reading your Octopus account…');
     try {
